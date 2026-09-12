@@ -20,6 +20,9 @@ export function recordingContext(): RecordingContext {
     get __depth() {
       return depth;
     },
+    get __calls() {
+      return calls;
+    },
   };
 
   const ctx = new Proxy(target, {

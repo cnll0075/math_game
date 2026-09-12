@@ -11,6 +11,11 @@ const modelFor = (placed: PlacedAnimal[], overrides: Partial<SceneModel> = {}): 
   targetBalance: null,
   gateOpen: false,
   celebrating: false,
+  tray: [],
+  selectedTrayIndex: null,
+  caption: 'Make it level',
+  stageLabel: null,
+  won: false,
   ...overrides,
 });
 
@@ -92,6 +97,24 @@ describe('scene', () => {
     const scene = createScene(createVectorTheme());
     const point = scene.toDesign({ x: 400, y: 300 }, { width: 2048, height: 1536 });
     expect(point).toEqual({ x: 200, y: 150 });
+  });
+
+  it('draws the tray and the armed side targets', () => {
+    const scene = createScene(createVectorTheme());
+    const model = modelFor([animal('cat', 'left')], {
+      tray: [
+        { uid: 'tray-0', species: 'rabbit', used: false },
+        { uid: 'tray-1', species: 'dog', used: true },
+      ],
+      selectedTrayIndex: 0,
+    });
+    scene.update(1 / 60, model);
+    expect(scene.traySlots()).toHaveLength(1);
+    expect(scene.traySlots()[0]!.item.species).toBe('rabbit');
+    const { ctx, calls } = recordingContext();
+    scene.render(ctx, { width: 1024, height: 768 });
+    expect(calls).toContain('fillText');
+    expect(depthOf(ctx)).toBe(0);
   });
 
   it('opens the gate gradually', () => {

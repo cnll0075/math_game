@@ -2,6 +2,8 @@ import { describeSeesaw, type PlacedAnimal, type SeesawSnapshot, type Side } fro
 import { SCENE, platformAnchor } from './geometry.js';
 import { DESIGN, fitToScreen, slotPositions, type Point, type Size } from './layout.js';
 import { createSpring } from './spring.js';
+import { drawHud, drawSideTargets, traySlots, type TraySlot } from './hud.js';
+import type { TrayItem } from '../logic/game.js';
 import type { AnimalPose, Expression, SeesawTheme, SeesawView } from './theme.js';
 
 export interface SceneModel {
@@ -11,6 +13,11 @@ export interface SceneModel {
   targetBalance: number | null;
   gateOpen: boolean;
   celebrating: boolean;
+  tray: readonly TrayItem[];
+  selectedTrayIndex: number | null;
+  caption: string;
+  stageLabel: string | null;
+  won: boolean;
 }
 
 export interface AnimalPlacement {
@@ -23,6 +30,8 @@ export interface Scene {
   render(ctx: CanvasRenderingContext2D, screen: Size): void;
   /** Where each placed animal currently sits, for hit testing. */
   placements(): AnimalPlacement[];
+  /** Where each waiting animal currently sits, for hit testing. */
+  traySlots(): TraySlot[];
   toDesign(point: Point, screen: Size): Point;
   readonly tiltSettled: boolean;
   readonly plankAngle: number;
@@ -37,6 +46,11 @@ const emptyModel = (): SceneModel => ({
   targetBalance: null,
   gateOpen: false,
   celebrating: false,
+  tray: [],
+  selectedTrayIndex: null,
+  caption: '',
+  stageLabel: null,
+  won: false,
 });
 
 /**
@@ -151,15 +165,30 @@ export function createScene(theme: SeesawTheme): Scene {
       const view = viewState();
       theme.drawBackground(ctx, view);
       theme.drawGate(ctx, view);
+      if (model.selectedTrayIndex !== null) drawSideTargets(ctx, tilt.value, time);
       theme.drawSeesaw(ctx, view);
       for (const { animal, pose } of placementsFor()) theme.animals.draw(ctx, animal.species, pose);
       theme.drawFlag(ctx, view);
       theme.drawGauge(ctx, view);
+      drawHud(
+        ctx,
+        theme,
+        {
+          tray: model.tray,
+          selectedTrayIndex: model.selectedTrayIndex,
+          caption: model.caption,
+          stageLabel: model.stageLabel,
+          won: model.won,
+        },
+        time,
+      );
 
       ctx.restore();
     },
 
     placements: placementsFor,
+
+    traySlots: () => traySlots(model.tray),
 
     toDesign(point, screen) {
       return fitToScreen(screen).toDesign(point);

@@ -1,0 +1,130 @@
+// @vitest-environment jsdom
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
+import { seesawGame } from './index.js';
+import { createTestHost } from './test-host.js';
+import { installCanvasStub } from './canvas-stub.js';
+import * as sounds from './audio/seesaw-sounds.js';
+
+let restoreCanvas: () => void;
+beforeAll(() => {
+  restoreCanvas = installCanvasStub();
+});
+afterAll(() => restoreCanvas());
+
+/** Records what the game plays, without touching the audio bus. */
+const spyOnSounds = () => {
+  const played: string[] = [];
+  vi.spyOn(sounds, 'createSynthSoundPack').mockReturnValue({
+    preload: async () => {},
+    play: (event: string) => void played.push(event),
+  });
+  return played;
+};
+
+const mountGame = async (options?: { startLevel?: string; unlocked?: 'all' | readonly string[] }) => {
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  const host = createTestHost({ unlocked: options?.unlocked });
+  const session = await seesawGame.mount(container, host, { startLevel: options?.startLevel });
+  return { container, host, session };
+};
+
+describe('seesaw game module', () => {
+  it('declares itself to the shell', () => {
+    expect(seesawGame.id).toBe('seesaw');
+    expect(seesawGame.title).toBeTruthy();
+  });
+
+  it('mounts a canvas and unmounts cleanly', async () => {
+    const { container, session } = await mountGame();
+    expect(container.querySelector('canvas')).not.toBeNull();
+    session.unmount();
+    expect(container.childElementCount).toBe(0);
+  });
+
+  it('removes every listener it added', async () => {
+    // Count real registrations by calling through, so unmount is genuinely
+    // balanced rather than merely symmetrical against a stub.
+    const live = new Map<string, number>();
+    const originalAdd = EventTarget.prototype.addEventListener;
+    const originalRemove = EventTarget.prototype.removeEventListener;
+    const bump = (type: string, delta: number) => live.set(type, (live.get(type) ?? 0) + delta);
+
+    const addSpy = vi
+      .spyOn(EventTarget.prototype, 'addEventListener')
+      .mockImplementation(function (this: EventTarget, type: string, listener: never, options: never) {
+        bump(type, 1);
+        return originalAdd.call(this, type, listener, options);
+      } as never);
+    const removeSpy = vi
+      .spyOn(EventTarget.prototype, 'removeEventListener')
+      .mockImplementation(function (this: EventTarget, type: string, listener: never, options: never) {
+        bump(type, -1);
+        return originalRemove.call(this, type, listener, options);
+      } as never);
+
+    const { session } = await mountGame();
+    expect([...live.values()].some((count) => count > 0)).toBe(true);
+    session.unmount();
+    addSpy.mockRestore();
+    removeSpy.mockRestore();
+
+    expect([...live.entries()].filter(([, count]) => count !== 0)).toEqual([]);
+  });
+
+  it('opens the first level by default and the requested one when asked', async () => {
+    const first = await mountGame();
+    expect(first.session.__test.level()).toBe('level-1');
+    first.session.unmount();
+
+    const requested = await mountGame({ startLevel: 'level-3' });
+    expect(requested.session.__test.level()).toBe('level-3');
+    requested.session.unmount();
+  });
+
+  it('opens the first unlocked level when earlier ones are locked', async () => {
+    const { session } = await mountGame({ unlocked: ['seesaw:level-3'] });
+    expect(session.__test.level()).toBe('level-3');
+    session.unmount();
+  });
+
+  it('rings the bell only after the plank settles', async () => {
+    const played = spyOnSounds();
+    const { session } = await mountGame({ startLevel: 'level-2' });
+    session.__test.place(0, 'right');
+    session.__test.place(1, 'right');
+    session.__test.step(1);
+    expect(played).not.toContain('ding');
+    session.__test.step(200);
+    expect(played).toContain('ding');
+    session.unmount();
+    vi.restoreAllMocks();
+  });
+
+  it('warns when the seesaw enters the red zone', async () => {
+    const played = spyOnSounds();
+    const { session } = await mountGame({ startLevel: 'level-4' });
+    session.__test.place(0, 'left');
+    expect(session.__test.zone()).toBe('red');
+    expect(played).toContain('danger');
+    expect(session.__test.flagRaised()).toBe(true);
+    session.unmount();
+    vi.restoreAllMocks();
+  });
+
+  it('pauses and resumes the frame loop', async () => {
+    const { session } = await mountGame();
+    session.pause();
+    session.resume();
+    session.unmount();
+  });
+
+  it('actually renders frames', async () => {
+    const { container, session } = await mountGame();
+    const canvas = container.querySelector('canvas')!;
+    const ctx = canvas.getContext('2d') as unknown as { __calls?: string[] };
+    expect(() => session.__test.step(120)).not.toThrow();
+    expect(ctx.__calls!.length).toBeGreaterThan(100);
+    session.unmount();
+  });
+});

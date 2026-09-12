@@ -3,6 +3,7 @@ import { createScene, type SceneModel } from './scene.js';
 import { createVectorTheme } from './vector-theme.js';
 import { recordingContext, depthOf } from './recording-context.js';
 import { describeSeesaw, type PlacedAnimal } from '../logic/seesaw-state.js';
+import { DESIGN } from './layout.js';
 import type { AnimalId } from '../logic/animals.js';
 
 const modelFor = (placed: PlacedAnimal[], overrides: Partial<SceneModel> = {}): SceneModel => ({
@@ -95,8 +96,27 @@ describe('scene', () => {
 
   it('maps a screen point back into design space', () => {
     const scene = createScene(createVectorTheme());
-    const point = scene.toDesign({ x: 400, y: 300 }, { width: 2048, height: 1536 });
-    expect(point).toEqual({ x: 200, y: 150 });
+    const screen = { width: DESIGN.width * 2, height: DESIGN.height * 2 };
+    expect(scene.toDesign({ x: 400, y: 300 }, screen)).toEqual({ x: 200, y: 150 });
+  });
+
+  it('paints scenery across the whole canvas, leaving no letterbox bars', () => {
+    const scene = createScene(createVectorTheme());
+    // A screen much wider than the design rect: the background has to reach
+    // past the design edges or bars show.
+    const screen = { width: DESIGN.width * 2, height: DESIGN.height };
+    let widest = 0;
+    const theme = {
+      ...createVectorTheme(),
+      drawBackground: (_ctx: CanvasRenderingContext2D, view: { bounds: { left: number; right: number } }) => {
+        widest = view.bounds.right - view.bounds.left;
+      },
+    };
+    const probe = createScene(theme as never);
+    probe.update(1 / 60, modelFor([]));
+    probe.render(recordingContext().ctx, screen);
+    expect(widest).toBeGreaterThan(DESIGN.width);
+    scene.update(1 / 60, modelFor([]));
   });
 
   it('draws the tray and the armed side targets', () => {

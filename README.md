@@ -93,13 +93,23 @@ for three seconds.
 
 Music defaults to off — the game is built to feel complete muted.
 
+## Layout
+
+The design space is 1152x768 (3:2). Gameplay stays inside it and is visible on
+every screen; scenery paints across the whole canvas, so a screen of a different
+shape is filled with park rather than letterbox bars. The clearances that let
+the seesaw fill the frame — baskets missing the ground and the gauge at full
+tilt, the tray clearing the fulcrum — are pinned by tests in `layout.test.ts`,
+because they all sit close to something they must not collide with.
+
 ## Design rules worth keeping
 
 - The mathematical state is authoritative. Perfect balance is
   `leftWeight === rightWeight`, edge-triggered, never derived from the rendered
   angle — visual smoothing can never move the moment the bell rings.
 - The presentation layer reads game state and never writes to it.
-- Animal weights exist only in the animal catalog.
+- Animal weights exist only in the animal catalog, including the numeral each
+  animal wears.
 - Finishing a level is celebrated by the animals themselves — they hop, cheer,
   and chirp in a wave while the plank bobs — not by a score screen. The bob is
   added to the rendered angle only and never reaches the balance state.

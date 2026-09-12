@@ -8,8 +8,12 @@ export interface Size {
   height: number;
 }
 
-/** The coordinate system every draw call uses, scaled to whatever screen. */
-export const DESIGN: Size = { width: 1024, height: 768 };
+/**
+ * The coordinate system every draw call uses, scaled to whatever screen.
+ * 3:2 rather than 4:3: iPad landscape is wider than 4:3, and the extra width is
+ * what lets the seesaw fill the screen instead of sitting in a middle band.
+ */
+export const DESIGN: Size = { width: 1152, height: 768 };
 
 export interface ViewTransform {
   scale: number;
@@ -17,6 +21,27 @@ export interface ViewTransform {
   offsetY: number;
   toScreen(point: Point): Point;
   toDesign(point: Point): Point;
+}
+
+/** A rectangle in design coordinates. */
+export interface Bounds {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+/**
+ * The whole canvas expressed in design coordinates. The design rect is always
+ * inside it; on a screen whose shape differs, the surplus is the area that
+ * would otherwise be letterboxed. Scenery is painted across this so there are
+ * no bars, while gameplay stays inside the design rect where it is always
+ * visible.
+ */
+export function visibleBounds(screen: Size, transform: ViewTransform): Bounds {
+  const topLeft = transform.toDesign({ x: 0, y: 0 });
+  const bottomRight = transform.toDesign({ x: screen.width, y: screen.height });
+  return { left: topLeft.x, top: topLeft.y, right: bottomRight.x, bottom: bottomRight.y };
 }
 
 /** Fits the design space inside the screen, letterboxing the leftover. */

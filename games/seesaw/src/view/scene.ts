@@ -1,6 +1,6 @@
 import { describeSeesaw, type PlacedAnimal, type SeesawSnapshot, type Side } from '../logic/seesaw-state.js';
 import { SCENE, platformAnchor } from './geometry.js';
-import { DESIGN, fitToScreen, slotPositions, type Point, type Size } from './layout.js';
+import { DESIGN, fitToScreen, slotPositions, visibleBounds, type Bounds, type Point, type Size } from './layout.js';
 import { createSpring } from './spring.js';
 import { TIMING } from './timing.js';
 import { drawHud, drawSideTargets, traySlots, type TraySlot } from './hud.js';
@@ -68,6 +68,8 @@ export function createScene(theme: SeesawTheme): Scene {
 
   let model = emptyModel();
   let time = 0;
+  /** The canvas in design coordinates; scenery paints across it. */
+  let bounds: Bounds = { left: 0, top: 0, right: DESIGN.width, bottom: DESIGN.height };
   let celebrate = 0;
   /** Seconds since the finishing dance began; negative when nobody is dancing. */
   let danceElapsed = -1;
@@ -113,6 +115,7 @@ export function createScene(theme: SeesawTheme): Scene {
     flagSide: model.snapshot.heavySide,
     celebrate: Math.max(celebrate, danceIntensity()),
     targetAngle: model.targetBalance === null ? null : -model.targetBalance * SCENE.maxTiltRad,
+    bounds,
     time,
   });
 
@@ -148,7 +151,7 @@ export function createScene(theme: SeesawTheme): Scene {
           pose: {
             x: local.x,
             y: local.y,
-            scale: 0.92,
+            scale: 1.08,
             tiltRad: tiltAmount,
             // Dancers hold still apart from the hop; a wobble on top reads as noise.
             wobble: dance > 0 ? 0 : wobble,
@@ -183,16 +186,12 @@ export function createScene(theme: SeesawTheme): Scene {
 
     render(ctx, screen) {
       const transform = fitToScreen(screen);
+      bounds = visibleBounds(screen, transform);
+
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, screen.width, screen.height);
-      // Letterbox bars.
-      ctx.fillStyle = '#1d2b32';
-      ctx.fillRect(0, 0, screen.width, screen.height);
       ctx.setTransform(transform.scale, 0, 0, transform.scale, transform.offsetX, transform.offsetY);
-      ctx.beginPath();
-      ctx.rect(0, 0, DESIGN.width, DESIGN.height);
       ctx.save();
-      ctx.clip();
 
       const view = viewState();
       theme.drawBackground(ctx, view);

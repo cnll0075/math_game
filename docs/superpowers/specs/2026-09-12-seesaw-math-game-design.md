@@ -310,3 +310,31 @@ Not built now, but designed around:
   spec §34); the seeded RNG in core exists for them.
 - Environmental events act on the same state as animal placement, so the gauge,
   flag, and animal reactions need no changes to respond to them.
+
+
+## 14. Revisions after the first playable
+
+Decisions taken while playing the prototype, superseding the sections above.
+
+**Weights are shown as numerals** (2026-09-12). Each animal wears a small tag
+with its weight: rabbit 1, cat 2, dog 3, bear 5. This departs from the original
+principle that weight should be inferred from the physical result alone; the
+tradeoff was raised — numerals move the game toward the arithmetic-first framing
+§36 argues against — and the decision was to show them. Side totals are still
+not shown: the plank and the gauge remain the only statement of who is heavier.
+
+**The gate is replaced by a finishing dance** (2026-09-12). §10 proposed a gate
+opening as the progression reward. In play it celebrated off to the side of
+where the child was looking, so it was removed from the scene entirely. A
+finished level is now celebrated by the animals on the plank: a staggered wave
+of hops and spins, a cheer expression, chirps in the same wave, falling petals,
+and a gentle bob of the plank. The bob is added to the rendered angle only and
+never reaches the balance state.
+
+**The design space is 1152x768, and scenery paints past it** (2026-09-12).
+§9 specified 1024x768 letterboxed. iPad landscape is wider than 4:3, so the
+seesaw was confined to a middle band with bars at the sides. The design space is
+now 3:2, the plank is as long as it can be while both baskets stay on screen at
+full tilt, and the sky and grass are painted across the whole canvas rather than
+the design rectangle, so no letterbox bars show on any screen shape. Gameplay
+stays inside the design rectangle, which is visible on every screen.

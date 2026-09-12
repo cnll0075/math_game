@@ -2,24 +2,28 @@ import { DESIGN } from './layout.js';
 
 /** Fixed points of the scene, in design coordinates. */
 export const SCENE = {
-  groundY: 582,
+  groundY: 648,
   fulcrumX: DESIGN.width / 2,
   fulcrumY: 396,
-  fulcrumHalfWidth: 62,
+  fulcrumHalfWidth: 84,
   // Arm length plus half a basket must stay inside the design space, or the
-  // baskets get clipped at the edges when the plank tilts.
-  plankHalfLength: 330,
-  plankThickness: 22,
+  // baskets get clipped at the edges when the plank tilts. This is the longest
+  // arm that fits, so the seesaw fills as much of the screen as it can.
+  plankHalfLength: 414,
+  plankThickness: 28,
   platformWidth: 300,
-  platformHeight: 16,
+  platformHeight: 18,
   /** Height of the basket walls that keep animals readable as a group. */
-  basketWall: 46,
+  basketWall: 54,
   /** Where the tray of available animals sits. */
-  trayY: 688,
-  gaugeY: 74,
-  gaugeWidth: 420,
-  /** Largest visual tilt, in radians, at full normalized balance. */
-  maxTiltRad: (22 * Math.PI) / 180,
+  trayY: 706,
+  gaugeY: 62,
+  gaugeWidth: 460,
+  /**
+   * Largest visual tilt at full normalized balance. As steep as it can be
+   * while the low basket's outer corner still clears the ground.
+   */
+  maxTiltRad: (25 * Math.PI) / 180,
 } as const;
 
 export interface PlatformAnchor {

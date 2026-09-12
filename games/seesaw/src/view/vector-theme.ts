@@ -1,4 +1,4 @@
-import { DESIGN } from './layout.js';
+import { DESIGN, type Bounds } from './layout.js';
 import { SCENE, platformAnchor } from './geometry.js';
 import { vectorAnimalArtist } from './animals-art.js';
 import type { SeesawTheme, SeesawView } from './theme.js';
@@ -69,11 +69,14 @@ const drawTree = (ctx: CanvasRenderingContext2D, x: number, y: number, scale: nu
   ctx.restore();
 };
 
-const drawFence = (ctx: CanvasRenderingContext2D, y: number): void => {
+const drawFence = (ctx: CanvasRenderingContext2D, y: number, bounds: Bounds): void => {
   ctx.fillStyle = '#f2e4cd';
   ctx.strokeStyle = '#d8c3a2';
   ctx.lineWidth = 2;
-  for (let x = 24; x < DESIGN.width - 24; x += 46) {
+  // Start on a fixed grid so the pickets do not slide about as the window
+  // changes shape.
+  const first = Math.floor(bounds.left / 46) * 46;
+  for (let x = first; x < bounds.right; x += 46) {
     ctx.beginPath();
     ctx.moveTo(x, y);
     ctx.lineTo(x + 14, y);
@@ -85,17 +88,17 @@ const drawFence = (ctx: CanvasRenderingContext2D, y: number): void => {
     ctx.stroke();
   }
   ctx.fillStyle = '#e7d5b6';
-  ctx.fillRect(24, y - 32, DESIGN.width - 48, 8);
+  ctx.fillRect(bounds.left, y - 32, bounds.right - bounds.left, 8);
 };
 
 const drawFlowers = (ctx: CanvasRenderingContext2D): void => {
   const spots = [
-    [90, 660],
-    [180, 700],
-    [860, 668],
-    [940, 706],
-    [300, 716],
-    [700, 712],
+    [96, 690],
+    [196, 730],
+    [960, 698],
+    [1064, 736],
+    [320, 744],
+    [800, 740],
   ] as const;
   for (const [x, y] of spots) {
     ctx.fillStyle = '#f7d05e';
@@ -147,27 +150,30 @@ export function createVectorTheme(): SeesawTheme {
       // Nothing to load: every shape is drawn from primitives.
     },
 
-    drawBackground(ctx) {
-      const sky = ctx.createLinearGradient(0, 0, 0, SCENE.groundY);
+    drawBackground(ctx, view) {
+      // Everything here paints across the visible bounds rather than the design
+      // rect, so a screen of any shape is filled with park instead of bars.
+      const { bounds } = view;
+      const width = bounds.right - bounds.left;
+      const sky = ctx.createLinearGradient(0, bounds.top, 0, SCENE.groundY);
       sky.addColorStop(0, SKY_TOP);
       sky.addColorStop(1, SKY_BOTTOM);
       ctx.fillStyle = sky;
-      ctx.fillRect(0, 0, DESIGN.width, SCENE.groundY);
+      ctx.fillRect(bounds.left, bounds.top, width, SCENE.groundY - bounds.top);
 
-      drawCloud(ctx, 180, 120, 1);
-      drawCloud(ctx, 780, 92, 1.3);
-      drawCloud(ctx, 520, 170, 0.7);
+      drawCloud(ctx, 200, 118, 1);
+      drawCloud(ctx, 880, 88, 1.3);
+      drawCloud(ctx, 580, 166, 0.7);
 
-      drawTree(ctx, 96, SCENE.groundY, 1.05);
-      drawTree(ctx, 940, SCENE.groundY, 0.9);
+      drawTree(ctx, bounds.left + 78, SCENE.groundY, 1.05);
+      drawTree(ctx, bounds.right - 96, SCENE.groundY, 0.9);
 
       ctx.fillStyle = GRASS;
-      ctx.fillRect(0, SCENE.groundY, DESIGN.width, DESIGN.height - SCENE.groundY);
+      ctx.fillRect(bounds.left, SCENE.groundY, width, bounds.bottom - SCENE.groundY);
       ctx.fillStyle = GRASS_DARK;
-      ctx.fillRect(0, SCENE.groundY, DESIGN.width, 8);
+      ctx.fillRect(bounds.left, SCENE.groundY, width, 8);
 
-      drawFence(ctx, SCENE.groundY);
-      drawTree(ctx, 936, SCENE.groundY, 0.8);
+      drawFence(ctx, SCENE.groundY, bounds);
       drawFlowers(ctx);
     },
 
@@ -292,21 +298,29 @@ export function createVectorTheme(): SeesawTheme {
     drawFlag(ctx, view) {
       if (view.flagHeight <= 0.01 || !view.flagSide) return;
       const anchor = platformAnchor(view.flagSide, view.plankAngle);
-      const height = 90 * view.flagHeight;
+      // Planted at the outer end of the heavy basket rather than its middle,
+      // where the animals standing in the basket would hide it.
+      const outward = view.flagSide === 'left' ? -1 : 1;
+      const height = 100 * view.flagHeight;
+
       ctx.save();
-      ctx.translate(anchor.x, anchor.y - SCENE.platformHeight);
+      ctx.translate(anchor.x, anchor.y);
       ctx.rotate(view.plankAngle);
+      ctx.translate(outward * (SCENE.platformWidth / 2 + 4), -SCENE.platformHeight);
+
       ctx.strokeStyle = '#6d4c33';
-      ctx.lineWidth = 4;
+      ctx.lineWidth = 5;
+      ctx.lineCap = 'round';
       ctx.beginPath();
       ctx.moveTo(0, 0);
       ctx.lineTo(0, -height);
       ctx.stroke();
+
       ctx.fillStyle = '#e4695f';
       ctx.beginPath();
       ctx.moveTo(0, -height);
-      ctx.lineTo(44 * view.flagHeight, -height + 14);
-      ctx.lineTo(0, -height + 28);
+      ctx.lineTo(outward * 50 * view.flagHeight, -height + 15);
+      ctx.lineTo(0, -height + 30);
       ctx.closePath();
       ctx.fill();
       ctx.restore();
@@ -322,11 +336,13 @@ export function createVectorTheme(): SeesawTheme {
       // Saturated enough to read against both the pale sky and the grass;
       // the pastel first attempt vanished into both.
       const colors = ['#ff7fa8', '#ffc21f', '#ff9f6b', '#ffffff', '#b078e8'];
+      const spread = view.bounds.right - view.bounds.left;
+      const depth = view.bounds.bottom - view.bounds.top;
       for (let i = 0; i < 34; i++) {
         const seed = i * 97.13;
-        const x = (seed * 7.3) % DESIGN.width;
+        const x = view.bounds.left + ((seed * 7.3) % spread);
         const drift = Math.sin(view.time * 1.1 + i) * 26;
-        const fall = ((view.time * 74 + seed * 3.1) % (DESIGN.height + 120)) - 60;
+        const fall = view.bounds.top + ((view.time * 74 + seed * 3.1) % (depth + 120)) - 60;
         const spin = view.time * 2 + i;
         ctx.save();
         ctx.translate(x + drift, fall);

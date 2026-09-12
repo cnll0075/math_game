@@ -1,37 +1,85 @@
 import { describe, it, expect } from 'vitest';
-import { DESIGN, fitToScreen, slotPositions } from './layout.js';
+import { DESIGN, fitToScreen, slotPositions, visibleBounds } from './layout.js';
 import { SCENE, platformAnchor } from './geometry.js';
 
 describe('fitToScreen', () => {
   it('scales to fit a wide screen and letterboxes the sides', () => {
-    const transform = fitToScreen({ width: 2048, height: 768 });
+    const screen = { width: DESIGN.width * 2, height: DESIGN.height };
+    const transform = fitToScreen(screen);
     expect(transform.scale).toBeCloseTo(1);
-    expect(transform.offsetX).toBeCloseTo((2048 - 1024) / 2);
+    expect(transform.offsetX).toBeCloseTo(DESIGN.width / 2);
     expect(transform.offsetY).toBeCloseTo(0);
   });
 
   it('scales to fit a tall screen and letterboxes top and bottom', () => {
-    const transform = fitToScreen({ width: 1024, height: 1536 });
+    const screen = { width: DESIGN.width, height: DESIGN.height * 2 };
+    const transform = fitToScreen(screen);
     expect(transform.scale).toBeCloseTo(1);
-    expect(transform.offsetY).toBeCloseTo((1536 - 768) / 2);
+    expect(transform.offsetY).toBeCloseTo(DESIGN.height / 2);
     expect(transform.offsetX).toBeCloseTo(0);
   });
 
   it('maps design points into screen space', () => {
-    const transform = fitToScreen({ width: 2048, height: 1536 });
+    const screen = { width: DESIGN.width * 2, height: DESIGN.height * 2 };
+    const transform = fitToScreen(screen);
     expect(transform.scale).toBeCloseTo(2);
     expect(transform.toScreen({ x: 0, y: 0 })).toEqual({ x: 0, y: 0 });
-    expect(transform.toScreen({ x: DESIGN.width, y: DESIGN.height })).toEqual({ x: 2048, y: 1536 });
+    expect(transform.toScreen({ x: DESIGN.width, y: DESIGN.height })).toEqual({
+      x: screen.width,
+      y: screen.height,
+    });
   });
 
   it('maps screen points back to design space', () => {
-    const transform = fitToScreen({ width: 2048, height: 1536 });
-    expect(transform.toDesign({ x: 1024, y: 768 })).toEqual({ x: 512, y: 384 });
+    const transform = fitToScreen({ width: DESIGN.width * 2, height: DESIGN.height * 2 });
+    expect(transform.toDesign({ x: DESIGN.width, y: DESIGN.height })).toEqual({
+      x: DESIGN.width / 2,
+      y: DESIGN.height / 2,
+    });
   });
 
   it('survives a zero-sized screen', () => {
     const transform = fitToScreen({ width: 0, height: 0 });
     expect(Number.isFinite(transform.scale)).toBe(true);
+  });
+});
+
+describe('visibleBounds', () => {
+  it('matches the design rect when the shapes agree', () => {
+    const screen = { width: DESIGN.width, height: DESIGN.height };
+    const bounds = visibleBounds(screen, fitToScreen(screen));
+    expect(bounds).toEqual({ left: 0, top: 0, right: DESIGN.width, bottom: DESIGN.height });
+  });
+
+  it('extends sideways on a wide screen, so nothing is left to letterbox', () => {
+    const screen = { width: DESIGN.width * 2, height: DESIGN.height };
+    const bounds = visibleBounds(screen, fitToScreen(screen));
+    expect(bounds.left).toBeLessThan(0);
+    expect(bounds.right).toBeGreaterThan(DESIGN.width);
+    expect(bounds.top).toBeCloseTo(0);
+    expect(bounds.bottom).toBeCloseTo(DESIGN.height);
+  });
+
+  it('extends vertically on a tall screen', () => {
+    const screen = { width: DESIGN.width, height: DESIGN.height * 2 };
+    const bounds = visibleBounds(screen, fitToScreen(screen));
+    expect(bounds.top).toBeLessThan(0);
+    expect(bounds.bottom).toBeGreaterThan(DESIGN.height);
+  });
+
+  it('always contains the design rect, whatever the screen', () => {
+    for (const screen of [
+      { width: 1180, height: 820 },
+      { width: 1366, height: 1024 },
+      { width: 1133, height: 744 },
+      { width: 744, height: 1133 },
+    ]) {
+      const bounds = visibleBounds(screen, fitToScreen(screen));
+      expect(bounds.left).toBeLessThanOrEqual(0.001);
+      expect(bounds.top).toBeLessThanOrEqual(0.001);
+      expect(bounds.right).toBeGreaterThanOrEqual(DESIGN.width - 0.001);
+      expect(bounds.bottom).toBeGreaterThanOrEqual(DESIGN.height - 0.001);
+    }
   });
 });
 
@@ -77,5 +125,46 @@ describe('scene fits the design space', () => {
   it('keeps the tray clear of the ground line and the bottom edge', () => {
     expect(SCENE.trayY).toBeGreaterThan(SCENE.groundY);
     expect(SCENE.trayY + 60).toBeLessThanOrEqual(DESIGN.height);
+  });
+});
+
+/**
+ * The scene is tuned to fill the screen, which means every dimension sits close
+ * to something it must not collide with. These fix the clearances so a later
+ * nudge to one number cannot quietly push a basket through the ground.
+ */
+describe('the seesaw fits its frame at full tilt', () => {
+  const cornerReach = SCENE.plankHalfLength + SCENE.platformWidth / 2;
+  const swing = cornerReach * Math.sin(SCENE.maxTiltRad);
+
+  it('keeps the low basket clear of the ground', () => {
+    expect(SCENE.fulcrumY + swing).toBeLessThan(SCENE.groundY - 8);
+  });
+
+  it('keeps the high basket clear of the gauge', () => {
+    const gaugeBottom = SCENE.gaugeY + 22;
+    expect(SCENE.fulcrumY - swing - SCENE.basketWall).toBeGreaterThan(gaugeBottom + 10);
+  });
+
+  it('keeps both baskets on screen at full tilt', () => {
+    for (const tilt of [-SCENE.maxTiltRad, SCENE.maxTiltRad]) {
+      for (const side of ['left', 'right'] as const) {
+        const anchor = platformAnchor(side, tilt);
+        expect(anchor.x - SCENE.platformWidth / 2).toBeGreaterThanOrEqual(0);
+        expect(anchor.x + SCENE.platformWidth / 2).toBeLessThanOrEqual(DESIGN.width);
+      }
+    }
+  });
+
+  it('leaves the tray on the grass and inside the frame', () => {
+    expect(SCENE.trayY).toBeGreaterThan(SCENE.groundY);
+    expect(SCENE.trayY + 62).toBeLessThanOrEqual(DESIGN.height);
+  });
+});
+
+describe('the tray sits clear of the seesaw', () => {
+  it('starts below the ground line, where the fulcrum ends', () => {
+    const trayTop = SCENE.trayY - 44;
+    expect(trayTop).toBeGreaterThan(SCENE.groundY);
   });
 });

@@ -166,6 +166,43 @@ const PAINTERS: Record<AnimalId, (ctx: CanvasRenderingContext2D, pose: AnimalPos
 };
 
 /**
+ * Where each species wears its weight tag, clear of the face and of the body's
+ * silhouette edge.
+ */
+const BADGE_POS: Record<AnimalId, { x: number; y: number }> = {
+  rabbit: { x: 15, y: 15 },
+  cat: { x: 18, y: 16 },
+  dog: { x: 23, y: 15 },
+  bear: { x: 29, y: 20 },
+};
+
+const BADGE_RADIUS = 13;
+
+/**
+ * The animal's weight, worn as a tag. Drawn inside the animal's own transform
+ * so it tips and hops with the animal and reads as part of it rather than as
+ * an overlay.
+ */
+const drawWeightBadge = (ctx: CanvasRenderingContext2D, species: AnimalId): void => {
+  const { x, y } = BADGE_POS[species];
+  const weight = ANIMALS[species].weight;
+
+  ctx.beginPath();
+  ctx.arc(x, y, BADGE_RADIUS, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
+  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = INK;
+  ctx.stroke();
+
+  ctx.fillStyle = INK;
+  ctx.font = '700 17px system-ui, -apple-system, "Segoe UI", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(String(weight), x, y + 1);
+};
+
+/**
  * How far each species' lowest point sits below its drawing origin. A pose
  * positions an animal's FEET, so each body is lifted by its own height and the
  * animals stand on the plank instead of sinking halfway through it.
@@ -201,6 +238,7 @@ export const vectorAnimalArtist: AnimalArtist = {
     );
     ctx.translate(0, -FOOT_OFFSET[species]);
     PAINTERS[species](ctx, pose);
+    drawWeightBadge(ctx, species);
     ctx.restore();
   },
 };

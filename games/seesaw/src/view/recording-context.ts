@@ -7,12 +7,15 @@
 export interface RecordingContext {
   ctx: CanvasRenderingContext2D;
   calls: string[];
+  /** Everything written with fillText/strokeText, so copy can be asserted. */
+  texts: string[];
 }
 
 const RETURNS_OBJECT = new Set(['createLinearGradient', 'createRadialGradient', 'createPattern']);
 
 export function recordingContext(): RecordingContext {
   const calls: string[] = [];
+  const texts: string[] = [];
   let depth = 0;
 
   const target = {
@@ -32,6 +35,7 @@ export function recordingContext(): RecordingContext {
         calls.push(property);
         if (property === 'save') depth += 1;
         if (property === 'restore') depth -= 1;
+        if (property === 'fillText' || property === 'strokeText') texts.push(String(args[0] ?? ''));
         if (RETURNS_OBJECT.has(property)) return { addColorStop: () => {} };
         if (property === 'measureText') return { width: String(args[0] ?? '').length * 7 };
         return undefined;
@@ -42,7 +46,7 @@ export function recordingContext(): RecordingContext {
     },
   }) as unknown as CanvasRenderingContext2D;
 
-  return { ctx, calls };
+  return { ctx, calls, texts };
 }
 
 export const depthOf = (ctx: CanvasRenderingContext2D): number =>

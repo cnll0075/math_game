@@ -1,5 +1,6 @@
 import type { AnimalId } from '../logic/animals.js';
 import type { Side, Zone } from '../logic/seesaw-state.js';
+import type { Bounds } from './layout.js';
 
 export type Expression = 'calm' | 'surprised' | 'alarmed' | 'cheer';
 
@@ -43,6 +44,11 @@ export interface SeesawView {
   celebrate: number;
   /** Marker for a tilt objective, in the same units as plankAngle; null if unused. */
   targetAngle: number | null;
+  /**
+   * The whole canvas in design coordinates. Scenery paints across this so no
+   * letterbox bars show; gameplay stays inside the design rect.
+   */
+  bounds: Bounds;
   time: number;
 }
 

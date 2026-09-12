@@ -60,12 +60,15 @@ export function drawHud(ctx: CanvasRenderingContext2D, theme: SeesawTheme, hud: 
   const slots = traySlots(hud.tray);
   if (slots.length > 0) {
     ctx.save();
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.fillStyle = 'rgba(255,255,255,0.42)';
     const left = slots[0]!.x - TRAY_SLOT_RADIUS - 16;
     const width = slots.at(-1)!.x + TRAY_SLOT_RADIUS + 16 - left;
+    // Kept short enough to clear the fulcrum's base, so the seesaw does not
+    // look like it is standing on the tray.
+    const top = SCENE.trayY - 44;
     ctx.beginPath();
-    ctx.roundRect?.(left, SCENE.trayY - 58, width, 104, 26);
-    if (!ctx.roundRect) ctx.rect(left, SCENE.trayY - 58, width, 104);
+    ctx.roundRect?.(left, top, width, 88, 24);
+    if (!ctx.roundRect) ctx.rect(left, top, width, 88);
     ctx.fill();
     ctx.restore();
   }

@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { createVectorTheme } from './vector-theme.js';
 import { recordingContext, depthOf } from './recording-context.js';
-import { ANIMAL_IDS } from '../logic/animals.js';
+import { ANIMAL_IDS, ANIMALS } from '../logic/animals.js';
+import { DESIGN } from './layout.js';
 import type { Expression, SeesawView } from './theme.js';
 
 const view = (overrides: Partial<SeesawView> = {}): SeesawView => ({
@@ -12,6 +13,7 @@ const view = (overrides: Partial<SeesawView> = {}): SeesawView => ({
   flagSide: 'left',
   celebrate: 0,
   targetAngle: -0.1,
+  bounds: { left: 0, top: 0, right: DESIGN.width, bottom: DESIGN.height },
   time: 1.5,
   ...overrides,
 });
@@ -67,6 +69,24 @@ describe('vector theme', () => {
       });
       expect(calls.length, expression).toBeGreaterThan(0);
       expect(depthOf(ctx)).toBe(0);
+    }
+  });
+
+  it('shows each animal wearing its own weight', () => {
+    const theme = createVectorTheme();
+    for (const species of ANIMAL_IDS) {
+      const { ctx, texts } = recordingContext();
+      theme.animals.draw(ctx, species, {
+        x: 0,
+        y: 0,
+        scale: 1,
+        tiltRad: 0,
+        wobble: 0,
+        slide: 0,
+        dance: 0,
+        expression: 'calm',
+      });
+      expect(texts, species).toContain(String(ANIMALS[species].weight));
     }
   });
 

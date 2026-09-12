@@ -338,3 +338,22 @@ now 3:2, the plank is as long as it can be while both baskets stay on screen at
 full tilt, and the sky and grass are painted across the whole canvas rather than
 the design rectangle, so no letterbox bars show on any screen shape. Gameplay
 stays inside the design rectangle, which is visible on every screen.
+
+
+**The arcade half is built, with three added rules** (2026-09-12). Levels 6 to 8
+are implemented as specified in sections 17 to 19, at 30, 40 and 45 seconds —
+level 8 shortened from the source document's 60, which is a long first taste of
+losing for a six-year-old. Three mechanics the source document does not specify
+were needed to make the mode fair and tense, each found by simulating play:
+
+- Animals wander off after 8 to 14 seconds, so the balance drifts on its own and
+  the seesaw never fills past what a basket can show.
+- The waiting animal climbs on by itself when ignored, onto the side already
+  down. Without this, doing nothing survived every round: nothing was on the
+  plank to drift.
+- In the red with an empty queue, the next animal arrives within half a second.
+  Without this a player who placed quickly could be left in the red with no move
+  available — losing to helplessness rather than to a mistake. This is the
+  "recovery opportunity" section 34 asks the fairness validator to ensure.
+
+A lost round restarts the same level rather than ending the session.

@@ -326,6 +326,27 @@ export function createVectorTheme(): SeesawTheme {
       ctx.restore();
     },
 
+    drawDanger(ctx, view) {
+      if (view.danger <= 0.01) return;
+      // A red glow creeping in from the edges. It needs no reading and no
+      // counting: it simply gets harder to ignore.
+      const { bounds } = view;
+      const width = bounds.right - bounds.left;
+      const height = bounds.bottom - bounds.top;
+      const centreX = (bounds.left + bounds.right) / 2;
+      const centreY = (bounds.top + bounds.bottom) / 2;
+      const radius = Math.hypot(width, height) / 2;
+
+      const glow = ctx.createRadialGradient(centreX, centreY, radius * 0.42, centreX, centreY, radius);
+      glow.addColorStop(0, 'rgba(228, 105, 95, 0)');
+      glow.addColorStop(1, `rgba(198, 48, 44, ${(0.22 + view.danger * 0.5).toFixed(3)})`);
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, view.danger * 1.2);
+      ctx.fillStyle = glow;
+      ctx.fillRect(bounds.left, bounds.top, width, height);
+      ctx.restore();
+    },
+
     drawCelebration(ctx, view) {
       if (view.celebrate <= 0.01) return;
       // Petals drift down across the whole scene. Positions come from the clock

@@ -12,6 +12,7 @@ const view = (overrides: Partial<SeesawView> = {}): SeesawView => ({
   flagHeight: 1,
   flagSide: 'left',
   celebrate: 0,
+  danger: 0,
   targetAngle: -0.1,
   bounds: { left: 0, top: 0, right: DESIGN.width, bottom: DESIGN.height },
   time: 1.5,
@@ -107,6 +108,17 @@ describe('vector theme', () => {
       expect(calls.length, String(dance)).toBeGreaterThan(0);
       expect(depthOf(ctx), String(dance)).toBe(0);
     }
+  });
+
+  it('draws the danger glow only when danger is rising', () => {
+    const theme = createVectorTheme();
+    const safe = recordingContext();
+    const alarming = recordingContext();
+    theme.drawDanger(safe.ctx, view({ danger: 0 }));
+    theme.drawDanger(alarming.ctx, view({ danger: 0.8 }));
+    expect(safe.calls).toHaveLength(0);
+    expect(alarming.calls.length).toBeGreaterThan(0);
+    expect(depthOf(alarming.ctx)).toBe(0);
   });
 
   it('draws petals only while celebrating', () => {

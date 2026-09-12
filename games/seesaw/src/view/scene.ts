@@ -5,6 +5,7 @@ import { createSpring } from './spring.js';
 import { TIMING } from './timing.js';
 import { drawHud, drawSideTargets, traySlots, type TraySlot } from './hud.js';
 import type { TrayItem } from '../logic/game.js';
+import type { AnimalId } from '../logic/animals.js';
 import type { AnimalPose, Expression, SeesawTheme, SeesawView } from './theme.js';
 
 export interface SceneModel {
@@ -20,6 +21,14 @@ export interface SceneModel {
   caption: string;
   stageLabel: string | null;
   won: boolean;
+  /** Arcade only; empty in a puzzle. */
+  queue: readonly AnimalId[];
+  /** Arcade only: 0..1 through the round, or null in a puzzle. */
+  progress: number | null;
+  /** Arcade only: 0..1 how close the waiting animal is to placing itself. */
+  impatience: number;
+  /** Arcade only: 0..1 how full the danger meter is. */
+  danger: number;
 }
 
 export interface AnimalPlacement {
@@ -54,6 +63,10 @@ const emptyModel = (): SceneModel => ({
   caption: '',
   stageLabel: null,
   won: false,
+  queue: [],
+  progress: null,
+  impatience: 0,
+  danger: 0,
 });
 
 /**
@@ -114,6 +127,7 @@ export function createScene(theme: SeesawTheme): Scene {
     flagHeight: flag.value,
     flagSide: model.snapshot.heavySide,
     celebrate: Math.max(celebrate, danceIntensity()),
+    danger: model.danger,
     targetAngle: model.targetBalance === null ? null : -model.targetBalance * SCENE.maxTiltRad,
     bounds,
     time,
@@ -201,6 +215,7 @@ export function createScene(theme: SeesawTheme): Scene {
       theme.drawTarget(ctx, view);
       theme.drawFlag(ctx, view);
       theme.drawGauge(ctx, view);
+      theme.drawDanger(ctx, view);
       theme.drawCelebration(ctx, view);
       drawHud(
         ctx,
@@ -211,6 +226,9 @@ export function createScene(theme: SeesawTheme): Scene {
           caption: model.caption,
           stageLabel: model.stageLabel,
           won: model.won,
+          queue: model.queue,
+          progress: model.progress,
+          impatience: model.impatience,
         },
         time,
       );

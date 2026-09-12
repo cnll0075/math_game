@@ -52,11 +52,20 @@ Edit `games/seesaw/src/logic/levels.data.ts`. A level is data:
 ```
 
 Objectives are `balance`, `sideDown`, `tilt` (an exact weight difference, shown
-as a star), and `sequence` (several in a row). No gameplay code branches on a
-level id.
+as a star), `sequence` (several in a row), and `survive` (the arcade half). No
+gameplay code branches on a level id.
 
-`levels.test.ts` brute-forces every level to prove it is solvable from its tray,
-so a level that cannot be won fails the suite rather than reaching a child.
+An arcade level instead carries an `arcade` block — seed, species pool, arrival
+pace, queue length, how long animals stay, how patient they are, and how fast
+the danger meter fills and drains. Levels 6 to 8 differ only in those numbers.
+
+`levels.test.ts` brute-forces every puzzle level to prove it is solvable from
+its tray, so a level that cannot be won fails the suite rather than reaching a
+child. `arcade-levels.test.ts` does the equivalent for the arcade half by
+simulation: it plays each level to the end across forty seeds with a competent
+strategy and requires every one to be survived, and separately requires that
+ignoring the game loses. The first proves the generator cannot deal an
+unwinnable round; the second proves the mode has any tension at all.
 
 ## Swapping the art
 
@@ -116,12 +125,29 @@ because they all sit close to something they must not collide with.
 - Games never ask whether the player paid; the shell hands down a content
   manifest.
 
+## The arcade half (levels 6–8)
+
+Animals arrive on a timer and wander off after a while, so the balance drifts
+whether or not the child acts. Three rules make that fair:
+
+- **Impatience.** The waiting animal climbs on by itself if ignored, choosing
+  the side that is already down — the end it can reach. Ignoring the game makes
+  a lean worse, which is what stops standing still from being a winning move.
+- **Recovery.** In the red with an empty queue there is no move left to make, so
+  the next animal is sent within half a second. The generator only offers
+  animals that can be placed safely, so the help is real help.
+- **The danger meter.** Red fills it, safety drains it, full ends the round —
+  and a lost round simply starts again. One bad move never ends a round.
+
+`animal-generator.ts` proposes; `fairness.ts` disposes. Keeping them apart means
+difficulty is tuned in one place rather than smeared through the random draw.
+
 ## Not built yet
 
-Levels 6–10 (the arcade half): the animal queue, the generator and its fairness
-validator, environmental events, and endless play. The `Objective` union and the
-level schema have room for them, and the seeded RNG in core exists for the
-generator. The spec calls for validating the core interaction first.
+Levels 9 and 10: environmental events (wind, balloons, butterflies) and the
+endless Animal Park mode with its unlocks. The arcade framework they need is now
+in place — they are new level data plus an event system that acts on the same
+balance state the animals do.
 
 Also deliberately absent: real IAP wiring, accounts, analytics, and the other
 nine games.

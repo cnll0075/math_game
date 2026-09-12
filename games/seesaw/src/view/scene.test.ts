@@ -17,6 +17,10 @@ const modelFor = (placed: PlacedAnimal[], overrides: Partial<SceneModel> = {}): 
   caption: 'Make it level',
   stageLabel: null,
   won: false,
+  queue: [],
+  progress: null,
+  impatience: 0,
+  danger: 0,
   ...overrides,
 });
 

@@ -1,5 +1,5 @@
 import type { AnimalId } from './animals.js';
-import { balanceConfigFor, type LevelDef } from './level.js';
+import { balanceConfigFor, type PuzzleLevelDef } from './level.js';
 import { currentChallenge, isSatisfied, stageCount } from './objectives.js';
 import { describeSeesaw, type PlacedAnimal, type SeesawSnapshot, type Side, type Zone } from './seesaw-state.js';
 
@@ -27,7 +27,7 @@ export type GameEvent =
 
 export interface Game {
   readonly state: GameState;
-  readonly level: LevelDef;
+  readonly level: PuzzleLevelDef;
   place(trayIndex: number, side: Side): GameEvent[];
   takeBack(uid: string): GameEvent[];
   reset(): GameEvent[];
@@ -37,12 +37,12 @@ export interface Game {
 /** Animals the level starts with cannot be taken back; this marks them. */
 const INITIAL_PREFIX = 'init-';
 
-const buildInitial = (level: LevelDef): PlacedAnimal[] => [
+const buildInitial = (level: PuzzleLevelDef): PlacedAnimal[] => [
   ...level.initial.left.map((species, index) => ({ uid: `${INITIAL_PREFIX}left-${index}`, species, side: 'left' as const })),
   ...level.initial.right.map((species, index) => ({ uid: `${INITIAL_PREFIX}right-${index}`, species, side: 'right' as const })),
 ];
 
-const buildTray = (level: LevelDef): TrayItem[] =>
+const buildTray = (level: PuzzleLevelDef): TrayItem[] =>
   level.tray.map((species, index) => ({ uid: `tray-${index}`, species, used: false }));
 
 /**
@@ -51,7 +51,7 @@ const buildTray = (level: LevelDef): TrayItem[] =>
  * events that matter — perfect balance, zone changes — are edge-triggered, so
  * the bell rings on the move that achieved balance and not on every frame.
  */
-export function createGame(level: LevelDef): Game {
+export function createGame(level: PuzzleLevelDef): Game {
   const config = balanceConfigFor(level);
   const totalStages = stageCount(level.objective);
 

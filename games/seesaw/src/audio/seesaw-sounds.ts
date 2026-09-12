@@ -12,6 +12,7 @@ export const SOUND_EVENTS: readonly string[] = [
   'danger',
   'success',
   'cheer',
+  'tumble',
   ...ANIMAL_IDS.map((id) => `chirp:${id}`),
 ];
 
@@ -58,6 +59,12 @@ const cheer: Voice = (bus, delay) => {
   tone(bus, { freq: 587.33, duration: 0.4, type: 'sine', gain: 0.07, sweepTo: 880, delay: delay + 0.06 });
 };
 
+/** The round got away from them: a wooden clatter and a downward sigh. */
+const tumble: Voice = (bus, delay) => {
+  noiseBurst(bus, { duration: 0.4, gain: 0.12, filterHz: 700, sweepTo: 220, delay });
+  tone(bus, { freq: 392, duration: 0.6, type: 'triangle', gain: 0.13, sweepTo: 165, delay: delay + 0.05 });
+};
+
 const VOICES: Record<string, Voice> = {
   ding,
   creak,
@@ -65,6 +72,7 @@ const VOICES: Record<string, Voice> = {
   danger,
   success,
   cheer,
+  tumble,
 };
 
 for (const id of ANIMAL_IDS) {

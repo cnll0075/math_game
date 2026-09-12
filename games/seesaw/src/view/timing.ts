@@ -20,4 +20,6 @@ export const TIMING = {
   celebrateSeconds: 1.1,
   /** Beat after the dance before the next level opens. */
   levelChangeSeconds: 0.8,
+  /** Pause after a lost arcade round before it starts again. */
+  retrySeconds: 2.2,
 } as const;

@@ -1,3 +1,4 @@
+import type { AnimalId } from '../logic/animals.js';
 import type { TrayItem } from '../logic/game.js';
 import { DESIGN } from './layout.js';
 import { SCENE } from './geometry.js';
@@ -39,6 +40,86 @@ export interface HudModel {
   caption: string;
   stageLabel: string | null;
   won: boolean;
+  /** Arcade only: animals waiting to be placed, the current one first. */
+  queue: readonly AnimalId[];
+  /** Arcade only: 0..1 through the round, or null in a puzzle. */
+  progress: number | null;
+  /** Arcade only: 0..1 how close the waiting animal is to placing itself. */
+  impatience: number;
+}
+
+const QUEUE_SPACING = 84;
+
+/** Where the animal being placed sits, and where the ones behind it queue up. */
+export function queueSlots(queue: readonly AnimalId[]): TraySlot[] {
+  return queue.map((species, position) => ({
+    index: position,
+    item: { uid: `queue-${position}`, species, used: false },
+    x: DESIGN.width / 2 + (position === 0 ? 0 : 30 + position * QUEUE_SPACING),
+    y: SCENE.trayY,
+    radius: position === 0 ? TRAY_SLOT_RADIUS : TRAY_SLOT_RADIUS * 0.7,
+  }));
+}
+
+/** The survival bar: a round in progress, filling as it is survived. */
+function drawProgress(ctx: CanvasRenderingContext2D, progress: number): void {
+  const width = SCENE.gaugeWidth;
+  const x = (DESIGN.width - width) / 2;
+  const y = SCENE.gaugeY + 32;
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.beginPath();
+  ctx.roundRect?.(x, y, width, 10, 5);
+  if (!ctx.roundRect) ctx.rect(x, y, width, 10);
+  ctx.fill();
+  ctx.fillStyle = '#63c07a';
+  ctx.beginPath();
+  ctx.roundRect?.(x, y, width * Math.min(1, progress), 10, 5);
+  if (!ctx.roundRect) ctx.rect(x, y, width * Math.min(1, progress), 10);
+  ctx.fill();
+  ctx.restore();
+}
+
+/**
+ * The queue: the animal being placed, prominent, with the next ones smaller
+ * behind it. Seeing what is coming is what lets a child plan rather than only
+ * react (source spec 5).
+ */
+function drawQueue(ctx: CanvasRenderingContext2D, theme: SeesawTheme, hud: HudModel, time: number): void {
+  const slots = queueSlots(hud.queue);
+
+  for (const slot of [...slots].reverse()) {
+    const current = slot.index === 0;
+
+    if (current) {
+      // A ring that empties as the animal's patience runs out.
+      ctx.save();
+      ctx.strokeStyle = hud.impatience > 0.7 ? 'rgba(228,105,95,0.95)' : 'rgba(255,210,63,0.9)';
+      ctx.lineWidth = 6;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.arc(
+        slot.x,
+        slot.y - 6,
+        TRAY_SLOT_RADIUS + 8,
+        -Math.PI / 2,
+        -Math.PI / 2 + Math.PI * 2 * (1 - hud.impatience),
+      );
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    theme.animals.draw(ctx, slot.item.species, {
+      x: slot.x,
+      y: slot.y + (current ? 24 : 16),
+      scale: current ? 0.78 : 0.5,
+      tiltRad: 0,
+      wobble: current ? Math.sin(time * 6) * 0.25 : 0,
+      slide: 0,
+      dance: 0,
+      expression: 'calm',
+    });
+  }
 }
 
 export function drawHud(ctx: CanvasRenderingContext2D, theme: SeesawTheme, hud: HudModel, time: number): void {
@@ -55,6 +136,13 @@ export function drawHud(ctx: CanvasRenderingContext2D, theme: SeesawTheme, hud: 
     ctx.fillText(hud.stageLabel, DESIGN.width / 2, 142);
   }
   ctx.restore();
+
+  if (hud.progress !== null) drawProgress(ctx, hud.progress);
+
+  if (hud.queue.length > 0) {
+    drawQueue(ctx, theme, hud, time);
+    return;
+  }
 
   // Tray shelf.
   const slots = traySlots(hud.tray);

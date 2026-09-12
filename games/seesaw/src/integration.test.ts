@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 import { seesawGame } from './index.js';
-import { LEVELS, getLevel, solutionsFor } from './logic/levels.data.js';
+import { PUZZLE_LEVELS, getLevel, solutionsFor } from './logic/levels.data.js';
 import { createTestHost } from './test-host.js';
 import { installCanvasStub } from './canvas-stub.js';
 import * as sounds from './audio/seesaw-sounds.js';
@@ -24,6 +24,13 @@ const recordSounds = () => {
 
 const eventsOf = (played: Array<{ event: string }>) => played.map((entry) => entry.event);
 
+/** Narrows a level id to the puzzle level it names, for the solver. */
+const puzzle = (id: string) => {
+  const level = getLevel(id);
+  if (!level || level.mode !== 'puzzle') throw new Error(`${id} is not a puzzle level`);
+  return level;
+};
+
 const mountGame = async (startLevel: string) => {
   const container = document.createElement('div');
   document.body.appendChild(container);
@@ -33,13 +40,13 @@ const mountGame = async (startLevel: string) => {
 };
 
 describe('playing the game', () => {
-  it.each(LEVELS.map((level) => [level.id] as const))(
+  it.each(PUZZLE_LEVELS.map((level) => [level.id] as const))(
     '%s can be played to completion through the real module',
     async (id) => {
       const played = recordSounds();
       const { session } = await mountGame(id);
 
-      for (const move of solutionsFor(getLevel(id)!)[0]!) {
+      for (const move of solutionsFor(puzzle(id))[0]!) {
         session.__test.place(move.trayIndex, move.side);
         session.__test.step(40);
       }
@@ -75,7 +82,7 @@ describe('playing the game', () => {
   it('cheers with one chirp per animal, staggered into a wave', async () => {
     const played = recordSounds();
     const { session } = await mountGame('level-1');
-    for (const move of solutionsFor(getLevel('level-1')!)[0]!) session.__test.place(move.trayIndex, move.side);
+    for (const move of solutionsFor(puzzle('level-1'))[0]!) session.__test.place(move.trayIndex, move.side);
 
     const events = eventsOf(played);
     expect(events).toContain('cheer');
@@ -92,7 +99,7 @@ describe('playing the game', () => {
   it('no longer plays a gate sound', async () => {
     const played = recordSounds();
     const { session } = await mountGame('level-1');
-    for (const move of solutionsFor(getLevel('level-1')!)[0]!) session.__test.place(move.trayIndex, move.side);
+    for (const move of solutionsFor(puzzle('level-1'))[0]!) session.__test.place(move.trayIndex, move.side);
     session.__test.step(240);
     expect(eventsOf(played)).not.toContain('gate');
     session.unmount();
@@ -104,7 +111,7 @@ describe('playing the game', () => {
     document.body.appendChild(container);
     const host = createTestHost({ unlocked: 'all' });
     const session = await seesawGame.mount(container, host, { startLevel: 'level-1' });
-    for (const move of solutionsFor(getLevel('level-1')!)[0]!) session.__test.place(move.trayIndex, move.side);
+    for (const move of solutionsFor(puzzle('level-1'))[0]!) session.__test.place(move.trayIndex, move.side);
 
     session.__test.step(60);
     expect(session.__test.danceProgress()).toBeGreaterThan(0);
@@ -145,7 +152,7 @@ describe('playing the game', () => {
     document.body.appendChild(container);
     const host = createTestHost({ unlocked: 'all' });
     const session = await seesawGame.mount(container, host, { startLevel: 'level-1' });
-    for (const move of solutionsFor(getLevel('level-1')!)[0]!) session.__test.place(move.trayIndex, move.side);
+    for (const move of solutionsFor(puzzle('level-1'))[0]!) session.__test.place(move.trayIndex, move.side);
     session.__test.step(400);
     expect(session.__test.level()).toBe('level-2');
     expect(session.__test.status()).toBe('playing');
@@ -157,7 +164,7 @@ describe('playing the game', () => {
     document.body.appendChild(container);
     const host = createTestHost({ unlocked: ['seesaw:level-1'] });
     const session = await seesawGame.mount(container, host, { startLevel: 'level-1' });
-    for (const move of solutionsFor(getLevel('level-1')!)[0]!) session.__test.place(move.trayIndex, move.side);
+    for (const move of solutionsFor(puzzle('level-1'))[0]!) session.__test.place(move.trayIndex, move.side);
     session.__test.step(400);
     expect(host.exited).toBeGreaterThan(0);
     session.unmount();

@@ -1,5 +1,5 @@
 import { createGame } from './game.js';
-import type { LevelDef } from './level.js';
+import { isPuzzle, type ArcadeLevelDef, type LevelDef, type PuzzleLevelDef } from './level.js';
 import type { Side } from './seesaw-state.js';
 
 /**
@@ -60,7 +60,75 @@ export const LEVELS: readonly LevelDef[] = [
     tray: ['rabbit', 'rabbit', 'dog', 'cat', 'rabbit', 'bear'],
     hint: 'Three challenges in a row',
   },
+
+  // Levels 6-8: the arcade half. Animals arrive on their own and wander off on
+  // their own, so the seesaw drifts whether or not the player acts. Difficulty
+  // comes from pace and from how little room the danger meter allows, not from
+  // harder sums.
+  {
+    id: 'level-6',
+    mode: 'arcade',
+    title: 'Keep It Safe',
+    objective: { kind: 'survive', seconds: 30 },
+    initial: { left: ['cat'], right: ['cat'] },
+    arcade: {
+      seed: 1206,
+      pool: ['rabbit', 'cat', 'dog'],
+      arrivalSeconds: 3,
+      queueLength: 3,
+      staySeconds: [10, 14],
+      patienceSeconds: 3.5,
+      dangerFillSeconds: 4,
+      dangerDrainSeconds: 2,
+      maxHeavyRun: 1,
+    },
+    hint: 'Keep everyone safe',
+  },
+  {
+    id: 'level-7',
+    mode: 'arcade',
+    title: 'Faster',
+    objective: { kind: 'survive', seconds: 40 },
+    initial: { left: ['cat'], right: ['rabbit', 'rabbit'] },
+    arcade: {
+      seed: 1207,
+      pool: ['rabbit', 'cat', 'dog', 'bear'],
+      arrivalSeconds: 2,
+      queueLength: 3,
+      staySeconds: [9, 12],
+      patienceSeconds: 2.6,
+      dangerFillSeconds: 3.5,
+      dangerDrainSeconds: 2,
+      maxHeavyRun: 2,
+    },
+    hint: 'They come faster now',
+  },
+  {
+    id: 'level-8',
+    mode: 'arcade',
+    title: 'Danger',
+    objective: { kind: 'survive', seconds: 45 },
+    initial: { left: ['dog'], right: ['cat', 'rabbit'] },
+    arcade: {
+      seed: 1208,
+      pool: ['rabbit', 'cat', 'dog', 'bear'],
+      arrivalSeconds: 1.7,
+      finalArrivalSeconds: 1.3,
+      queueLength: 3,
+      staySeconds: [8, 11],
+      patienceSeconds: 2,
+      dangerFillSeconds: 2.5,
+      dangerDrainSeconds: 1.5,
+      maxHeavyRun: 2,
+    },
+    hint: 'Stay out of the red',
+  },
 ];
+
+export const PUZZLE_LEVELS: readonly PuzzleLevelDef[] = LEVELS.filter(isPuzzle);
+export const ARCADE_LEVELS: readonly ArcadeLevelDef[] = LEVELS.filter(
+  (level): level is ArcadeLevelDef => level.mode === 'arcade',
+);
 
 export const getLevel = (id: string): LevelDef | undefined => LEVELS.find((level) => level.id === id);
 
@@ -79,7 +147,7 @@ const SIDES: readonly Side[] = ['left', 'right'];
  * so a level that the reducer would refuse to clear is reported as unsolvable.
  * Trays stay small, so the search stays cheap.
  */
-export function solutionsFor(level: LevelDef): TraySelection[] {
+export function solutionsFor(level: PuzzleLevelDef): TraySelection[] {
   const solutions: TraySelection[] = [];
   const seen = new Set<string>();
   const queue: TraySelection[] = [[]];

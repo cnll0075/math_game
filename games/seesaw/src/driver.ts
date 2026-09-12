@@ -58,6 +58,13 @@ function puzzleDriver(game: Game): Driver {
     snapshot: () => game.snapshot(),
     placed: () => game.state.placed,
     model: () => ({
+      // Changes whenever the player is being asked for something new, which is
+      // what makes the goal announce itself.
+      goalToken: `${game.level.id}:${game.state.stage}`,
+      stages: stageCount(game.level.objective),
+      stagesCleared: game.state.status === 'won' ? stageCount(game.level.objective) : game.state.stage,
+      secondsRemaining: null,
+      showPlacementHint: false,
       targetBalance: targetBalance(),
       tray: game.state.tray,
       selectedTrayIndex: selected,
@@ -90,6 +97,9 @@ function puzzleDriver(game: Game): Driver {
 const STILL_AIR = { phase: 'calm', side: 'left', strength: 0, through: 0 } as const;
 
 function arcadeDriver(run: ArcadeRun, best: number | null): Driver {
+  /** The hint stays up until the player has seated an animal themselves. */
+  let playerPlacements = 0;
+
   return {
     get status() {
       return run.state.status;
@@ -100,6 +110,13 @@ function arcadeDriver(run: ArcadeRun, best: number | null): Driver {
     snapshot: () => run.snapshot(),
     placed: () => run.state.placed,
     model: () => ({
+      goalToken: `${run.level.id}`,
+      stages: 1,
+      stagesCleared: run.state.status === 'won' ? 1 : 0,
+      secondsRemaining: run.target === null ? null : Math.max(0, run.target - run.state.elapsed),
+      // The arcade has no "pick up" step, so without this there is nothing on
+      // screen saying that tapping a side is what seats the animal.
+      showPlacementHint: playerPlacements < 2 && run.state.queue.length > 0,
       targetBalance: null,
       tray: [],
       selectedTrayIndex: null,
@@ -121,7 +138,11 @@ function arcadeDriver(run: ArcadeRun, best: number | null): Driver {
     }),
     tick: (dt) => run.tick(dt),
     stats: () => run.state.stats,
-    drop: (side) => run.place(side),
+    drop: (side) => {
+      const events = run.place(side);
+      if (events.length > 0) playerPlacements += 1;
+      return events;
+    },
     pick: () => {},
     takeBack: () => [],
   };

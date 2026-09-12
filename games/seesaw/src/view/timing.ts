@@ -22,4 +22,8 @@ export const TIMING = {
   levelChangeSeconds: 0.8,
   /** Pause after a lost arcade round before it starts again. */
   retrySeconds: 2.2,
+  /** How long a new goal is shown large before it settles into the top bar. */
+  goalAnnounceSeconds: 1.9,
+  /** The share of that spent flying up to the bar. */
+  goalSettleFraction: 0.28,
 } as const;

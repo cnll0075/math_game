@@ -379,3 +379,27 @@ section 10's advice about reward screens, there is no scoreboard — the surviva
 bar becomes a "beat your best" bar with a seconds count beside it.
 
 Unlocks, new animals and new environments remain unbuilt, per section 35.
+
+
+**Legibility pass after playtesting** (2026-09-12). Five problems found by an
+adult playing it, and what each turned out to be:
+
+- **The star was a decoy.** Level 4 drew two indicators for one goal: a dashed
+  ghost showing where the plank must go, and a star floating above the basket.
+  Players aimed at the star. They are now one object — a ghost plank with the
+  star at its end — and the star flares when the plank reaches it.
+- **Goals went unnoticed.** A caption that merely changed was too quiet for a
+  game where every level asks something different. Goals now arrive large in the
+  centre with a sound and fly up to the bar, re-firing for each challenge within
+  a level.
+- **Level 5 did not feel like three challenges.** It now shows a dot per
+  challenge, ticked off with a stamp as each is cleared.
+- **Level 6 was unsolvable by an adult.** The cause was not difficulty: in
+  puzzle levels, picking up an animal highlights both platforms, and arcade mode
+  had that highlight disabled, so nothing on screen said that tapping a side
+  seats the waiting animal. The zones now glow whenever an animal waits, arrows
+  point at them until the player has seated two, the objective reads "Keep it
+  out of the red", and level 6's pacing was loosened considerably.
+- **The countdown was easy to miss.** The bar is taller, carries the seconds
+  remaining as a numeral, pulses over the last five seconds, and ticks once a
+  second through them.

@@ -61,7 +61,8 @@ export function describeObjective(objective: Objective): string {
     case 'sequence':
       return describeObjective(currentChallenge(objective, 0));
     case 'survive':
-      return 'Keep everyone safe';
+      // Concrete, and it points at the gauge that is already on screen.
+      return 'Keep it out of the red';
     case 'endless':
       return 'How long can you keep going?';
     default: {

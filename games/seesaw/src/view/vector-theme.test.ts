@@ -3,6 +3,7 @@ import { createVectorTheme } from './vector-theme.js';
 import { recordingContext, depthOf } from './recording-context.js';
 import { ANIMAL_IDS, ANIMALS } from '../logic/animals.js';
 import { DESIGN } from './layout.js';
+import { SCENE, platformAnchor } from './geometry.js';
 import type { Expression, SeesawView } from './theme.js';
 
 const view = (overrides: Partial<SeesawView> = {}): SeesawView => ({
@@ -172,5 +173,29 @@ describe('vector theme', () => {
     theme.drawSeesaw(withGhost.ctx, view({ targetAngle: -0.2 }));
     theme.drawSeesaw(withoutGhost.ctx, view({ targetAngle: null }));
     expect(withGhost.calls.length).toBeGreaterThan(withoutGhost.calls.length);
+  });
+});
+
+describe('the target marker', () => {
+  it('sits at the end of the ghost plank, not floating above it', () => {
+    const theme = createVectorTheme();
+    const targetAngle = -0.18;
+    const { ctx, translations } = recordingContext();
+
+    theme.drawTarget(ctx, view({ targetAngle, plankAngle: 0.2 }));
+    const ghostEnd = platformAnchor('right', targetAngle);
+    const star = translations[0]!;
+    // Within a plank thickness of the ghost's end: they are one object.
+    expect(Math.hypot(star.x - ghostEnd.x, star.y - ghostEnd.y)).toBeLessThan(SCENE.plankThickness);
+  });
+
+  it('celebrates once the plank reaches it', () => {
+    const theme = createVectorTheme();
+    const away = recordingContext();
+    const arrived = recordingContext();
+    theme.drawTarget(away.ctx, view({ targetAngle: -0.18, plankAngle: 0.2 }));
+    theme.drawTarget(arrived.ctx, view({ targetAngle: -0.18, plankAngle: -0.18 }));
+    // The reached star gains a halo, so arriving is unmistakable.
+    expect(arrived.calls.length).toBeGreaterThan(away.calls.length);
   });
 });

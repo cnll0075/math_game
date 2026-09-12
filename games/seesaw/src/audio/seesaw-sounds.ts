@@ -14,6 +14,9 @@ export const SOUND_EVENTS: readonly string[] = [
   'cheer',
   'tumble',
   'gust',
+  'goal',
+  'stamp',
+  'tick',
   ...ANIMAL_IDS.map((id) => `chirp:${id}`),
 ];
 
@@ -71,6 +74,23 @@ const gust: Voice = (bus, delay) => {
   noiseBurst(bus, { duration: 1.4, gain: 0.1, filterHz: 380, sweepTo: 1100, delay });
 };
 
+/** A new goal arriving: two rising notes, attention without alarm. */
+const goal: Voice = (bus, delay) => {
+  tone(bus, { freq: 587.33, duration: 0.22, type: 'triangle', gain: 0.14, delay });
+  tone(bus, { freq: 880, duration: 0.34, type: 'triangle', gain: 0.13, delay: delay + 0.12 });
+};
+
+/** A challenge ticked off: a short, satisfying thunk. */
+const stamp: Voice = (bus, delay) => {
+  tone(bus, { freq: 330, duration: 0.16, type: 'square', gain: 0.12, sweepTo: 220, delay });
+  tone(bus, { freq: 990, duration: 0.22, type: 'sine', gain: 0.09, delay: delay + 0.04 });
+};
+
+/** The clock running out: one dry tick a second. */
+const tick: Voice = (bus, delay) => {
+  tone(bus, { freq: 1046.5, duration: 0.07, type: 'square', gain: 0.09, delay });
+};
+
 const VOICES: Record<string, Voice> = {
   ding,
   creak,
@@ -80,6 +100,9 @@ const VOICES: Record<string, Voice> = {
   cheer,
   tumble,
   gust,
+  goal,
+  stamp,
+  tick,
 };
 
 for (const id of ANIMAL_IDS) {

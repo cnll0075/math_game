@@ -168,3 +168,14 @@ describe('the tray sits clear of the seesaw', () => {
     expect(trayTop).toBeGreaterThan(SCENE.groundY);
   });
 });
+
+describe('the goal announcement keeps out of the way', () => {
+  it('arrives above a resting seesaw rather than across it', () => {
+    // A goal announces itself at the start of a level or challenge, when the
+    // plank is at or near level. At full tilt the raised basket sweeps most of
+    // the sky, so clearance is measured against the resting plank.
+    const seesawTopAtRest = SCENE.fulcrumY - SCENE.platformHeight - SCENE.basketWall;
+    const cardBottom = 196 + 30;
+    expect(cardBottom).toBeLessThan(seesawTopAtRest);
+  });
+});

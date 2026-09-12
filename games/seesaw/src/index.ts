@@ -34,6 +34,8 @@ export interface SeesawTestHooks {
   survivalSeconds(): number | null;
   bestSeconds(): number | null;
   windPhase(): 'calm' | 'warning' | 'blowing';
+  showPlacementHint(): boolean;
+  secondsRemaining(): number | null;
 }
 
 export interface SeesawSession extends GameSession {
@@ -84,6 +86,9 @@ export const seesawGame: SeesawModule = {
     let celebrating = 0;
     /** Seconds since the round finished, won or lost. */
     let finishedFor = 0;
+    /** Last whole second announced by the countdown, so it ticks once each. */
+    let lastTick = Number.POSITIVE_INFINITY;
+    let announcedGoal = '';
 
     const applySettings = (): void => {
       host.audio.muted = host.settings.values.muted;
@@ -119,6 +124,9 @@ export const seesawGame: SeesawModule = {
             break;
           case 'zoneChanged':
             if (event.to === 'red') sounds.play('danger');
+            break;
+          case 'stageCleared':
+            sounds.play('stamp');
             break;
           case 'windChanged':
             // The warning is the sound that matters: it is the beat of notice
@@ -209,7 +217,27 @@ export const seesawGame: SeesawModule = {
     const frame = (dt: number): void => {
       if (driver.status === 'playing') handleEvents(driver.tick(dt));
 
-      scene.update(dt, modelFor());
+      const model = modelFor();
+      scene.update(dt, model);
+
+      // A new goal arrives with a sound, so it is noticed even by a child who
+      // is still looking at the animals.
+      if (model.goalToken !== announcedGoal) {
+        announcedGoal = model.goalToken;
+        sounds.play('goal');
+      }
+
+      // The last few seconds tick, once each.
+      const remaining = model.secondsRemaining;
+      if (remaining === null || driver.status !== 'playing') {
+        lastTick = Number.POSITIVE_INFINITY;
+      } else {
+        const whole = Math.ceil(remaining);
+        if (whole <= 5 && whole > 0 && whole < lastTick) {
+          lastTick = whole;
+          sounds.play('tick');
+        }
+      }
 
       if (pendingDing && scene.tiltSettled) {
         dingTimer += dt;
@@ -270,6 +298,8 @@ export const seesawGame: SeesawModule = {
         survivalSeconds: () => driver.model().survivalSeconds,
         bestSeconds: () => driver.model().bestSeconds,
         windPhase: () => driver.model().wind.phase,
+        showPlacementHint: () => driver.model().showPlacementHint,
+        secondsRemaining: () => driver.model().secondsRemaining,
       },
     };
   },

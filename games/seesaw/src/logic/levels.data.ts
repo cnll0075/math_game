@@ -74,12 +74,15 @@ export const LEVELS: readonly LevelDef[] = [
     arcade: {
       seed: 1206,
       pool: ['rabbit', 'cat', 'dog'],
-      arrivalSeconds: 3,
+      // The first arcade level, and a player's first meeting with animals that
+      // arrive on their own: slow arrivals, a long fuse on the waiting animal,
+      // and a danger meter that takes real neglect to fill.
+      arrivalSeconds: 3.6,
       queueLength: 3,
-      staySeconds: [10, 14],
-      patienceSeconds: 3.5,
-      dangerFillSeconds: 4,
-      dangerDrainSeconds: 2,
+      staySeconds: [11, 15],
+      patienceSeconds: 5,
+      dangerFillSeconds: 6,
+      dangerDrainSeconds: 1.5,
       maxHeavyRun: 1,
     },
     hint: 'Keep everyone safe',

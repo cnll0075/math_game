@@ -31,6 +31,15 @@ export interface SceneModel {
   danger: number;
   /** Arcade only: the weather. */
   wind: SeesawView['wind'];
+  /** Changes whenever a new goal is being asked for, which triggers its arrival. */
+  goalToken: string;
+  /** How many challenges this level has, and how many are done. */
+  stages: number;
+  stagesCleared: number;
+  /** Timed arcade levels: seconds left, for the countdown. */
+  secondsRemaining: number | null;
+  /** Show the player where an arcade animal can be seated. */
+  showPlacementHint: boolean;
   /** Endless only: seconds survived so far, and the record to beat. */
   survivalSeconds: number | null;
   bestSeconds: number | null;
@@ -52,6 +61,7 @@ export interface Scene {
   readonly tiltSettled: boolean;
   readonly plankAngle: number;
   readonly danceProgress: number;
+  readonly announcing: boolean;
 }
 
 const expressionFor = (zone: SeesawSnapshot['zone']): Expression =>
@@ -75,6 +85,11 @@ const emptyModel = (): SceneModel => ({
   wind: { phase: 'calm', side: 'left', strength: 0, through: 0 },
   survivalSeconds: null,
   bestSeconds: null,
+  goalToken: '',
+  stages: 1,
+  stagesCleared: 0,
+  secondsRemaining: null,
+  showPlacementHint: false,
 });
 
 /**
@@ -92,6 +107,12 @@ export function createScene(theme: SeesawTheme): Scene {
   /** The canvas in design coordinates; scenery paints across it. */
   let bounds: Bounds = { left: 0, top: 0, right: DESIGN.width, bottom: DESIGN.height };
   let celebrate = 0;
+  /** Seconds left of the current goal announcement; negative when idle. */
+  let announcing = -1;
+  let announcedToken = '';
+  let stagesCleared = 0;
+  /** Counts down briefly each time a stage is stamped off. */
+  let stamp = 0;
   /** Seconds since the finishing dance began; negative when nobody is dancing. */
   let danceElapsed = -1;
   /** Per-animal phase so a row of animals does not wobble in lockstep. */
@@ -204,6 +225,19 @@ export function createScene(theme: SeesawTheme): Scene {
       if (next.dancing) danceElapsed = danceElapsed < 0 ? 0 : danceElapsed + dt;
       else danceElapsed = -1;
 
+      // A new goal announces itself, whether that is a new level or the next
+      // challenge within one.
+      if (next.goalToken !== announcedToken) {
+        announcedToken = next.goalToken;
+        announcing = TIMING.goalAnnounceSeconds;
+      } else if (announcing > 0) {
+        announcing = Math.max(0, announcing - dt);
+      }
+
+      if (next.stagesCleared > stagesCleared) stamp = 0.9;
+      stagesCleared = next.stagesCleared;
+      if (stamp > 0) stamp = Math.max(0, stamp - dt);
+
       celebrate = next.celebrating ? Math.min(1, celebrate + dt * 3) : Math.max(0, celebrate - dt * 1.6);
     },
 
@@ -218,7 +252,11 @@ export function createScene(theme: SeesawTheme): Scene {
 
       const view = viewState();
       theme.drawBackground(ctx, view);
-      if (model.selectedTrayIndex !== null) drawSideTargets(ctx, view.plankAngle, time);
+      // In the arcade there is no picking-up step, so the landing zones show
+      // themselves whenever an animal is waiting: without this there is nothing
+      // on screen saying that a side tap is what seats it.
+      const waiting = model.selectedTrayIndex !== null || model.queue.length > 0;
+      if (waiting) drawSideTargets(ctx, view.plankAngle, time, model.showPlacementHint ? 1 : 0.55);
       theme.drawSeesaw(ctx, view);
       for (const { animal, pose } of placementsFor()) theme.animals.draw(ctx, animal.species, pose);
       theme.drawTarget(ctx, view);
@@ -241,6 +279,12 @@ export function createScene(theme: SeesawTheme): Scene {
           impatience: model.impatience,
           survivalSeconds: model.survivalSeconds,
           bestSeconds: model.bestSeconds,
+          stages: model.stages,
+          stagesCleared: model.stagesCleared,
+          secondsRemaining: model.secondsRemaining,
+          showPlacementHint: model.showPlacementHint,
+          announcing: announcing > 0 ? 1 - announcing / TIMING.goalAnnounceSeconds : null,
+          stamp,
         },
         time,
       );
@@ -262,6 +306,11 @@ export function createScene(theme: SeesawTheme): Scene {
 
     get plankAngle() {
       return tilt.value + celebrationBob();
+    },
+
+    /** Whether a goal is being announced right now. */
+    get announcing() {
+      return announcing > 0;
     },
 
     /** How far through the finishing dance the scene is, 0 when not dancing. */

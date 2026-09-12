@@ -9,6 +9,8 @@ export interface RecordingContext {
   calls: string[];
   /** Everything written with fillText/strokeText, so copy can be asserted. */
   texts: string[];
+  /** Every translate, so positions can be asserted without reading pixels. */
+  translations: Array<{ x: number; y: number }>;
 }
 
 const RETURNS_OBJECT = new Set(['createLinearGradient', 'createRadialGradient', 'createPattern']);
@@ -16,6 +18,7 @@ const RETURNS_OBJECT = new Set(['createLinearGradient', 'createRadialGradient', 
 export function recordingContext(): RecordingContext {
   const calls: string[] = [];
   const texts: string[] = [];
+  const translations: Array<{ x: number; y: number }> = [];
   let depth = 0;
 
   const target = {
@@ -36,6 +39,7 @@ export function recordingContext(): RecordingContext {
         if (property === 'save') depth += 1;
         if (property === 'restore') depth -= 1;
         if (property === 'fillText' || property === 'strokeText') texts.push(String(args[0] ?? ''));
+        if (property === 'translate') translations.push({ x: Number(args[0]), y: Number(args[1]) });
         if (RETURNS_OBJECT.has(property)) return { addColorStop: () => {} };
         if (property === 'measureText') return { width: String(args[0] ?? '').length * 7 };
         return undefined;
@@ -46,7 +50,7 @@ export function recordingContext(): RecordingContext {
     },
   }) as unknown as CanvasRenderingContext2D;
 
-  return { ctx, calls, texts };
+  return { ctx, calls, texts, translations };
 }
 
 export const depthOf = (ctx: CanvasRenderingContext2D): number =>

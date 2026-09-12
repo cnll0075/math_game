@@ -208,38 +208,56 @@ export function createVectorTheme(): SeesawTheme {
       drawPlatform(ctx, 'right', view);
 
       if (view.targetAngle !== null) {
-        // A ghost of where the plank should end up, plus a star at the end of
-        // it. Without the ghost line the star reads as decoration rather than
-        // as the thing being aimed at.
+        // A ghost of the plank where it should end up. The star sits at the end
+        // of this, not above it: one goal, one thing to aim at.
         ctx.save();
         ctx.translate(SCENE.fulcrumX, SCENE.fulcrumY);
         ctx.rotate(view.targetAngle);
-        ctx.strokeStyle = 'rgba(224, 165, 0, 0.5)';
-        ctx.lineWidth = 5;
-        ctx.lineCap = 'round';
-        ctx.setLineDash?.([14, 12]);
-        ctx.beginPath();
-        ctx.moveTo(-SCENE.plankHalfLength, 0);
-        ctx.lineTo(SCENE.plankHalfLength, 0);
+        ctx.fillStyle = 'rgba(255, 210, 63, 0.32)';
+        roundRect(
+          ctx,
+          -SCENE.plankHalfLength - 26,
+          -SCENE.plankThickness / 2,
+          (SCENE.plankHalfLength + 26) * 2,
+          SCENE.plankThickness,
+          8,
+        );
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(224, 165, 0, 0.75)';
+        ctx.lineWidth = 3;
+        ctx.setLineDash?.([13, 10]);
         ctx.stroke();
         ctx.setLineDash?.([]);
         ctx.restore();
-
       }
     },
 
     drawTarget(ctx, view) {
       if (view.targetAngle === null) return;
+      // Planted at the end of the ghost plank, so bringing the plank to the
+      // star is literally the goal rather than a second thing to interpret.
       const anchor = platformAnchor('right', view.targetAngle);
+      const reached = Math.abs(view.plankAngle - view.targetAngle) < 0.015;
+      const beat = reached ? 1 + Math.sin(view.time * 7) * 0.12 : 1;
+
       ctx.save();
-      ctx.translate(anchor.x, anchor.y - SCENE.platformHeight - SCENE.basketWall - 30);
-      ctx.rotate(Math.sin(view.time * 1.4) * 0.12);
-      ctx.fillStyle = '#ffd23f';
+      ctx.translate(anchor.x, anchor.y - SCENE.platformHeight / 2);
+      ctx.rotate(reached ? 0 : Math.sin(view.time * 1.4) * 0.12);
+      ctx.scale(beat, beat);
+
+      if (reached) {
+        ctx.fillStyle = 'rgba(255, 210, 63, 0.4)';
+        ctx.beginPath();
+        ctx.arc(0, 0, 40, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.fillStyle = reached ? '#ffe071' : '#ffd23f';
       ctx.strokeStyle = '#e0a500';
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2.5;
       ctx.beginPath();
       for (let i = 0; i < 10; i++) {
-        const radius = i % 2 === 0 ? 21 : 9;
+        const radius = i % 2 === 0 ? 24 : 10;
         const angle = (i / 10) * Math.PI * 2 - Math.PI / 2;
         const px = Math.cos(angle) * radius;
         const py = Math.sin(angle) * radius;

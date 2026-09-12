@@ -148,6 +148,29 @@ the seesaw fill the frame — baskets missing the ground and the gauge at full
 tilt, the tray clearing the fulcrum — are pinned by tests in `layout.test.ts`,
 because they all sit close to something they must not collide with.
 
+## Telling the player what is being asked
+
+Each level asks for something different, and in play that was easy to miss. Two
+things carry it:
+
+- **The goal announces itself.** It arrives large in the middle of the screen
+  with a sound, holds, then flies up into the top bar. It fires again for each
+  challenge inside a level, so a new ask is always seen arriving rather than
+  discovered.
+- **Stage dots.** A level with several challenges shows one dot per challenge,
+  ticked off as they are cleared, so it visibly differs from a level that asks
+  for one thing.
+
+In the arcade there is no picking-up step, so both landing zones glow whenever
+an animal is waiting, and arrows sweep out from it towards them until the player
+has seated two animals themselves. Without that there is nothing on screen
+saying that tapping a side is the verb.
+
+The target for a tilt objective is **one** thing: a ghost of the plank where it
+should end up, with the star at the end of it. An earlier version drew the ghost
+and floated the star above the basket, which read as two separate goals and sent
+players aiming at the wrong one.
+
 ## Design rules worth keeping
 
 - The mathematical state is authoritative. Perfect balance is

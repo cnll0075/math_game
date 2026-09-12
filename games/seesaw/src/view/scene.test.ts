@@ -24,6 +24,11 @@ const modelFor = (placed: PlacedAnimal[], overrides: Partial<SceneModel> = {}): 
   wind: { phase: 'calm', side: 'left', strength: 0, through: 0 },
   survivalSeconds: null,
   bestSeconds: null,
+  goalToken: 'test:0',
+  stages: 1,
+  stagesCleared: 0,
+  secondsRemaining: null,
+  showPlacementHint: false,
   ...overrides,
 });
 
@@ -212,5 +217,128 @@ describe('scene', () => {
       expect(() => scene.render(ctx, { width: 800, height: 600 })).not.toThrow();
       expect(depthOf(ctx)).toBe(0);
     });
+  });
+});
+
+describe('announcing the goal', () => {
+  const goal = (token: string, overrides: Partial<SceneModel> = {}) =>
+    modelFor([], { goalToken: token, ...overrides });
+
+  it('announces the goal when a level opens', () => {
+    const scene = createScene(createVectorTheme());
+    scene.update(1 / 60, goal('level-1:0'));
+    expect(scene.announcing).toBe(true);
+  });
+
+  it('settles once the announcement has played', () => {
+    const scene = createScene(createVectorTheme());
+    for (let i = 0; i < 60 * 3; i++) scene.update(1 / 60, goal('level-1:0'));
+    expect(scene.announcing).toBe(false);
+  });
+
+  it('announces again when the next challenge begins', () => {
+    const scene = createScene(createVectorTheme());
+    for (let i = 0; i < 60 * 3; i++) scene.update(1 / 60, goal('level-5:0'));
+    expect(scene.announcing).toBe(false);
+    scene.update(1 / 60, goal('level-5:1'));
+    expect(scene.announcing).toBe(true);
+  });
+
+  it('does not re-announce a goal that has not changed', () => {
+    const scene = createScene(createVectorTheme());
+    for (let i = 0; i < 60 * 3; i++) scene.update(1 / 60, goal('level-1:0'));
+    for (let i = 0; i < 60; i++) scene.update(1 / 60, goal('level-1:0'));
+    expect(scene.announcing).toBe(false);
+  });
+
+  it('draws the goal wherever it is in its arrival', () => {
+    const scene = createScene(createVectorTheme());
+    for (const frames of [1, 30, 80, 200]) {
+      const fresh = createScene(createVectorTheme());
+      for (let i = 0; i < frames; i++) fresh.update(1 / 60, goal('level-1:0'));
+      const { ctx, texts } = recordingContext();
+      fresh.render(ctx, { width: 1024, height: 768 });
+      expect(texts.join(' ')).toContain('Make it level');
+      expect(depthOf(ctx)).toBe(0);
+    }
+    scene.update(1 / 60, goal('x:0'));
+  });
+});
+
+describe('showing a level with several challenges', () => {
+  it('draws a dot for each challenge, ticked as they are cleared', () => {
+    const scene = createScene(createVectorTheme());
+    const model = modelFor([], { goalToken: 'level-5:1', stages: 3, stagesCleared: 1 });
+    for (let i = 0; i < 200; i++) scene.update(1 / 60, model);
+    const withDots = recordingContext();
+    scene.render(withDots.ctx, { width: 1024, height: 768 });
+
+    const plain = createScene(createVectorTheme());
+    const single = modelFor([], { goalToken: 'level-1:0', stages: 1, stagesCleared: 0 });
+    for (let i = 0; i < 200; i++) plain.update(1 / 60, single);
+    const withoutDots = recordingContext();
+    plain.render(withoutDots.ctx, { width: 1024, height: 768 });
+
+    // A three-challenge level visibly carries more than a one-challenge level.
+    expect(withDots.calls.length).toBeGreaterThan(withoutDots.calls.length);
+  });
+});
+
+describe('the arcade landing zones', () => {
+  const queued = (overrides: Partial<SceneModel> = {}) =>
+    modelFor([], { queue: ['rabbit'], caption: 'Keep it out of the red', ...overrides });
+
+  it('shows where to put an animal whenever one is waiting', () => {
+    const scene = createScene(createVectorTheme());
+    scene.update(1 / 60, queued());
+    const withQueue = recordingContext();
+    scene.render(withQueue.ctx, { width: 1024, height: 768 });
+
+    const idle = createScene(createVectorTheme());
+    idle.update(1 / 60, modelFor([]));
+    const withoutQueue = recordingContext();
+    idle.render(withoutQueue.ctx, { width: 1024, height: 768 });
+
+    expect(withQueue.calls.length).toBeGreaterThan(withoutQueue.calls.length);
+  });
+
+  it('points the way harder before the player has placed anything', () => {
+    const scene = createScene(createVectorTheme());
+    scene.update(1 / 60, queued({ showPlacementHint: true }));
+    const hinted = recordingContext();
+    scene.render(hinted.ctx, { width: 1024, height: 768 });
+
+    const quiet = createScene(createVectorTheme());
+    quiet.update(1 / 60, queued({ showPlacementHint: false }));
+    const settled = recordingContext();
+    quiet.render(settled.ctx, { width: 1024, height: 768 });
+
+    expect(hinted.calls.length).toBeGreaterThan(settled.calls.length);
+  });
+});
+
+describe('the countdown', () => {
+  it('shows the seconds left, not just a bar', () => {
+    const scene = createScene(createVectorTheme());
+    const model = modelFor([], { progress: 0.5, secondsRemaining: 12.4, caption: 'Keep it out of the red' });
+    for (let i = 0; i < 200; i++) scene.update(1 / 60, model);
+    const { ctx, texts } = recordingContext();
+    scene.render(ctx, { width: 1024, height: 768 });
+    expect(texts).toContain('13s');
+  });
+});
+
+describe('the goal arriving does not disturb what is already there', () => {
+  it('keeps the stage dots in one place throughout the announcement', () => {
+    const model = modelFor([], { goalToken: 'level-5:1', stages: 3, stagesCleared: 1 });
+    for (const frames of [2, 20, 60, 100, 200]) {
+      const scene = createScene(createVectorTheme());
+      for (let i = 0; i < frames; i++) scene.update(1 / 60, model);
+      const { ctx, translations } = recordingContext();
+      scene.render(ctx, { width: 1024, height: 768 });
+      // Three dots, on the same row, every frame of the announcement.
+      const onTheRow = translations.filter((point) => Math.abs(point.y - 74) < 0.5);
+      expect(onTheRow, `frame ${frames}`).toHaveLength(3);
+    }
   });
 });

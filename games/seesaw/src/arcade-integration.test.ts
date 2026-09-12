@@ -196,3 +196,49 @@ describe('the windy day and the endless park', () => {
     second.unmount();
   });
 });
+
+describe('making the arcade legible', () => {
+  it('offers a placement hint until the player has got the idea', async () => {
+    const { session } = await mountArcade('level-6');
+    session.__test.step(2);
+    expect(session.__test.showPlacementHint()).toBe(true);
+    playOneMove(session);
+    playOneMove(session);
+    session.__test.step(2);
+    // Two placements in, the arrows stand down.
+    expect(session.__test.showPlacementHint()).toBe(false);
+    session.unmount();
+  });
+
+  it('ticks down the last few seconds out loud', async () => {
+    const played = recordSounds();
+    const { session } = await mountArcade('level-6', 'all');
+    playFor(session, 32);
+    const ticks = played.filter((event) => event === 'tick').length;
+    // One per second over the closing five, give or take the final frame.
+    expect(ticks).toBeGreaterThanOrEqual(4);
+    expect(ticks).toBeLessThanOrEqual(6);
+    session.unmount();
+    vi.restoreAllMocks();
+  });
+
+  it('counts the round down rather than only filling a bar', async () => {
+    const { session } = await mountArcade('level-6');
+    const atStart = session.__test.secondsRemaining()!;
+    session.__test.step(120);
+    expect(atStart).toBeGreaterThan(25);
+    expect(session.__test.secondsRemaining()!).toBeLessThan(atStart);
+  });
+
+  it('is forgiving enough that the first arcade level survives some fumbling', async () => {
+    const { session } = await mountArcade('level-6', 'all');
+    // A player who is slow and only half paying attention: acts every second.
+    for (let frame = 0; frame < 60 * 31; frame++) {
+      session.__test.step(1);
+      if (session.__test.status() !== 'playing') break;
+      if (frame % 60 === 0) playOneMove(session);
+    }
+    expect(session.__test.status()).toBe('won');
+    session.unmount();
+  });
+});

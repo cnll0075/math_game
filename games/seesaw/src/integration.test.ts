@@ -180,3 +180,32 @@ describe('playing the game', () => {
     session.unmount();
   });
 });
+
+describe('making the goal noticeable', () => {
+  it('sounds a new goal when a level opens', async () => {
+    const played = recordSounds();
+    const { session } = await mountGame('level-1');
+    session.__test.step(2);
+    expect(eventsOf(played)).toContain('goal');
+    session.unmount();
+    vi.restoreAllMocks();
+  });
+
+  it('sounds it again for each challenge of a three-part level', async () => {
+    const played = recordSounds();
+    const { session } = await mountGame('level-5');
+    session.__test.step(2);
+    const atStart = eventsOf(played).filter((event) => event === 'goal').length;
+
+    // Clear the first challenge; the next goal should announce itself.
+    for (const move of solutionsFor(puzzle('level-5'))[0]!.slice(0, 1)) {
+      session.__test.place(move.trayIndex, move.side);
+    }
+    session.__test.step(10);
+    expect(eventsOf(played).filter((event) => event === 'goal').length).toBeGreaterThan(atStart);
+    // And clearing one is stamped, so the progress is felt.
+    expect(eventsOf(played)).toContain('stamp');
+    session.unmount();
+    vi.restoreAllMocks();
+  });
+});

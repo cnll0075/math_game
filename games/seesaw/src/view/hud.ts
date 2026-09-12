@@ -2,7 +2,139 @@ import type { AnimalId } from '../logic/animals.js';
 import type { TrayItem } from '../logic/game.js';
 import { DESIGN } from './layout.js';
 import { SCENE } from './geometry.js';
+import { TIMING } from './timing.js';
 import type { SeesawTheme } from './theme.js';
+
+/** Where the goal sits once it has settled. */
+const GOAL_RESTING_Y = 36;
+/** Where it arrives, before flying up: over the sky, clear of the seesaw. */
+const GOAL_ARRIVAL_Y = 196;
+
+const ease = (t: number): number => 1 - (1 - t) * (1 - t);
+
+/**
+ * The goal, arriving. Every level asks for something different, and a caption
+ * that merely changes is easy to miss: this one appears big in the middle of
+ * the scene, holds, then flies up to its place at the top. It fires again when
+ * a level's next challenge begins, so a new ask always announces itself.
+ */
+function drawGoal(ctx: CanvasRenderingContext2D, hud: HudModel, time: number): void {
+  const settleAt = 1 - TIMING.goalSettleFraction;
+  const arriving = hud.announcing !== null;
+  const through = hud.announcing ?? 1;
+
+  let y = GOAL_RESTING_Y;
+  let scale = 1;
+  let cardAlpha = 0;
+
+  if (arriving) {
+    if (through < settleAt) {
+      // Popping in and holding, centre stage.
+      // Starts at two thirds rather than nothing, so even the first frame
+      // reads as a goal arriving rather than as a speck.
+      const pop = Math.min(1, through / 0.12);
+      y = GOAL_ARRIVAL_Y;
+      scale = 1.7 * (0.66 + 0.34 * ease(pop));
+      cardAlpha = ease(pop);
+    } else {
+      // Flying up to the bar.
+      const settle = ease((through - settleAt) / TIMING.goalSettleFraction);
+      y = GOAL_ARRIVAL_Y + (GOAL_RESTING_Y - GOAL_ARRIVAL_Y) * settle;
+      scale = 1.7 + (1 - 1.7) * settle;
+      cardAlpha = 1 - settle;
+    }
+  }
+
+  ctx.save();
+  ctx.translate(DESIGN.width / 2, y);
+  ctx.scale(scale, scale);
+
+  if (cardAlpha > 0.01) {
+    const width = 34 + hud.caption.length * 15;
+    ctx.globalAlpha = cardAlpha * 0.9;
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.beginPath();
+    ctx.roundRect?.(-width / 2, -30, width, 60, 22);
+    if (!ctx.roundRect) ctx.rect(-width / 2, -30, width, 60);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  ctx.font = '600 30px system-ui, -apple-system, "Segoe UI", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(29,43,50,0.86)';
+  ctx.fillText(hud.caption, 0, 0);
+  ctx.restore();
+
+  // The dots keep their place while the goal flies past them: a row of markers
+  // that jumps about is harder to read than one that simply sits there.
+  if (hud.stages > 1) drawStageDots(ctx, hud, 74, time);
+}
+
+/**
+ * One dot per challenge, ticked off as they are cleared. Level 5 asks for three
+ * things in a row, and without this it looks exactly like the levels that ask
+ * for one.
+ */
+function drawStageDots(ctx: CanvasRenderingContext2D, hud: HudModel, y: number, time: number): void {
+  const gap = 46;
+  const start = DESIGN.width / 2 - ((hud.stages - 1) * gap) / 2;
+
+  for (let index = 0; index < hud.stages; index++) {
+    const done = index < hud.stagesCleared;
+    const current = index === hud.stagesCleared;
+    // The dot just ticked off swells briefly, so the progress is felt.
+    const justStamped = hud.stamp > 0 && index === hud.stagesCleared - 1;
+    const radius = 13 + (justStamped ? Math.sin(hud.stamp * Math.PI * 1.2) * 7 : 0);
+
+    ctx.save();
+    ctx.translate(start + index * gap, y);
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, Math.PI * 2);
+    ctx.fillStyle = done ? '#63c07a' : 'rgba(255,255,255,0.75)';
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = current ? '#ffc21f' : 'rgba(29,43,50,0.25)';
+    if (current) {
+      ctx.lineWidth = 3 + Math.sin(time * 5) * 1;
+    }
+    ctx.stroke();
+
+    if (done) {
+      // A tick, drawn rather than typed.
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 3.5;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(-5.5, 0.5);
+      ctx.lineTo(-1.5, 4.5);
+      ctx.lineTo(6, -4.5);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+}
+
+/** Arrows sweeping out towards both platforms: tap a side to seat this animal. */
+function drawPlacementHint(ctx: CanvasRenderingContext2D, x: number, y: number, time: number): void {
+  const sweep = (Math.sin(time * 3) + 1) / 2;
+  for (const direction of [-1, 1]) {
+    ctx.save();
+    ctx.translate(x + direction * (58 + sweep * 22), y - 6);
+    ctx.globalAlpha = 0.35 + sweep * 0.55;
+    ctx.strokeStyle = '#ffc21f';
+    ctx.lineWidth = 7;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-direction * 9, -13);
+    ctx.lineTo(direction * 9, 0);
+    ctx.lineTo(-direction * 9, 13);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
 
 /**
  * Prototype UI chrome: the tray of animals waiting to be placed, the one-line
@@ -49,6 +181,17 @@ export interface HudModel {
   /** Endless only: seconds survived, and the record to beat. */
   survivalSeconds: number | null;
   bestSeconds: number | null;
+  /** How many challenges this level has, and how many are done. */
+  stages: number;
+  stagesCleared: number;
+  /** Timed arcade levels: seconds left on the clock. */
+  secondsRemaining: number | null;
+  /** Show where an arcade animal can be seated. */
+  showPlacementHint: boolean;
+  /** 0..1 through the goal's arrival, or null when it has settled. */
+  announcing: number | null;
+  /** Counts down after a stage is stamped off. */
+  stamp: number;
 }
 
 const QUEUE_SPACING = 84;
@@ -64,22 +207,48 @@ export function queueSlots(queue: readonly AnimalId[]): TraySlot[] {
   }));
 }
 
-/** The survival bar: a round in progress, filling as it is survived. */
-function drawProgress(ctx: CanvasRenderingContext2D, progress: number): void {
+/**
+ * The clock: how much of the round is done, and how long is left. Taller than a
+ * progress bar needs to be, and carrying its own number, because in play it was
+ * easy to miss that there was a countdown at all.
+ */
+function drawProgress(ctx: CanvasRenderingContext2D, progress: number, remaining: number | null, time: number): void {
   const width = SCENE.gaugeWidth;
   const x = (DESIGN.width - width) / 2;
-  const y = SCENE.gaugeY + 32;
+  const y = SCENE.gaugeY + 34;
+  const height = 18;
+  const closing = remaining !== null && remaining <= 5;
+
   ctx.save();
-  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
   ctx.beginPath();
-  ctx.roundRect?.(x, y, width, 10, 5);
-  if (!ctx.roundRect) ctx.rect(x, y, width, 10);
+  ctx.roundRect?.(x, y, width, height, height / 2);
+  if (!ctx.roundRect) ctx.rect(x, y, width, height);
   ctx.fill();
-  ctx.fillStyle = '#63c07a';
+
+  // The last few seconds pulse, so the finish is felt as well as seen.
+  ctx.fillStyle = closing ? '#ffc21f' : '#63c07a';
+  ctx.globalAlpha = closing ? 0.75 + Math.sin(time * 10) * 0.25 : 1;
   ctx.beginPath();
-  ctx.roundRect?.(x, y, width * Math.min(1, progress), 10, 5);
-  if (!ctx.roundRect) ctx.rect(x, y, width * Math.min(1, progress), 10);
+  ctx.roundRect?.(x, y, Math.max(height, width * Math.min(1, progress)), height, height / 2);
+  if (!ctx.roundRect) ctx.rect(x, y, width * Math.min(1, progress), height);
   ctx.fill();
+  ctx.globalAlpha = 1;
+
+  ctx.strokeStyle = 'rgba(29,43,50,0.25)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect?.(x, y, width, height, height / 2);
+  if (!ctx.roundRect) ctx.rect(x, y, width, height);
+  ctx.stroke();
+
+  if (remaining !== null) {
+    ctx.font = '700 26px system-ui, -apple-system, "Segoe UI", sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = closing ? '#d8552b' : 'rgba(29,43,50,0.8)';
+    ctx.fillText(`${Math.ceil(remaining)}s`, x + width + 16, y + height / 2);
+  }
   ctx.restore();
 }
 
@@ -151,6 +320,8 @@ function drawQueue(ctx: CanvasRenderingContext2D, theme: SeesawTheme, hud: HudMo
       ctx.restore();
     }
 
+    if (current && hud.showPlacementHint) drawPlacementHint(ctx, slot.x, slot.y, time);
+
     theme.animals.draw(ctx, slot.item.species, {
       x: slot.x,
       y: slot.y + (current ? 24 : 16),
@@ -165,21 +336,9 @@ function drawQueue(ctx: CanvasRenderingContext2D, theme: SeesawTheme, hud: HudMo
 }
 
 export function drawHud(ctx: CanvasRenderingContext2D, theme: SeesawTheme, hud: HudModel, time: number): void {
-  // Objective caption, one short line, low in the visual hierarchy.
-  ctx.save();
-  ctx.font = '600 30px system-ui, -apple-system, "Segoe UI", sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = 'rgba(29,43,50,0.82)';
-  ctx.fillText(hud.caption, DESIGN.width / 2, 36);
-  if (hud.stageLabel) {
-    ctx.font = '600 20px system-ui, -apple-system, "Segoe UI", sans-serif';
-    ctx.fillStyle = 'rgba(29,43,50,0.55)';
-    ctx.fillText(hud.stageLabel, DESIGN.width / 2, 142);
-  }
-  ctx.restore();
+  drawGoal(ctx, hud, time);
 
-  if (hud.progress !== null) drawProgress(ctx, hud.progress);
+  if (hud.progress !== null) drawProgress(ctx, hud.progress, hud.secondsRemaining, time);
   else if (hud.survivalSeconds !== null) drawRun(ctx, hud.survivalSeconds, hud.bestSeconds);
 
   if (hud.queue.length > 0) {
@@ -231,8 +390,13 @@ export function drawHud(ctx: CanvasRenderingContext2D, theme: SeesawTheme, hud: 
 }
 
 /** Highlights the two landing areas while an animal is armed. */
-export function drawSideTargets(ctx: CanvasRenderingContext2D, plankAngle: number, time: number): void {
-  const pulse = 0.25 + Math.sin(time * 5) * 0.1;
+export function drawSideTargets(
+  ctx: CanvasRenderingContext2D,
+  plankAngle: number,
+  time: number,
+  emphasis = 1,
+): void {
+  const pulse = (0.25 + Math.sin(time * 5) * 0.1) * emphasis;
   for (const direction of [-1, 1]) {
     const armX = direction * SCENE.plankHalfLength;
     const x = SCENE.fulcrumX + armX * Math.cos(plankAngle);

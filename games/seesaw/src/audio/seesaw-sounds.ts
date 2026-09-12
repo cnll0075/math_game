@@ -13,6 +13,7 @@ export const SOUND_EVENTS: readonly string[] = [
   'success',
   'cheer',
   'tumble',
+  'gust',
   ...ANIMAL_IDS.map((id) => `chirp:${id}`),
 ];
 
@@ -65,6 +66,11 @@ const tumble: Voice = (bus, delay) => {
   tone(bus, { freq: 392, duration: 0.6, type: 'triangle', gain: 0.13, sweepTo: 165, delay: delay + 0.05 });
 };
 
+/** Wind getting up: breath rising, so the gust is heard before it is felt. */
+const gust: Voice = (bus, delay) => {
+  noiseBurst(bus, { duration: 1.4, gain: 0.1, filterHz: 380, sweepTo: 1100, delay });
+};
+
 const VOICES: Record<string, Voice> = {
   ding,
   creak,
@@ -73,6 +79,7 @@ const VOICES: Record<string, Voice> = {
   success,
   cheer,
   tumble,
+  gust,
 };
 
 for (const id of ANIMAL_IDS) {

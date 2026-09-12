@@ -29,6 +29,11 @@ export interface SceneModel {
   impatience: number;
   /** Arcade only: 0..1 how full the danger meter is. */
   danger: number;
+  /** Arcade only: the weather. */
+  wind: SeesawView['wind'];
+  /** Endless only: seconds survived so far, and the record to beat. */
+  survivalSeconds: number | null;
+  bestSeconds: number | null;
 }
 
 export interface AnimalPlacement {
@@ -67,6 +72,9 @@ const emptyModel = (): SceneModel => ({
   progress: null,
   impatience: 0,
   danger: 0,
+  wind: { phase: 'calm', side: 'left', strength: 0, through: 0 },
+  survivalSeconds: null,
+  bestSeconds: null,
 });
 
 /**
@@ -128,6 +136,7 @@ export function createScene(theme: SeesawTheme): Scene {
     flagSide: model.snapshot.heavySide,
     celebrate: Math.max(celebrate, danceIntensity()),
     danger: model.danger,
+    wind: model.wind,
     targetAngle: model.targetBalance === null ? null : -model.targetBalance * SCENE.maxTiltRad,
     bounds,
     time,
@@ -214,6 +223,7 @@ export function createScene(theme: SeesawTheme): Scene {
       for (const { animal, pose } of placementsFor()) theme.animals.draw(ctx, animal.species, pose);
       theme.drawTarget(ctx, view);
       theme.drawFlag(ctx, view);
+      theme.drawWeather(ctx, view);
       theme.drawGauge(ctx, view);
       theme.drawDanger(ctx, view);
       theme.drawCelebration(ctx, view);
@@ -229,6 +239,8 @@ export function createScene(theme: SeesawTheme): Scene {
           queue: model.queue,
           progress: model.progress,
           impatience: model.impatience,
+          survivalSeconds: model.survivalSeconds,
+          bestSeconds: model.bestSeconds,
         },
         time,
       );

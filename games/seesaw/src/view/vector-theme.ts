@@ -326,6 +326,51 @@ export function createVectorTheme(): SeesawTheme {
       ctx.restore();
     },
 
+    drawWeather(ctx, view) {
+      const { wind, bounds } = view;
+      if (wind.phase === 'calm') return;
+
+      // A warning blows a few leaves; the gust itself streaks across the whole
+      // scene. Both lean the way the wind is pushing, so the direction is
+      // readable without a word of text.
+      const direction = wind.side === 'left' ? -1 : 1;
+      const blowing = wind.phase === 'blowing';
+      const count = blowing ? 34 : 12;
+      const speed = blowing ? 520 : 190;
+      const spread = bounds.right - bounds.left + 400;
+
+      ctx.save();
+      ctx.globalAlpha = blowing ? 0.85 : 0.45 + Math.sin(view.time * 8) * 0.12;
+      for (let i = 0; i < count; i++) {
+        const seed = i * 61.7;
+        const drift = ((view.time * speed + seed * 37) % spread) - 200;
+        const x = wind.side === 'left' ? bounds.right + 200 - drift : bounds.left - 200 + drift;
+        const y = bounds.top + ((seed * 13.3) % (bounds.bottom - bounds.top));
+        const length = blowing ? 34 + (i % 4) * 12 : 16;
+
+        if (blowing) {
+          ctx.strokeStyle = 'rgba(255,255,255,0.75)';
+          ctx.lineWidth = 2.5 + (i % 3);
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x + direction * length, y + Math.sin(view.time * 3 + i) * 5);
+          ctx.stroke();
+        } else {
+          // Leaves, tumbling ahead of the gust.
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(view.time * 3 + i);
+          ctx.fillStyle = i % 2 === 0 ? '#8fbf62' : '#c9a227';
+          ctx.beginPath();
+          ctx.ellipse(0, 0, 8, 4.5, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+      ctx.restore();
+    },
+
     drawDanger(ctx, view) {
       if (view.danger <= 0.01) return;
       // A red glow creeping in from the edges. It needs no reading and no

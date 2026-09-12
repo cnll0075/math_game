@@ -9,7 +9,8 @@ export type Objective =
   | { kind: 'sideDown'; side: Side }
   | { kind: 'tilt'; target: number }
   | { kind: 'sequence'; challenges: readonly Objective[] }
-  | { kind: 'survive'; seconds: number };
+  | { kind: 'survive'; seconds: number }
+  | { kind: 'endless' };
 
 export function stageCount(objective: Objective): number {
   return objective.kind === 'sequence' ? objective.challenges.length : 1;
@@ -37,6 +38,7 @@ export function isSatisfied(objective: Objective, snapshot: SeesawSnapshot): boo
     case 'sequence':
       return false;
     case 'survive':
+    case 'endless':
       // Survival is a matter of the clock, not of the current weights; the
       // arcade run decides it.
       return false;
@@ -60,6 +62,8 @@ export function describeObjective(objective: Objective): string {
       return describeObjective(currentChallenge(objective, 0));
     case 'survive':
       return 'Keep everyone safe';
+    case 'endless':
+      return 'How long can you keep going?';
     default: {
       const exhaustive: never = objective;
       return exhaustive;

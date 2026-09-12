@@ -46,6 +46,9 @@ export interface HudModel {
   progress: number | null;
   /** Arcade only: 0..1 how close the waiting animal is to placing itself. */
   impatience: number;
+  /** Endless only: seconds survived, and the record to beat. */
+  survivalSeconds: number | null;
+  bestSeconds: number | null;
 }
 
 const QUEUE_SPACING = 84;
@@ -77,6 +80,45 @@ function drawProgress(ctx: CanvasRenderingContext2D, progress: number): void {
   ctx.roundRect?.(x, y, width * Math.min(1, progress), 10, 5);
   if (!ctx.roundRect) ctx.rect(x, y, width * Math.min(1, progress), 10);
   ctx.fill();
+  ctx.restore();
+}
+
+/**
+ * The endless run: how long this one has lasted, and how it compares with the
+ * best so far. A bar rather than a scoreboard, so beating your own record is
+ * the reward and nothing else is dangled.
+ */
+function drawRun(ctx: CanvasRenderingContext2D, seconds: number, best: number | null): void {
+  const width = SCENE.gaugeWidth;
+  const x = (DESIGN.width - width) / 2;
+  const y = SCENE.gaugeY + 32;
+  const beaten = best !== null && seconds > best;
+  const fraction = best && best > 0 ? Math.min(1, seconds / best) : Math.min(1, seconds / 60);
+
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.beginPath();
+  ctx.roundRect?.(x, y, width, 10, 5);
+  if (!ctx.roundRect) ctx.rect(x, y, width, 10);
+  ctx.fill();
+
+  ctx.fillStyle = beaten ? '#ffc21f' : '#63c07a';
+  ctx.beginPath();
+  ctx.roundRect?.(x, y, width * fraction, 10, 5);
+  if (!ctx.roundRect) ctx.rect(x, y, width * fraction, 10);
+  ctx.fill();
+
+  ctx.font = '700 22px system-ui, -apple-system, "Segoe UI", sans-serif';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(29,43,50,0.85)';
+  ctx.textAlign = 'left';
+  ctx.fillText(`${Math.floor(seconds)}s`, x + width + 14, y + 4);
+  if (best !== null && best > 0) {
+    ctx.font = '600 16px system-ui, -apple-system, "Segoe UI", sans-serif';
+    ctx.fillStyle = 'rgba(29,43,50,0.5)';
+    ctx.textAlign = 'right';
+    ctx.fillText(`best ${Math.floor(best)}s`, x - 14, y + 4);
+  }
   ctx.restore();
 }
 
@@ -138,6 +180,7 @@ export function drawHud(ctx: CanvasRenderingContext2D, theme: SeesawTheme, hud: 
   ctx.restore();
 
   if (hud.progress !== null) drawProgress(ctx, hud.progress);
+  else if (hud.survivalSeconds !== null) drawRun(ctx, hud.survivalSeconds, hud.bestSeconds);
 
   if (hud.queue.length > 0) {
     drawQueue(ctx, theme, hud, time);

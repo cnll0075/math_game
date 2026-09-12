@@ -125,7 +125,7 @@ because they all sit close to something they must not collide with.
 - Games never ask whether the player paid; the shell hands down a content
   manifest.
 
-## The arcade half (levels 6–8)
+## The arcade half (levels 6–10)
 
 Animals arrive on a timer and wander off after a while, so the balance drifts
 whether or not the child acts. Three rules make that fair:
@@ -142,12 +142,31 @@ whether or not the child acts. Three rules make that fair:
 `animal-generator.ts` proposes; `fairness.ts` disposes. Keeping them apart means
 difficulty is tuned in one place rather than smeared through the random draw.
 
+**Wind** (levels 9 and 10) is a phantom weight, not a nudge to the drawing: a
+gust adds one or two units to a side for a few seconds. Because every system
+reads the one authoritative balance, the tilt, gauge, zone, flag, animal
+reactions, danger meter — and the fairness validator, which therefore only
+offers animals that can be placed safely in the weather actually blowing — all
+respond correctly with no code of their own. A gust announces itself with
+blowing leaves and a rising sound before it pushes.
+
+**Level 10** never ends: the arrival pace keeps tightening towards a floor, so
+every run is eventually lost, and how long it lasted is the score. It tracks
+time survived, animals handled, perfect balances, longest streak and near
+misses, and keeps the best time in the host's storage. The survival bar becomes
+a "beat your best" bar rather than a reward screen.
+
 ## Not built yet
 
-Levels 9 and 10: environmental events (wind, balloons, butterflies) and the
-endless Animal Park mode with its unlocks. The arcade framework they need is now
-in place — they are new level data plus an event system that acts on the same
-balance state the animals do.
+All ten levels exist. Still open, and deliberately so:
+
+- **Balloons and butterflies.** The source document lists them after wind; they
+  would be further entries in a level's event settings, not further plumbing.
+- **Unlocks, new animals, new environments.** Deferred by the source document,
+  and bundle-shell decisions once monetisation is settled.
+- **Real art and sound.** The prototype's are swappable through `SeesawTheme`
+  and `SoundPack`; see above.
+- **The other nine games.** The shell has a tile each, marked "Soon".
 
 Also deliberately absent: real IAP wiring, accounts, analytics, and the other
 nine games.

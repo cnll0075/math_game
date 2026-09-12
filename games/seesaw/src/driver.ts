@@ -1,5 +1,5 @@
 import { createGame, type Game, type GameEvent } from './logic/game.js';
-import { createArcadeRun, type ArcadeEvent, type ArcadeRun } from './logic/arcade.js';
+import { createArcadeRun, type ArcadeEvent, type ArcadeRun, type ArcadeStats } from './logic/arcade.js';
 import { balanceConfigFor, isArcade, type LevelDef } from './logic/level.js';
 import { currentChallenge, describeObjective, stageCount } from './logic/objectives.js';
 import type { PlacedAnimal, SeesawSnapshot, Side } from './logic/seesaw-state.js';
@@ -30,6 +30,8 @@ export interface Driver {
   takeBack(uid: string): SessionEvent[];
   /** Whether a side tap would place something right now. */
   readonly armed: boolean;
+  /** How the round went, for an endless level; null for a puzzle. */
+  stats(): ArcadeStats | null;
 }
 
 function puzzleDriver(game: Game): Driver {
@@ -66,8 +68,12 @@ function puzzleDriver(game: Game): Driver {
       progress: null,
       impatience: 0,
       danger: 0,
+      wind: STILL_AIR,
+      survivalSeconds: null,
+      bestSeconds: null,
     }),
     tick: () => [],
+    stats: () => null,
     drop(side) {
       if (selected === null) return [];
       const events = game.place(selected, side);
@@ -81,7 +87,9 @@ function puzzleDriver(game: Game): Driver {
   };
 }
 
-function arcadeDriver(run: ArcadeRun): Driver {
+const STILL_AIR = { phase: 'calm', side: 'left', strength: 0, through: 0 } as const;
+
+function arcadeDriver(run: ArcadeRun, best: number | null): Driver {
   return {
     get status() {
       return run.state.status;
@@ -102,14 +110,28 @@ function arcadeDriver(run: ArcadeRun): Driver {
       progress: run.progress,
       impatience: run.state.impatience,
       danger: run.state.danger,
+      wind: {
+        phase: run.state.wind.phase,
+        side: run.state.wind.side,
+        strength: Math.abs(run.state.wind.bias),
+        through: run.state.wind.through,
+      },
+      survivalSeconds: run.target === null ? run.state.elapsed : null,
+      bestSeconds: run.target === null ? best : null,
     }),
     tick: (dt) => run.tick(dt),
+    stats: () => run.state.stats,
     drop: (side) => run.place(side),
     pick: () => {},
     takeBack: () => [],
   };
 }
 
-export function createDriver(level: LevelDef): Driver {
-  return isArcade(level) ? arcadeDriver(createArcadeRun(level)) : puzzleDriver(createGame(level));
+export function createDriver(level: LevelDef, best: number | null = null): Driver {
+  return isArcade(level) ? arcadeDriver(createArcadeRun(level), best) : puzzleDriver(createGame(level));
+}
+
+/** The run just finished, for a session that wants to record it. */
+export function statsOf(driver: Driver): ArcadeStats | null {
+  return driver.stats();
 }

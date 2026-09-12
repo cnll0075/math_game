@@ -357,3 +357,25 @@ were needed to make the mode fair and tense, each found by simulating play:
   "recovery opportunity" section 34 asks the fairness validator to ensure.
 
 A lost round restarts the same level rather than ending the session.
+
+
+**Levels 9 and 10 complete the set** (2026-09-12). Level 9 adds wind, the single
+environmental event section 20 asks for, at 45 seconds. Level 10 is the endless
+park of section 21.
+
+Wind is modelled as a **phantom weight**: a gust adds one or two units to a side
+for a few seconds. The alternative — tilting the rendered plank without touching
+the state — would have left the gauge, the zone and the danger meter blind to
+it, making the weather decoration. As a phantom weight it flows through the one
+authoritative balance, so every subsystem reacts correctly with no changes,
+including the fairness validator, which consequently only offers animals that
+can be placed safely in the weather actually blowing. A gust announces itself
+for a second and a half before it pushes, so the child gets a beat to prepare.
+
+Level 10 has no finish line: the arrival pace tightens towards a floor, so every
+run ends eventually and its length is the score. It records the statistics
+section 21 lists and keeps a best time per child in the host's storage. Against
+section 10's advice about reward screens, there is no scoreboard — the survival
+bar becomes a "beat your best" bar with a seconds count beside it.
+
+Unlocks, new animals and new environments remain unbuilt, per section 35.

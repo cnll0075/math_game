@@ -23,7 +23,15 @@ export const DEFAULT_BALANCE_CONFIG: BalanceConfig = { maxTiltDifference: 6, gre
 export interface SeesawSnapshot {
   leftWeight: number;
   rightWeight: number;
+  /**
+   * Animal weights plus any external force, in weight units. This is the one
+   * number the tilt, gauge, zone, flag and danger meter all read.
+   */
   balanceDifference: number;
+  /** The animals alone, ignoring wind. */
+  animalDifference: number;
+  /** External force in weight units; positive presses the left side down. */
+  bias: number;
   /** -1..+1, positive when the left side is heavier. For presentation only. */
   normalizedBalance: number;
   zone: Zone;
@@ -49,6 +57,7 @@ const zoneFor = (difference: number, config: BalanceConfig): Zone => {
 export function describeSeesaw(
   placed: readonly PlacedAnimal[],
   config: BalanceConfig = DEFAULT_BALANCE_CONFIG,
+  bias = 0,
 ): SeesawSnapshot {
   let leftWeight = 0;
   let rightWeight = 0;
@@ -57,13 +66,19 @@ export function describeSeesaw(
     else rightWeight += weightOf(animal.species);
   }
 
-  const balanceDifference = leftWeight - rightWeight;
+  const animalDifference = leftWeight - rightWeight;
+  // Wind is modelled as a phantom weight rather than as a nudge to the drawing,
+  // so every system that already reads the balance reacts to it correctly and
+  // the bell still rings only when the plank is genuinely level.
+  const balanceDifference = animalDifference + bias;
   const totalAnimals = placed.length;
 
   return {
     leftWeight,
     rightWeight,
     balanceDifference,
+    animalDifference,
+    bias,
     normalizedBalance: clamp(balanceDifference / config.maxTiltDifference, -1, 1),
     zone: zoneFor(balanceDifference, config),
     heavySide: balanceDifference === 0 ? null : balanceDifference > 0 ? 'left' : 'right',

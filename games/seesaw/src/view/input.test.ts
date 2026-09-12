@@ -26,6 +26,9 @@ const model = (overrides: Partial<SceneModel> = {}): SceneModel => ({
   progress: null,
   impatience: 0,
   danger: 0,
+  wind: { phase: 'calm', side: 'left', strength: 0, through: 0 },
+  survivalSeconds: null,
+  bestSeconds: null,
   ...overrides,
 });
 

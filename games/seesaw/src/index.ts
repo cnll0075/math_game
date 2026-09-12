@@ -3,6 +3,7 @@ import { createDriver, type Driver, type SessionEvent } from './driver.js';
 import { LEVELS, getLevel } from './logic/levels.data.js';
 import type { LevelDef } from './logic/level.js';
 import type { Side, Zone } from './logic/seesaw-state.js';
+import type { AnimalId } from './logic/animals.js';
 import { createSynthSoundPack } from './audio/seesaw-sounds.js';
 import { createScene, type SceneModel } from './view/scene.js';
 import { createVectorTheme } from './view/vector-theme.js';
@@ -28,6 +29,11 @@ export interface SeesawTestHooks {
   danceProgress(): number;
   danger(): number;
   queueLength(): number;
+  queue(): readonly AnimalId[];
+  balanceDifference(): number;
+  survivalSeconds(): number | null;
+  bestSeconds(): number | null;
+  windPhase(): 'calm' | 'warning' | 'blowing';
 }
 
 export interface SeesawSession extends GameSession {
@@ -62,9 +68,15 @@ export const seesawGame: SeesawModule = {
 
     const scene = createScene(theme);
 
+    const bestKey = (levelId: string): string => `best:${levelId}`;
+    const bestFor = (levelId: string): number | null => {
+      const stored = host.storage.get<number>(bestKey(levelId), 0);
+      return stored > 0 ? stored : null;
+    };
+
     const requested = options.startLevel ? getLevel(options.startLevel) : undefined;
     let level: LevelDef = requested ?? firstUnlockedLevel(host);
-    let driver: Driver = createDriver(level);
+    let driver: Driver = createDriver(level, bestFor(level.id));
 
     /** Set when balance is reached; the bell waits for the plank to settle. */
     let pendingDing = false;
@@ -108,6 +120,11 @@ export const seesawGame: SeesawModule = {
           case 'zoneChanged':
             if (event.to === 'red') sounds.play('danger');
             break;
+          case 'windChanged':
+            // The warning is the sound that matters: it is the beat of notice
+            // the child gets before the push arrives.
+            if (event.phase === 'warning') sounds.play('gust');
+            break;
           default:
             break;
         }
@@ -126,12 +143,20 @@ export const seesawGame: SeesawModule = {
         finishedFor = 0;
         pendingDing = false;
         sounds.play('tumble');
+        // An endless run is only worth anything if the best is remembered.
+        const stats = driver.stats();
+        if (stats && driver.model().survivalSeconds !== null) {
+          const best = host.storage.get<number>(bestKey(level.id), 0);
+          if (stats.secondsSurvived > best) {
+            host.storage.set(bestKey(level.id), Math.floor(stats.secondsSurvived));
+          }
+        }
       }
     };
 
     const startLevel = (next: LevelDef): void => {
       level = next;
-      driver = createDriver(level);
+      driver = createDriver(level, bestFor(next.id));
       finishedFor = 0;
       celebrating = 0;
       pendingDing = false;
@@ -240,6 +265,11 @@ export const seesawGame: SeesawModule = {
         danceProgress: () => scene.danceProgress,
         danger: () => driver.model().danger,
         queueLength: () => driver.model().queue.length,
+        queue: () => driver.model().queue,
+        balanceDifference: () => driver.snapshot().balanceDifference,
+        survivalSeconds: () => driver.model().survivalSeconds,
+        bestSeconds: () => driver.model().bestSeconds,
+        windPhase: () => driver.model().wind.phase,
       },
     };
   },

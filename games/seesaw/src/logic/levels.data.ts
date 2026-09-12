@@ -123,6 +123,61 @@ export const LEVELS: readonly LevelDef[] = [
     },
     hint: 'Stay out of the red',
   },
+  {
+    id: 'level-9',
+    mode: 'arcade',
+    title: 'Windy Day',
+    objective: { kind: 'survive', seconds: 45 },
+    initial: { left: ['cat'], right: ['cat'] },
+    arcade: {
+      seed: 1209,
+      pool: ['rabbit', 'cat', 'dog', 'bear'],
+      arrivalSeconds: 2,
+      queueLength: 3,
+      staySeconds: [9, 12],
+      patienceSeconds: 2.4,
+      dangerFillSeconds: 3.5,
+      dangerDrainSeconds: 1.8,
+      maxHeavyRun: 2,
+      // One event type only, as the design document insists. Balloons and
+      // butterflies would be further entries here, not further plumbing.
+      wind: {
+        calmSeconds: [6, 9],
+        warningSeconds: 1.5,
+        gustSeconds: [3, 5],
+        strength: [1, 2],
+      },
+    },
+    hint: 'Lean into the wind',
+  },
+  {
+    id: 'level-10',
+    mode: 'arcade',
+    title: 'Animal Park',
+    objective: { kind: 'endless' },
+    initial: { left: ['cat'], right: ['cat'] },
+    arcade: {
+      seed: 1210,
+      pool: ['rabbit', 'cat', 'dog', 'bear'],
+      arrivalSeconds: 2.6,
+      queueLength: 3,
+      staySeconds: [9, 13],
+      patienceSeconds: 2.6,
+      dangerFillSeconds: 3.5,
+      dangerDrainSeconds: 1.8,
+      maxHeavyRun: 2,
+      wind: {
+        calmSeconds: [7, 11],
+        warningSeconds: 1.6,
+        gustSeconds: [3, 5],
+        strength: [1, 2],
+      },
+      // Every run ends eventually: the pace keeps tightening. How long it takes
+      // to get there is the score.
+      ramp: { arrivalFloorSeconds: 0.9, overSeconds: 150 },
+    },
+    hint: 'How long can you keep going?',
+  },
 ];
 
 export const PUZZLE_LEVELS: readonly PuzzleLevelDef[] = LEVELS.filter(isPuzzle);

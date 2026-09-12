@@ -3,10 +3,21 @@ import type { AnimalId } from './animals.js';
 import { createAnimalGenerator } from './animal-generator.js';
 import { balanceConfigFor, type ArcadeLevelDef } from './level.js';
 import { describeSeesaw, type PlacedAnimal, type SeesawSnapshot, type Side, type Zone } from './seesaw-state.js';
+import { createWind, type Wind, type WindPhase, type WindState } from './wind.js';
 
 export interface ArcadeAnimal extends PlacedAnimal {
   /** Seconds of stay remaining before this animal wanders off. */
   leavesIn: number;
+}
+
+/** What a round is worth remembering by, for the endless park. */
+export interface ArcadeStats {
+  secondsSurvived: number;
+  animalsHandled: number;
+  perfectBalances: number;
+  longestStreak: number;
+  /** Times the seesaw reached the red and was pulled back out of it. */
+  nearMisses: number;
 }
 
 export interface ArcadeState {
@@ -19,6 +30,8 @@ export interface ArcadeState {
   /** 0..1. Fills in the red, drains in safety, ends the round when full. */
   danger: number;
   status: 'playing' | 'won' | 'lost';
+  wind: WindState;
+  stats: ArcadeStats;
 }
 
 export type ArcadeEvent =
@@ -28,7 +41,8 @@ export type ArcadeEvent =
   | { type: 'perfectBalance' }
   | { type: 'zoneChanged'; from: Zone; to: Zone }
   | { type: 'levelCleared' }
-  | { type: 'roundLost' };
+  | { type: 'roundLost' }
+  | { type: 'windChanged'; phase: WindPhase };
 
 export interface ArcadeRun {
   readonly state: ArcadeState;
@@ -38,8 +52,10 @@ export interface ArcadeRun {
   /** Puts the animal at the head of the queue onto a side. */
   place(side: Side): ArcadeEvent[];
   snapshot(): SeesawSnapshot;
-  /** 0..1 progress towards surviving the round. */
-  readonly progress: number;
+  /** 0..1 progress towards surviving the round, or null when endless. */
+  readonly progress: number | null;
+  /** Seconds this round must last, or null when endless. */
+  readonly target: number | null;
 }
 
 /** Longest slice the run will simulate at once, so a stall cannot skip events. */
@@ -56,6 +72,11 @@ const RESCUE_SECONDS = 0.4;
 export function createArcadeRun(level: ArcadeLevelDef): ArcadeRun {
   const config = balanceConfigFor(level);
   const settings = level.arcade;
+  /** Seconds the round must last, or null when it simply goes on. */
+  const target = level.objective.kind === 'survive' ? level.objective.seconds : null;
+  const wind: Wind | null = settings.wind
+    ? createWind({ ...settings.wind, seed: settings.seed * 7 + 3 })
+    : null;
   const generator = createAnimalGenerator({
     seed: settings.seed,
     pool: settings.pool,
@@ -77,15 +98,28 @@ export function createArcadeRun(level: ArcadeLevelDef): ArcadeRun {
   let untilArrival = 0;
   let waited = 0;
   let nextUid = 0;
+  let animalsHandled = 0;
+  let perfectBalances = 0;
+  let streak = 0;
+  let longestStreak = 0;
+  let nearMisses = 0;
 
   let previous = describeSeesaw(placed, config);
 
-  const snapshot = (): SeesawSnapshot => describeSeesaw(placed, config);
+  const snapshot = (): SeesawSnapshot => describeSeesaw(placed, config, wind?.bias ?? 0);
 
-  /** Arrivals quicken across the round when the level asks them to. */
+  /**
+   * Arrivals quicken across a round. A timed level interpolates towards its
+   * final pace; an endless one keeps tightening towards a floor, which is what
+   * eventually ends every run.
+   */
   const arrivalGap = (): number => {
+    if (settings.ramp) {
+      const through = Math.min(1, elapsed / settings.ramp.overSeconds);
+      return settings.arrivalSeconds + (settings.ramp.arrivalFloorSeconds - settings.arrivalSeconds) * through;
+    }
     const end = settings.finalArrivalSeconds ?? settings.arrivalSeconds;
-    const through = Math.min(1, elapsed / level.objective.seconds);
+    const through = target === null ? 0 : Math.min(1, elapsed / target);
     return settings.arrivalSeconds + (end - settings.arrivalSeconds) * through;
   };
 
@@ -111,6 +145,7 @@ export function createArcadeRun(level: ArcadeLevelDef): ArcadeRun {
       leavesIn: stayTime(),
     };
     placed = [...placed, animal];
+    animalsHandled += 1;
     return [{ type: 'placed', animal, chosenByPlayer }, ...settle()];
   };
 
@@ -119,12 +154,25 @@ export function createArcadeRun(level: ArcadeLevelDef): ArcadeRun {
     const events: ArcadeEvent[] = [];
     const next = snapshot();
     if (next.zone !== previous.zone) events.push({ type: 'zoneChanged', from: previous.zone, to: next.zone });
-    if (next.isPerfectlyBalanced && !previous.isPerfectlyBalanced) events.push({ type: 'perfectBalance' });
+    if (next.isPerfectlyBalanced && !previous.isPerfectlyBalanced) {
+      events.push({ type: 'perfectBalance' });
+      perfectBalances += 1;
+      streak += 1;
+      longestStreak = Math.max(longestStreak, streak);
+    } else if (!next.isPerfectlyBalanced && previous.isPerfectlyBalanced) {
+      streak = 0;
+    }
+    // Reaching the red and getting back out again is the near miss worth
+    // counting; sitting in it is just losing slowly.
+    if (previous.zone === 'red' && next.zone !== 'red') nearMisses += 1;
     previous = next;
     return events;
   };
 
   const admitOne = (events: ArcadeEvent[]): void => {
+    // The generator judges fairness against the snapshot, which already counts
+    // the wind: an animal is only offered if it can be placed safely in the
+    // weather that is actually blowing.
     const species = generator.next(snapshot().balanceDifference);
     queue.push(species);
     events.push({ type: 'arrived', species });
@@ -138,6 +186,9 @@ export function createArcadeRun(level: ArcadeLevelDef): ArcadeRun {
     if (status !== 'playing') return events;
 
     elapsed += dt;
+
+    const weather = wind?.tick(dt);
+    if (weather) events.push({ type: 'windChanged', phase: weather });
 
     // Animals wander off, which shifts the balance without the player acting.
     const staying: ArcadeAnimal[] = [];
@@ -190,7 +241,7 @@ export function createArcadeRun(level: ArcadeLevelDef): ArcadeRun {
     if (danger >= 1) {
       status = 'lost';
       events.push({ type: 'roundLost' });
-    } else if (elapsed >= level.objective.seconds) {
+    } else if (target !== null && elapsed >= target) {
       status = 'won';
       events.push({ type: 'levelCleared' });
     }
@@ -207,13 +258,25 @@ export function createArcadeRun(level: ArcadeLevelDef): ArcadeRun {
         danger,
         status,
         impatience: queue.length === 0 ? 0 : Math.min(1, waited / settings.patienceSeconds),
+        wind: wind?.state ?? { phase: 'calm' as const, side: 'left' as const, bias: 0, through: 0 },
+        stats: {
+          secondsSurvived: elapsed,
+          animalsHandled,
+          perfectBalances,
+          longestStreak,
+          nearMisses,
+        },
       };
     },
     level,
     snapshot,
 
     get progress() {
-      return Math.min(1, elapsed / level.objective.seconds);
+      return target === null ? null : Math.min(1, elapsed / target);
+    },
+
+    get target() {
+      return target;
     },
 
     tick(dt) {

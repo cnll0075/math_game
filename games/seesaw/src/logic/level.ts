@@ -1,6 +1,7 @@
 import type { AnimalId } from './animals.js';
 import type { Objective } from './objectives.js';
 import type { BalanceConfig } from './seesaw-state.js';
+import type { WindSettings } from './wind.js';
 import { DEFAULT_BALANCE_CONFIG } from './seesaw-state.js';
 
 interface LevelCommon {
@@ -48,6 +49,15 @@ export interface ArcadeSettings {
   dangerDrainSeconds: number;
   /** Most heavy animals the generator will send in a row. */
   maxHeavyRun?: number;
+  /** Weather, from level 9 onwards. Omit for still air. */
+  wind?: Omit<WindSettings, 'seed'>;
+  /** Endless rounds only: how the pace tightens as the round goes on. */
+  ramp?: {
+    /** Arrival gap approaches this floor. */
+    arrivalFloorSeconds: number;
+    /** Seconds of survival over which the pace tightens fully. */
+    overSeconds: number;
+  };
 }
 
 /**
@@ -56,7 +66,7 @@ export interface ArcadeSettings {
  */
 export interface ArcadeLevelDef extends LevelCommon {
   mode: 'arcade';
-  objective: { kind: 'survive'; seconds: number };
+  objective: { kind: 'survive'; seconds: number } | { kind: 'endless' };
   arcade: ArcadeSettings;
 }
 

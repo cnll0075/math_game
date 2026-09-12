@@ -68,3 +68,33 @@ describe('describeSeesaw', () => {
     expect(DEFAULT_BALANCE_CONFIG).toEqual({ maxTiltDifference: 6, green: 1, yellow: 3 });
   });
 });
+
+describe('external force', () => {
+  it('is zero unless a wind is blowing', () => {
+    const state = describeSeesaw(place('left', 'cat'));
+    expect(state.bias).toBe(0);
+    expect(state.balanceDifference).toBe(state.animalDifference);
+  });
+
+  it('presses a side down like extra weight', () => {
+    const state = describeSeesaw([...place('left', 'cat'), ...place('right', 'cat')], undefined, 2);
+    expect(state.animalDifference).toBe(0);
+    expect(state.balanceDifference).toBe(2);
+    expect(state.heavySide).toBe('left');
+    expect(state.zone).toBe('yellow');
+  });
+
+  it('can be cancelled by putting weight on the other side', () => {
+    const state = describeSeesaw([...place('left', 'cat'), ...place('right', 'cat', 'cat')], undefined, 2);
+    expect(state.balanceDifference).toBe(0);
+    expect(state.isPerfectlyBalanced).toBe(true);
+  });
+
+  it('keeps the bell quiet while a gust holds the plank over', () => {
+    // Equal animals, but the wind is still pressing: the plank is not level, so
+    // it must not ring.
+    const state = describeSeesaw([...place('left', 'cat'), ...place('right', 'cat')], undefined, 1);
+    expect(state.animalDifference).toBe(0);
+    expect(state.isPerfectlyBalanced).toBe(false);
+  });
+});

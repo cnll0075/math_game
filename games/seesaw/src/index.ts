@@ -235,4 +235,5 @@ export const seesawGame: SeesawModule = {
 
 export default seesawGame;
 export { LEVELS, getLevel, solutionsFor } from './logic/levels.data.js';
+export { createSynthSoundPack, SOUND_EVENTS } from './audio/seesaw-sounds.js';
 export type { LevelDef } from './logic/level.js';

@@ -1,0 +1,178 @@
+:root {
+  --ink: #1d2b32;
+  --paper: #f7f4ec;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  background: var(--ink);
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: var(--ink);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+.launcher {
+  height: 100%;
+  overflow-y: auto;
+  padding: clamp(20px, 4vw, 48px);
+  background: linear-gradient(160deg, #2b4a55, #1d2b32);
+}
+
+.launcher__title {
+  margin: 0 0 4px;
+  font-size: clamp(26px, 4vw, 40px);
+  color: var(--paper);
+}
+
+.launcher__subtitle {
+  margin: 0 0 28px;
+  color: rgba(247, 244, 236, 0.68);
+  font-size: clamp(14px, 2vw, 18px);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: clamp(14px, 2vw, 24px);
+}
+
+.tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 4px;
+  min-height: 168px;
+  padding: 18px;
+  border: none;
+  border-radius: 24px;
+  font: inherit;
+  text-align: left;
+  color: #fff;
+  cursor: pointer;
+  transition: transform 120ms ease;
+}
+
+.tile:active {
+  transform: scale(0.97);
+}
+
+.tile__title {
+  font-size: 21px;
+  font-weight: 700;
+}
+
+.tile__blurb {
+  font-size: 15px;
+  opacity: 0.88;
+}
+
+.tile--locked {
+  cursor: default;
+  filter: saturate(0.35) brightness(0.75);
+}
+
+.tile__badge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.35);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.game-host {
+  position: fixed;
+  inset: 0;
+  background: #1d2b32;
+}
+
+.game-host canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.corner {
+  position: fixed;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--ink);
+  font: inherit;
+  font-size: 20px;
+  width: 52px;
+  height: 52px;
+  cursor: pointer;
+}
+
+.corner--back {
+  top: 16px;
+  left: 16px;
+}
+
+.corner--settings {
+  top: 16px;
+  right: 16px;
+}
+
+.panel {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(12, 20, 24, 0.55);
+  padding: 20px;
+}
+
+.panel__card {
+  width: min(420px, 100%);
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 24px;
+  border-radius: 24px;
+  background: var(--paper);
+}
+
+.panel__card h2 {
+  margin: 0 0 16px;
+  font-size: 22px;
+}
+
+.setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  font-size: 17px;
+}
+
+.sound-lab {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.sound-lab button {
+  padding: 10px;
+  border: 1px solid rgba(29, 43, 50, 0.2);
+  border-radius: 12px;
+  background: #fff;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}

@@ -114,23 +114,28 @@ const drawFlowers = (ctx: CanvasRenderingContext2D): void => {
 
 const drawPlatform = (ctx: CanvasRenderingContext2D, side: 'left' | 'right', view: SeesawView): void => {
   const anchor = platformAnchor(side, view.plankAngle);
+  const halfWidth = SCENE.platformWidth / 2;
   ctx.save();
   ctx.translate(anchor.x, anchor.y);
   ctx.rotate(anchor.angle);
+
+  // A shallow basket: the floor the animals stand on, plus low walls. The walls
+  // are what keep five animals reading as five animals instead of a pile.
   ctx.fillStyle = WOOD;
-  roundRect(ctx, -SCENE.platformWidth / 2, -SCENE.platformHeight, SCENE.platformWidth, SCENE.platformHeight, 6);
+  roundRect(ctx, -halfWidth, -SCENE.platformHeight, SCENE.platformWidth, SCENE.platformHeight, 6);
   ctx.fill();
   ctx.fillStyle = WOOD_DARK;
-  roundRect(ctx, -SCENE.platformWidth / 2, -4, SCENE.platformWidth, 6, 3);
+  roundRect(ctx, -halfWidth, -4, SCENE.platformWidth, 6, 3);
   ctx.fill();
-  // Low railings: something for a sliding animal to grab.
+
   ctx.strokeStyle = WOOD_DARK;
-  ctx.lineWidth = 5;
+  ctx.lineWidth = 7;
   ctx.lineCap = 'round';
   for (const direction of [-1, 1]) {
+    const x = direction * halfWidth;
     ctx.beginPath();
-    ctx.moveTo((direction * SCENE.platformWidth) / 2, -SCENE.platformHeight);
-    ctx.lineTo((direction * SCENE.platformWidth) / 2, -SCENE.platformHeight - 26);
+    ctx.moveTo(x, -SCENE.platformHeight);
+    ctx.lineTo(x + direction * 8, -SCENE.platformHeight - SCENE.basketWall);
     ctx.stroke();
   }
   ctx.restore();
@@ -196,28 +201,48 @@ export function createVectorTheme(): SeesawTheme {
       drawPlatform(ctx, 'right', view);
 
       if (view.targetAngle !== null) {
-        // A star marking where the plank should end up.
-        const anchor = platformAnchor('right', view.targetAngle);
+        // A ghost of where the plank should end up, plus a star at the end of
+        // it. Without the ghost line the star reads as decoration rather than
+        // as the thing being aimed at.
         ctx.save();
-        ctx.translate(anchor.x + 76, anchor.y - 30);
-        ctx.rotate(view.time * 0.6);
-        ctx.fillStyle = '#ffd23f';
-        ctx.strokeStyle = '#e0a500';
-        ctx.lineWidth = 2;
+        ctx.translate(SCENE.fulcrumX, SCENE.fulcrumY);
+        ctx.rotate(view.targetAngle);
+        ctx.strokeStyle = 'rgba(224, 165, 0, 0.5)';
+        ctx.lineWidth = 5;
+        ctx.lineCap = 'round';
+        ctx.setLineDash?.([14, 12]);
         ctx.beginPath();
-        for (let i = 0; i < 10; i++) {
-          const radius = i % 2 === 0 ? 18 : 8;
-          const angle = (i / 10) * Math.PI * 2 - Math.PI / 2;
-          const px = Math.cos(angle) * radius;
-          const py = Math.sin(angle) * radius;
-          if (i === 0) ctx.moveTo(px, py);
-          else ctx.lineTo(px, py);
-        }
-        ctx.closePath();
-        ctx.fill();
+        ctx.moveTo(-SCENE.plankHalfLength, 0);
+        ctx.lineTo(SCENE.plankHalfLength, 0);
         ctx.stroke();
+        ctx.setLineDash?.([]);
         ctx.restore();
+
       }
+    },
+
+    drawTarget(ctx, view) {
+      if (view.targetAngle === null) return;
+      const anchor = platformAnchor('right', view.targetAngle);
+      ctx.save();
+      ctx.translate(anchor.x, anchor.y - SCENE.platformHeight - SCENE.basketWall - 30);
+      ctx.rotate(Math.sin(view.time * 1.4) * 0.12);
+      ctx.fillStyle = '#ffd23f';
+      ctx.strokeStyle = '#e0a500';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i = 0; i < 10; i++) {
+        const radius = i % 2 === 0 ? 21 : 9;
+        const angle = (i / 10) * Math.PI * 2 - Math.PI / 2;
+        const px = Math.cos(angle) * radius;
+        const py = Math.sin(angle) * radius;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
     },
 
     drawGauge(ctx, view) {
@@ -287,29 +312,50 @@ export function createVectorTheme(): SeesawTheme {
     },
 
     drawGate(ctx, view) {
-      // The gate stands at the right edge of the park and swings open when the
-      // level is complete: the progression reward is the world itself.
-      const x = DESIGN.width - 112;
+      // The gate stands at the edge of the park and swings open when the level
+      // is complete: the reward is a bit more world, not a score screen.
+      // Seen from the side, a gate swinging away from the viewer foreshortens
+      // rather than rotating, so the panel narrows from its hinge.
+      const x = DESIGN.width - 178;
       const y = SCENE.groundY;
+      const height = 96;
+      const width = 82;
+
       ctx.save();
       ctx.fillStyle = '#bfa587';
-      ctx.fillRect(x - 8, y - 118, 12, 118);
-      ctx.fillRect(x + 96, y - 118, 12, 118);
+      ctx.fillRect(x - 10, y - height - 10, 12, height + 10);
+      ctx.fillRect(x + width + 2, y - height - 10, 12, height + 10);
+
       ctx.save();
-      ctx.translate(x + 4, y - 110);
-      ctx.rotate(-view.gateOpen * 1.1);
+      ctx.translate(x + 2, y - height);
+      // Hinged on the left post: the far edge sweeps toward it as it opens.
+      ctx.transform(1 - view.gateOpen * 0.86, 0, view.gateOpen * 0.22, 1, 0, 0);
       ctx.fillStyle = '#d9c2a0';
-      ctx.fillRect(0, 0, 92, 104);
+      ctx.fillRect(0, 0, width, height);
       ctx.strokeStyle = '#a98e6c';
       ctx.lineWidth = 4;
-      ctx.strokeRect(0, 0, 92, 104);
+      ctx.strokeRect(0, 0, width, height);
       ctx.beginPath();
       ctx.moveTo(0, 0);
-      ctx.lineTo(92, 104);
+      ctx.lineTo(width, height);
       ctx.stroke();
       ctx.restore();
+
+      // A path through the opened gate, revealed as it swings.
+      if (view.gateOpen > 0.05) {
+        ctx.globalAlpha = Math.min(1, view.gateOpen);
+        ctx.fillStyle = '#cbb58f';
+        ctx.beginPath();
+        ctx.moveTo(x + 10, y);
+        ctx.lineTo(x + width - 6, y);
+        ctx.lineTo(x + width + 24, y + 60);
+        ctx.lineTo(x - 10, y + 60);
+        ctx.closePath();
+        ctx.fill();
+      }
       ctx.restore();
     },
+
 
     animals: vectorAnimalArtist,
   };

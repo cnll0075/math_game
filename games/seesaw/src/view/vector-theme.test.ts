@@ -24,7 +24,7 @@ describe('vector theme', () => {
 
   it('draws every scene element with balanced save/restore', () => {
     const theme = createVectorTheme();
-    const parts = ['drawBackground', 'drawSeesaw', 'drawGauge', 'drawFlag', 'drawGate'] as const;
+    const parts = ['drawBackground', 'drawSeesaw', 'drawTarget', 'drawGauge', 'drawFlag', 'drawGate'] as const;
     for (const part of parts) {
       const { ctx, calls } = recordingContext();
       expect(() => theme[part](ctx, view()), part).not.toThrow();
@@ -76,12 +76,22 @@ describe('vector theme', () => {
     expect(calls).toHaveLength(0);
   });
 
-  it('omits the target star when a level has no tilt objective', () => {
+  it('omits the target marker when a level has no tilt objective', () => {
     const theme = createVectorTheme();
     const withStar = recordingContext();
     const withoutStar = recordingContext();
-    theme.drawSeesaw(withStar.ctx, view({ targetAngle: -0.2 }));
-    theme.drawSeesaw(withoutStar.ctx, view({ targetAngle: null }));
-    expect(withStar.calls.length).toBeGreaterThan(withoutStar.calls.length);
+    theme.drawTarget(withStar.ctx, view({ targetAngle: -0.2 }));
+    theme.drawTarget(withoutStar.ctx, view({ targetAngle: null }));
+    expect(withStar.calls.length).toBeGreaterThan(0);
+    expect(withoutStar.calls).toHaveLength(0);
+  });
+
+  it('draws the ghost plank only when a target is set', () => {
+    const theme = createVectorTheme();
+    const withGhost = recordingContext();
+    const withoutGhost = recordingContext();
+    theme.drawSeesaw(withGhost.ctx, view({ targetAngle: -0.2 }));
+    theme.drawSeesaw(withoutGhost.ctx, view({ targetAngle: null }));
+    expect(withGhost.calls.length).toBeGreaterThan(withoutGhost.calls.length);
   });
 });

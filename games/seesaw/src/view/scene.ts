@@ -109,9 +109,10 @@ export function createScene(theme: SeesawTheme): Scene {
         // Animals slide downhill, further the steeper the plank.
         const slide = Math.sin(tiltAmount) * 26 * (side === 'left' ? -1 : 1) * -1;
 
+        // Feet on the basket floor, following the plank.
         const local = {
           x: anchor.x + offset * Math.cos(tiltAmount),
-          y: anchor.y + offset * Math.sin(tiltAmount) - SCENE.platformHeight,
+          y: anchor.y + offset * Math.sin(tiltAmount) - SCENE.platformHeight - 6,
         };
 
         result.push({
@@ -119,7 +120,7 @@ export function createScene(theme: SeesawTheme): Scene {
           pose: {
             x: local.x,
             y: local.y,
-            scale: 0.78,
+            scale: 0.92,
             tiltRad: tiltAmount,
             wobble,
             slide,
@@ -168,6 +169,7 @@ export function createScene(theme: SeesawTheme): Scene {
       if (model.selectedTrayIndex !== null) drawSideTargets(ctx, tilt.value, time);
       theme.drawSeesaw(ctx, view);
       for (const { animal, pose } of placementsFor()) theme.animals.draw(ctx, animal.species, pose);
+      theme.drawTarget(ctx, view);
       theme.drawFlag(ctx, view);
       theme.drawGauge(ctx, view);
       drawHud(

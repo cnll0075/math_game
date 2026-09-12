@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { DESIGN, fitToScreen, slotPositions } from './layout.js';
+import { SCENE, platformAnchor } from './geometry.js';
 
 describe('fitToScreen', () => {
   it('scales to fit a wide screen and letterboxes the sides', () => {
@@ -58,5 +59,23 @@ describe('slotPositions', () => {
 
   it('returns nothing for an empty platform', () => {
     expect(slotPositions(0, 320)).toEqual([]);
+  });
+});
+
+describe('scene fits the design space', () => {
+  it('keeps both baskets on screen at full tilt', () => {
+    const halfBasket = SCENE.platformWidth / 2;
+    for (const side of ['left', 'right'] as const) {
+      for (const tilt of [-SCENE.maxTiltRad, 0, SCENE.maxTiltRad]) {
+        const anchor = platformAnchor(side, tilt);
+        expect(anchor.x - halfBasket).toBeGreaterThanOrEqual(0);
+        expect(anchor.x + halfBasket).toBeLessThanOrEqual(DESIGN.width);
+      }
+    }
+  });
+
+  it('keeps the tray clear of the ground line and the bottom edge', () => {
+    expect(SCENE.trayY).toBeGreaterThan(SCENE.groundY);
+    expect(SCENE.trayY + 60).toBeLessThanOrEqual(DESIGN.height);
   });
 });

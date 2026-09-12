@@ -22,7 +22,7 @@ export interface ShellDeps {
 
 export interface Shell {
   showLauncher(): void;
-  openGame(id: string): Promise<void>;
+  openGame(id: string, options?: { startLevel?: string }): Promise<void>;
   closeGame(): void;
   readonly settings: Settings;
   destroy(): void;
@@ -82,7 +82,7 @@ export function createShell(root: HTMLElement, deps: ShellDeps = {}): Shell {
       );
     },
 
-    async openGame(id) {
+    async openGame(id, gameOptions) {
       const tile: GameTile | undefined = CATALOG.find((entry) => entry.id === id);
       if (!tile?.module || !content.isUnlocked(tile.id)) return;
 
@@ -112,7 +112,7 @@ export function createShell(root: HTMLElement, deps: ShellDeps = {}): Shell {
         exit: () => shell.showLauncher(),
       };
 
-      session = await tile.module.mount(host, gameHost);
+      session = await tile.module.mount(host, gameHost, gameOptions);
     },
 
     closeGame() {

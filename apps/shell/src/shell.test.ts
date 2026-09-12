@@ -81,6 +81,14 @@ describe('shell launcher', () => {
     expect(root.querySelector('[data-screen="launcher"]')).not.toBeNull();
   });
 
+  it('can open a game straight at a chosen level', async () => {
+    const shell = createShell(root, testDeps());
+    await shell.openGame('seesaw', { startLevel: 'level-4' });
+    await flush();
+    expect(root.querySelector('canvas')).not.toBeNull();
+    shell.destroy();
+  });
+
   it('unlocks audio when a game is opened', async () => {
     const deps = testDeps();
     const shell = createShell(root, deps);

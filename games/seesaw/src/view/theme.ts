@@ -51,6 +51,8 @@ export interface SeesawTheme {
   preload(): Promise<void>;
   drawBackground(ctx: CanvasRenderingContext2D, view: SeesawView): void;
   drawSeesaw(ctx: CanvasRenderingContext2D, view: SeesawView): void;
+  /** The target marker, drawn over the animals so it is never hidden. */
+  drawTarget(ctx: CanvasRenderingContext2D, view: SeesawView): void;
   drawGauge(ctx: CanvasRenderingContext2D, view: SeesawView): void;
   drawFlag(ctx: CanvasRenderingContext2D, view: SeesawView): void;
   drawGate(ctx: CanvasRenderingContext2D, view: SeesawView): void;

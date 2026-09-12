@@ -1,0 +1,20 @@
+{
+  "name": "math-game-bundle",
+  "private": true,
+  "type": "module",
+  "workspaces": ["packages/*", "games/*", "apps/*"],
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev": "vite --config apps/shell/vite.config.ts",
+    "build": "vite build --config apps/shell/vite.config.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "jsdom": "^25.0.1",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7",
+    "vitest": "^2.1.8"
+  }
+}

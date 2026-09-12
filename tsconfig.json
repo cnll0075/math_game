@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@bundle/core": ["packages/core/src/index.ts"],
+      "@bundle/seesaw": ["games/seesaw/src/index.ts"]
+    }
+  },
+  "include": ["packages/*/src", "games/*/src", "apps/*/src", "vitest.config.ts"]
+}

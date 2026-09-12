@@ -19,6 +19,43 @@ Capacitor/WKWebView for the App Store.
 
 Development shortcut: `?game=seesaw&level=level-4` opens a level directly.
 
+## Testing on an iPad
+
+With the Mac and the iPad on the same Wi-Fi:
+
+```bash
+npm run dev:ipad     # serves on the network, not just localhost
+```
+
+Vite prints a **Network:** address (`http://192.168.x.x:5173/`). Open that in
+Safari on the iPad. Changes on the Mac reload the iPad immediately.
+
+macOS may ask to allow incoming connections the first time — say yes, or the
+iPad will not reach it.
+
+**Make it feel like an app.** In Safari, Share → *Add to Home Screen*, and open
+it from the icon. That drops the browser chrome and runs it full-screen, which
+is how a child would actually meet it. The page already declares itself
+web-app-capable and locks out pinch-zoom and rubber-band scrolling.
+
+**Hold it in landscape.** The scene is laid out for a landscape iPad; portrait
+works but wastes most of the screen.
+
+**If there is no sound**, tap the screen once (browsers only allow audio to
+start after a touch — the game unlocks it on the first tap), then check the
+iPad's volume and that its side switch is not set to mute.
+
+**To test what will actually ship**, serve the built bundle rather than the dev
+server:
+
+```bash
+npm run build && npm run preview   # http://192.168.x.x:4173/
+```
+
+**To see errors from the iPad**, enable iPad Settings → Safari → Advanced → Web
+Inspector, connect it by cable, then on the Mac open Safari → Develop → [your
+iPad] → the page. The console appears on the Mac.
+
 ## Layout
 
 ```

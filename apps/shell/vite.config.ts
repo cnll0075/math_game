@@ -15,4 +15,9 @@ export default defineConfig({
     outDir: resolvePath('../../dist'),
     emptyOutDir: true,
   },
+  // `npm run preview` serves the built bundle, which is what an iPad should be
+  // testing before any of this is wrapped for the App Store.
+  preview: {
+    port: 4173,
+  },
 });

@@ -10,10 +10,14 @@ export const TIMING = {
   dingDelaySeconds: 0.12,
   /** Hop from the tray onto the platform. */
   hopSeconds: 0.35,
-  /** Gate opening after the last challenge. */
-  gateSeconds: 1.2,
+  /** How long the animals dance after a level is finished. */
+  danceSeconds: 2.2,
+  /** Gap between one animal starting its hop and the next. */
+  danceStaggerSeconds: 0.14,
   /** Danger flag raising and lowering. */
   flagRaiseSeconds: 0.3,
-  /** How long the celebration sparkle lingers. */
+  /** How long the perfect-balance sparkle lingers. */
   celebrateSeconds: 1.1,
+  /** Beat after the dance before the next level opens. */
+  levelChangeSeconds: 0.8,
 } as const;

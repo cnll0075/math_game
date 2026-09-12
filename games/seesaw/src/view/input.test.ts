@@ -12,8 +12,8 @@ const model = (overrides: Partial<SceneModel> = {}): SceneModel => ({
   snapshot: describeSeesaw([]),
   placed: [],
   targetBalance: null,
-  gateOpen: false,
   celebrating: false,
+  dancing: false,
   tray: [
     { uid: 'tray-0', species: 'rabbit', used: false },
     { uid: 'tray-1', species: 'cat', used: false },
@@ -107,9 +107,10 @@ describe('createInput', () => {
     scene.update(1 / 60, model({ placed, snapshot: describeSeesaw(placed) }));
     for (let i = 0; i < 200; i++) scene.update(1 / 60, model({ placed, snapshot: describeSeesaw(placed) }));
     listen(false);
+    // Tap the animal's body, which sits above the pose's feet position.
     const pose = scene.placements()[0]!.pose;
-    canvas.dispatchEvent(pointer('pointerdown', pose.x + pose.slide, pose.y));
-    canvas.dispatchEvent(pointer('pointerup', pose.x + pose.slide, pose.y));
+    canvas.dispatchEvent(pointer('pointerdown', pose.x + pose.slide, pose.y - 26));
+    canvas.dispatchEvent(pointer('pointerup', pose.x + pose.slide, pose.y - 26));
     expect(intents).toContainEqual({ kind: 'takeBack', uid: 'tray-0' });
   });
 

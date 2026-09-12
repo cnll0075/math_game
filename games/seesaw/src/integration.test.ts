@@ -13,13 +13,16 @@ beforeAll(() => {
 afterAll(() => restoreCanvas());
 
 const recordSounds = () => {
-  const played: string[] = [];
+  const played: Array<{ event: string; delay: number }> = [];
   vi.spyOn(sounds, 'createSynthSoundPack').mockReturnValue({
     preload: async () => {},
-    play: (event: string) => void played.push(event),
+    play: (event: string, params?: Record<string, number>) =>
+      void played.push({ event, delay: params?.delay ?? 0 }),
   });
   return played;
 };
+
+const eventsOf = (played: Array<{ event: string }>) => played.map((entry) => entry.event);
 
 const mountGame = async (startLevel: string) => {
   const container = document.createElement('div');
@@ -42,7 +45,7 @@ describe('playing the game', () => {
       }
 
       expect(session.__test.status()).toBe('won');
-      expect(played).toContain('success');
+      expect(eventsOf(played)).toContain('success');
       session.unmount();
       vi.restoreAllMocks();
     },
@@ -61,12 +64,56 @@ describe('playing the game', () => {
     const { session } = await mountGame('level-1');
     session.__test.place(0, 'right');
     session.__test.step(120);
-    expect(played.filter((event) => event === 'ding')).toHaveLength(0);
+    expect(eventsOf(played).filter((event) => event === 'ding')).toHaveLength(0);
     session.__test.place(1, 'right');
     session.__test.step(200);
-    expect(played.filter((event) => event === 'ding')).toHaveLength(1);
+    expect(eventsOf(played).filter((event) => event === 'ding')).toHaveLength(1);
     session.unmount();
     vi.restoreAllMocks();
+  });
+
+  it('cheers with one chirp per animal, staggered into a wave', async () => {
+    const played = recordSounds();
+    const { session } = await mountGame('level-1');
+    for (const move of solutionsFor(getLevel('level-1')!)[0]!) session.__test.place(move.trayIndex, move.side);
+
+    const events = eventsOf(played);
+    expect(events).toContain('cheer');
+    const chirps = played.filter((entry) => entry.event.startsWith('chirp:') && entry.delay > 0);
+    // Six rabbits on the plank once level 1 is solved: three a side.
+    expect(chirps).toHaveLength(6);
+    const delays = chirps.map((entry) => entry.delay);
+    expect(new Set(delays).size).toBe(delays.length);
+    expect(delays).toEqual([...delays].sort((a, b) => a - b));
+    session.unmount();
+    vi.restoreAllMocks();
+  });
+
+  it('no longer plays a gate sound', async () => {
+    const played = recordSounds();
+    const { session } = await mountGame('level-1');
+    for (const move of solutionsFor(getLevel('level-1')!)[0]!) session.__test.place(move.trayIndex, move.side);
+    session.__test.step(240);
+    expect(eventsOf(played)).not.toContain('gate');
+    session.unmount();
+    vi.restoreAllMocks();
+  });
+
+  it('dances before moving on, then starts the next level clean', async () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const host = createTestHost({ unlocked: 'all' });
+    const session = await seesawGame.mount(container, host, { startLevel: 'level-1' });
+    for (const move of solutionsFor(getLevel('level-1')!)[0]!) session.__test.place(move.trayIndex, move.side);
+
+    session.__test.step(60);
+    expect(session.__test.danceProgress()).toBeGreaterThan(0);
+    expect(session.__test.level()).toBe('level-1');
+
+    session.__test.step(240);
+    expect(session.__test.level()).toBe('level-2');
+    expect(session.__test.danceProgress()).toBe(0);
+    session.unmount();
   });
 
   it('raises the danger flag in the red and lowers it on recovery', async () => {

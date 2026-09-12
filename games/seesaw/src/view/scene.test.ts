@@ -9,8 +9,8 @@ const modelFor = (placed: PlacedAnimal[], overrides: Partial<SceneModel> = {}): 
   snapshot: describeSeesaw(placed),
   placed,
   targetBalance: null,
-  gateOpen: false,
   celebrating: false,
+  dancing: false,
   tray: [],
   selectedTrayIndex: null,
   caption: 'Make it level',
@@ -117,13 +117,73 @@ describe('scene', () => {
     expect(depthOf(ctx)).toBe(0);
   });
 
-  it('opens the gate gradually', () => {
-    const scene = createScene(createVectorTheme());
-    const opening = modelFor([], { gateOpen: true });
-    scene.update(1 / 60, opening);
-    const { ctx } = recordingContext();
-    expect(() => scene.render(ctx, { width: 800, height: 600 })).not.toThrow();
-    settle(scene, opening);
-    expect(() => scene.render(ctx, { width: 800, height: 600 })).not.toThrow();
+  describe('finishing dance', () => {
+    const dancers = [animal('rabbit', 'left', 0), animal('cat', 'right', 0), animal('rabbit', 'right', 1)];
+    const dancing = () => modelFor(dancers, { dancing: true });
+    const still = () => modelFor(dancers, { dancing: false });
+
+    it('does not dance while the level is being played', () => {
+      const scene = createScene(createVectorTheme());
+      settle(scene, still(), 30);
+      expect(scene.placements().every((placement) => placement.pose.dance === 0)).toBe(true);
+      expect(scene.danceProgress).toBe(0);
+    });
+
+    it('starts every animal dancing when the level is finished', () => {
+      const scene = createScene(createVectorTheme());
+      for (let i = 0; i < 60; i++) scene.update(1 / 60, dancing());
+      expect(scene.placements().every((placement) => placement.pose.dance > 0)).toBe(true);
+      expect(scene.danceProgress).toBeGreaterThan(0);
+    });
+
+    it('staggers the dancers so they do not hop in unison', () => {
+      const scene = createScene(createVectorTheme());
+      for (let i = 0; i < 30; i++) scene.update(1 / 60, dancing());
+      const dances = scene.placements().map((placement) => placement.pose.dance);
+      expect(new Set(dances).size).toBe(dances.length);
+    });
+
+    it('switches the dancers to cheerful faces', () => {
+      const scene = createScene(createVectorTheme());
+      // A tilted plank would normally make these animals look surprised.
+      for (let i = 0; i < 60; i++) scene.update(1 / 60, dancing());
+      expect(scene.placements().every((placement) => placement.pose.expression === 'cheer')).toBe(true);
+    });
+
+    it('ends the dance and settles the animals again', () => {
+      const scene = createScene(createVectorTheme());
+      for (let i = 0; i < 60 * 4; i++) scene.update(1 / 60, dancing());
+      expect(scene.placements().every((placement) => placement.pose.dance === 0)).toBe(true);
+    });
+
+    it('bobs the plank while dancing without touching the balance state', () => {
+      const scene = createScene(createVectorTheme());
+      settle(scene, still());
+      const restingAngle = scene.plankAngle;
+      const angles = new Set<number>();
+      for (let i = 0; i < 40; i++) {
+        scene.update(1 / 60, dancing());
+        angles.add(Number(scene.plankAngle.toFixed(5)));
+      }
+      expect(angles.size).toBeGreaterThan(1);
+      // The bob is small: the seesaw still reads as balanced where it was.
+      for (const angle of angles) expect(Math.abs(angle - restingAngle)).toBeLessThan(0.03);
+    });
+
+    it('resets when a new level starts', () => {
+      const scene = createScene(createVectorTheme());
+      for (let i = 0; i < 30; i++) scene.update(1 / 60, dancing());
+      scene.update(1 / 60, still());
+      expect(scene.danceProgress).toBe(0);
+      expect(scene.placements().every((placement) => placement.pose.dance === 0)).toBe(true);
+    });
+
+    it('renders the celebration without throwing', () => {
+      const scene = createScene(createVectorTheme());
+      for (let i = 0; i < 30; i++) scene.update(1 / 60, dancing());
+      const { ctx } = recordingContext();
+      expect(() => scene.render(ctx, { width: 800, height: 600 })).not.toThrow();
+      expect(depthOf(ctx)).toBe(0);
+    });
   });
 });

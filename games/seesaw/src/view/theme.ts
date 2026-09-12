@@ -1,7 +1,7 @@
 import type { AnimalId } from '../logic/animals.js';
 import type { Side, Zone } from '../logic/seesaw-state.js';
 
-export type Expression = 'calm' | 'surprised' | 'alarmed';
+export type Expression = 'calm' | 'surprised' | 'alarmed' | 'cheer';
 
 /** Everything an animal's art needs. Logic never sees this. */
 export interface AnimalPose {
@@ -14,6 +14,11 @@ export interface AnimalPose {
   wobble: number;
   /** Offset along the plank as the animal slides downhill. */
   slide: number;
+  /**
+   * 0..1 celebration intensity for this animal. Sprite art drives a dance clip
+   * from it; the prototype hops and spins procedurally.
+   */
+  dance: number;
   expression: Expression;
 }
 
@@ -34,9 +39,7 @@ export interface SeesawView {
   /** 0..1 how far the danger flag has risen. */
   flagHeight: number;
   flagSide: Side | null;
-  /** 0..1 how far the gate has opened. */
-  gateOpen: number;
-  /** 0..1 celebration intensity right after a perfect balance. */
+  /** 0..1 celebration intensity, during a perfect balance or a finished level. */
   celebrate: number;
   /** Marker for a tilt objective, in the same units as plankAngle; null if unused. */
   targetAngle: number | null;
@@ -55,6 +58,7 @@ export interface SeesawTheme {
   drawTarget(ctx: CanvasRenderingContext2D, view: SeesawView): void;
   drawGauge(ctx: CanvasRenderingContext2D, view: SeesawView): void;
   drawFlag(ctx: CanvasRenderingContext2D, view: SeesawView): void;
-  drawGate(ctx: CanvasRenderingContext2D, view: SeesawView): void;
+  /** Celebration dressing over the whole scene; draws nothing when idle. */
+  drawCelebration(ctx: CanvasRenderingContext2D, view: SeesawView): void;
   animals: AnimalArtist;
 }

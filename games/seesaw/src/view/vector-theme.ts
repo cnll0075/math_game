@@ -167,6 +167,7 @@ export function createVectorTheme(): SeesawTheme {
       ctx.fillRect(0, SCENE.groundY, DESIGN.width, 8);
 
       drawFence(ctx, SCENE.groundY);
+      drawTree(ctx, 936, SCENE.groundY, 0.8);
       drawFlowers(ctx);
     },
 
@@ -311,51 +312,36 @@ export function createVectorTheme(): SeesawTheme {
       ctx.restore();
     },
 
-    drawGate(ctx, view) {
-      // The gate stands at the edge of the park and swings open when the level
-      // is complete: the reward is a bit more world, not a score screen.
-      // Seen from the side, a gate swinging away from the viewer foreshortens
-      // rather than rotating, so the panel narrows from its hinge.
-      const x = DESIGN.width - 178;
-      const y = SCENE.groundY;
-      const height = 96;
-      const width = 82;
-
+    drawCelebration(ctx, view) {
+      if (view.celebrate <= 0.01) return;
+      // Petals drift down across the whole scene. Positions come from the clock
+      // rather than from stored particles, so there is no state to reset and a
+      // celebration looks the same every time it plays.
       ctx.save();
-      ctx.fillStyle = '#bfa587';
-      ctx.fillRect(x - 10, y - height - 10, 12, height + 10);
-      ctx.fillRect(x + width + 2, y - height - 10, 12, height + 10);
-
-      ctx.save();
-      ctx.translate(x + 2, y - height);
-      // Hinged on the left post: the far edge sweeps toward it as it opens.
-      ctx.transform(1 - view.gateOpen * 0.86, 0, view.gateOpen * 0.22, 1, 0, 0);
-      ctx.fillStyle = '#d9c2a0';
-      ctx.fillRect(0, 0, width, height);
-      ctx.strokeStyle = '#a98e6c';
-      ctx.lineWidth = 4;
-      ctx.strokeRect(0, 0, width, height);
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(width, height);
-      ctx.stroke();
-      ctx.restore();
-
-      // A path through the opened gate, revealed as it swings.
-      if (view.gateOpen > 0.05) {
-        ctx.globalAlpha = Math.min(1, view.gateOpen);
-        ctx.fillStyle = '#cbb58f';
+      ctx.globalAlpha = Math.min(1, view.celebrate);
+      // Saturated enough to read against both the pale sky and the grass;
+      // the pastel first attempt vanished into both.
+      const colors = ['#ff7fa8', '#ffc21f', '#ff9f6b', '#ffffff', '#b078e8'];
+      for (let i = 0; i < 34; i++) {
+        const seed = i * 97.13;
+        const x = (seed * 7.3) % DESIGN.width;
+        const drift = Math.sin(view.time * 1.1 + i) * 26;
+        const fall = ((view.time * 74 + seed * 3.1) % (DESIGN.height + 120)) - 60;
+        const spin = view.time * 2 + i;
+        ctx.save();
+        ctx.translate(x + drift, fall);
+        ctx.rotate(spin);
+        ctx.fillStyle = colors[i % colors.length]!;
         ctx.beginPath();
-        ctx.moveTo(x + 10, y);
-        ctx.lineTo(x + width - 6, y);
-        ctx.lineTo(x + width + 24, y + 60);
-        ctx.lineTo(x - 10, y + 60);
-        ctx.closePath();
+        ctx.ellipse(0, 0, 9, 5.5, 0, 0, Math.PI * 2);
         ctx.fill();
+        ctx.strokeStyle = 'rgba(120, 70, 90, 0.25)';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+        ctx.restore();
       }
       ctx.restore();
     },
-
 
     animals: vectorAnimalArtist,
   };

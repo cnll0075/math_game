@@ -16,7 +16,7 @@ describe('synth sound pack', () => {
     expect(SOUND_EVENTS).toContain('creak');
     expect(SOUND_EVENTS).toContain('danger');
     expect(SOUND_EVENTS).toContain('success');
-    expect(SOUND_EVENTS).toContain('gate');
+    expect(SOUND_EVENTS).toContain('cheer');
     expect(SOUND_EVENTS).toContain('chirp:rabbit');
     expect(new Set(SOUND_EVENTS).size).toBe(SOUND_EVENTS.length);
   });
@@ -54,6 +54,23 @@ describe('synth sound pack', () => {
     const { bus, context } = await unlockedBus();
     expect(() => createSynthSoundPack(bus).play('nope')).not.toThrow();
     expect(context.createdOscillators).toHaveLength(0);
+  });
+
+  it('schedules a delayed sound into the future', async () => {
+    const { bus, context } = await unlockedBus();
+    const pack = createSynthSoundPack(bus);
+    context.currentTime = 10;
+    pack.play('chirp:cat', { delay: 0.5 });
+    // A delayed voice is scheduled ahead of the clock rather than played now,
+    // which is what lets the dance stagger without timers.
+    expect(context.createdOscillators[0]!.startedAt).toBeCloseTo(10.5, 3);
+  });
+
+  it('treats a negative delay as immediate', async () => {
+    const { bus, context } = await unlockedBus();
+    context.currentTime = 4;
+    createSynthSoundPack(bus).play('ding', { delay: -3 });
+    expect(context.createdOscillators[0]!.startedAt).toBeCloseTo(4, 3);
   });
 
   it('preloads immediately', async () => {

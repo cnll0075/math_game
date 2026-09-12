@@ -10,7 +10,6 @@ const view = (overrides: Partial<SeesawView> = {}): SeesawView => ({
   zone: 'yellow',
   flagHeight: 1,
   flagSide: 'left',
-  gateOpen: 0.4,
   celebrate: 0,
   targetAngle: -0.1,
   time: 1.5,
@@ -24,7 +23,7 @@ describe('vector theme', () => {
 
   it('draws every scene element with balanced save/restore', () => {
     const theme = createVectorTheme();
-    const parts = ['drawBackground', 'drawSeesaw', 'drawTarget', 'drawGauge', 'drawFlag', 'drawGate'] as const;
+    const parts = ['drawBackground', 'drawSeesaw', 'drawTarget', 'drawGauge', 'drawFlag'] as const;
     for (const part of parts) {
       const { ctx, calls } = recordingContext();
       expect(() => theme[part](ctx, view()), part).not.toThrow();
@@ -44,6 +43,7 @@ describe('vector theme', () => {
         tiltRad: 0.1,
         wobble: 0.5,
         slide: 4,
+        dance: 0,
         expression: 'surprised',
       });
       expect(calls.length, species).toBeGreaterThan(0);
@@ -53,7 +53,7 @@ describe('vector theme', () => {
 
   it('draws each expression', () => {
     const theme = createVectorTheme();
-    for (const expression of ['calm', 'surprised', 'alarmed'] as Expression[]) {
+    for (const expression of ['calm', 'surprised', 'alarmed', 'cheer'] as Expression[]) {
       const { ctx, calls } = recordingContext();
       theme.animals.draw(ctx, 'bear', {
         x: 0,
@@ -62,11 +62,42 @@ describe('vector theme', () => {
         tiltRad: 0,
         wobble: 0,
         slide: 0,
+        dance: 0,
         expression,
       });
       expect(calls.length, expression).toBeGreaterThan(0);
       expect(depthOf(ctx)).toBe(0);
     }
+  });
+
+  it('draws a dancing animal without throwing, at every point in the hop', () => {
+    const theme = createVectorTheme();
+    for (const dance of [0.01, 0.25, 0.5, 0.75, 0.99]) {
+      const { ctx, calls } = recordingContext();
+      theme.animals.draw(ctx, 'rabbit', {
+        x: 0,
+        y: 0,
+        scale: 1,
+        tiltRad: 0,
+        wobble: 0,
+        slide: 0,
+        dance,
+        expression: 'cheer',
+      });
+      expect(calls.length, String(dance)).toBeGreaterThan(0);
+      expect(depthOf(ctx), String(dance)).toBe(0);
+    }
+  });
+
+  it('draws petals only while celebrating', () => {
+    const theme = createVectorTheme();
+    const idle = recordingContext();
+    const party = recordingContext();
+    theme.drawCelebration(idle.ctx, view({ celebrate: 0 }));
+    theme.drawCelebration(party.ctx, view({ celebrate: 1 }));
+    expect(idle.calls).toHaveLength(0);
+    expect(party.calls.length).toBeGreaterThan(0);
+    expect(depthOf(party.ctx)).toBe(0);
   });
 
   it('hides the flag when it has not risen', () => {

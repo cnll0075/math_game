@@ -1,4 +1,5 @@
 import { SCENE } from './geometry.js';
+import { ANIMAL_HIT_LIFT } from './animals-art.js';
 import { DESIGN, type Point, type Size } from './layout.js';
 import type { Side } from '../logic/seesaw-state.js';
 import type { Scene } from './scene.js';
@@ -76,7 +77,11 @@ export function createInput(
     let best: string | null = null;
     let bestDistance = ANIMAL_HIT_RADIUS;
     for (const placement of scene.placements()) {
-      const gap = distance(point, { x: placement.pose.x + placement.pose.slide, y: placement.pose.y });
+      // A pose positions the animal's feet, so aim the hit circle at its body.
+      const gap = distance(point, {
+        x: placement.pose.x + placement.pose.slide,
+        y: placement.pose.y - ANIMAL_HIT_LIFT,
+      });
       if (gap < bestDistance) {
         bestDistance = gap;
         best = placement.animal.uid;

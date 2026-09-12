@@ -21,6 +21,7 @@ export interface SeesawTestHooks {
   takeBack(uid: string): void;
   step(frames?: number): void;
   status(): 'playing' | 'won';
+  danceProgress(): number;
   zone(): 'green' | 'yellow' | 'red';
   flagRaised(): boolean;
   level(): string;
@@ -91,8 +92,8 @@ export const seesawGame: SeesawModule = {
       snapshot: game.snapshot(),
       placed: game.state.placed,
       targetBalance: targetBalanceFor(),
-      gateOpen: game.state.status === 'won',
       celebrating: celebrating > 0,
+      dancing: game.state.status === 'won',
       tray: game.state.tray,
       selectedTrayIndex,
       caption: describeObjective(currentChallenge(level.objective, game.state.stage)),
@@ -128,7 +129,11 @@ export const seesawGame: SeesawModule = {
       }
       if (events.some((event) => event.type === 'levelCleared')) {
         sounds.play('success');
-        sounds.play('gate');
+        sounds.play('cheer', { delay: 0.12 });
+        // One chirp per dancer, in the same wave the hops run in.
+        game.state.placed.forEach((animal, index) => {
+          sounds.play(`chirp:${animal.species}`, { delay: 0.2 + index * TIMING.danceStaggerSeconds });
+        });
       }
     };
 
@@ -198,8 +203,8 @@ export const seesawGame: SeesawModule = {
 
       if (game.state.status === 'won') {
         wonFor += dt;
-        // Let the gate finish opening before moving on.
-        if (wonFor > TIMING.gateSeconds + 1.4) advanceLevel();
+        // Let the animals finish dancing before the next level arrives.
+        if (wonFor > TIMING.danceSeconds + TIMING.levelChangeSeconds) advanceLevel();
       }
 
       if (ctx) scene.render(ctx, { width: canvas.width, height: canvas.height });
@@ -225,6 +230,7 @@ export const seesawGame: SeesawModule = {
           for (let i = 0; i < frames; i++) frame(1 / 60);
         },
         status: () => game.state.status,
+        danceProgress: () => scene.danceProgress,
         zone: () => game.snapshot().zone,
         flagRaised: () => game.snapshot().zone === 'red',
         level: () => level.id,

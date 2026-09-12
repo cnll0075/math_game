@@ -13,6 +13,8 @@ export interface FakeOscillator {
   frequency: FakeParam;
   detune: FakeParam;
   started: boolean;
+  /** Context time the voice was scheduled to begin. */
+  startedAt: number;
   stopped: boolean;
   connectedTo: unknown[];
 }
@@ -84,6 +86,7 @@ export function fakeContext(): FakeContext {
         frequency: param(440),
         detune: param(0),
         started: false,
+        startedAt: 0,
         stopped: false,
         connectedTo: [] as unknown[],
         connect(target: unknown) {
@@ -91,8 +94,9 @@ export function fakeContext(): FakeContext {
           return target;
         },
         disconnect() {},
-        start() {
+        start(when = 0) {
           node.started = true;
+          node.startedAt = when;
         },
         stop() {
           node.stopped = true;

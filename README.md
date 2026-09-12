@@ -64,15 +64,16 @@ All drawing goes through `SeesawTheme` (`games/seesaw/src/view/theme.ts`).
 `createVectorTheme()` is the prototype: flat shapes drawn in code, no assets.
 
 To use real art, implement the same interface — `drawBackground`, `drawSeesaw`,
-`drawTarget`, `drawGauge`, `drawFlag`, `drawGate`, and an `AnimalArtist` — and
-pass it to `createScene`. `preload()` is awaited during `mount`, so a theme that
-loads images needs no other change.
+`drawTarget`, `drawGauge`, `drawFlag`, `drawCelebration`, and an `AnimalArtist`
+— and pass it to `createScene`. `preload()` is awaited during `mount`, so a
+theme that loads images needs no other change.
 
 Animals are drawn from an `AnimalPose`: position, scale, plank angle, wobble,
-slide, and one of three expressions. Whole-body art per expression drops in
-unchanged. Sprite-sheet or rigged animation (Rive, Spine) needs one more field
-on `AnimalPose` — a clip name and time — with the theme driving clips instead of
-the procedural transforms.
+slide, a `dance` value, and one of four expressions. Whole-body art per
+expression drops in unchanged, and a sprite theme drives a dance clip from
+`dance` instead of the procedural hop. Sprite-sheet or rigged animation (Rive,
+Spine) for the *other* states needs one more field on `AnimalPose` — a clip name
+and time — with the theme driving clips instead of the procedural transforms.
 
 Animation timing lives in `view/timing.ts`, separate from the theme, so retuning
 the feel and swapping the art stay independent jobs.
@@ -81,8 +82,10 @@ the feel and swapping the art stay independent jobs.
 
 Sounds are synthesised through Web Audio; there are no audio files.
 `createSynthSoundPack` implements `SoundPack`, whose events are `ding`, `creak`,
-`land`, `danger`, `success`, `gate`, and `chirp:<species>`. A pack backed by
-recordings implements the same names and is swapped in one line.
+`land`, `danger`, `success`, `cheer`, and `chirp:<species>`. Every event honours
+a `delay` param, which is how the celebration staggers its chirps without
+timers. A pack backed by recordings implements the same names and is swapped in
+one line.
 
 The **sound lab** fires each event from a button, for auditioning candidates
 without replaying a level: open Settings and long-press the "Settings" heading
@@ -97,6 +100,9 @@ Music defaults to off — the game is built to feel complete muted.
   angle — visual smoothing can never move the moment the bell rings.
 - The presentation layer reads game state and never writes to it.
 - Animal weights exist only in the animal catalog.
+- Finishing a level is celebrated by the animals themselves — they hop, cheer,
+  and chirp in a wave while the plank bobs — not by a score screen. The bob is
+  added to the rendered angle only and never reaches the balance state.
 - Games never ask whether the player paid; the shell hands down a content
   manifest.
 

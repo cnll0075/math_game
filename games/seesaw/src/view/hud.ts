@@ -76,7 +76,7 @@ export function drawHud(ctx: CanvasRenderingContext2D, theme: SeesawTheme, hud: 
     if (selected) {
       // A soft ring, pulsing, so the armed animal is obvious without text.
       ctx.beginPath();
-      ctx.arc(slot.x, slot.y - 6, TRAY_SLOT_RADIUS + 4 + Math.sin(time * 6) * 2, 0, Math.PI * 2);
+      ctx.arc(slot.x, slot.y, TRAY_SLOT_RADIUS + 4 + Math.sin(time * 6) * 2, 0, Math.PI * 2);
       ctx.fillStyle = 'rgba(255,210,63,0.55)';
       ctx.fill();
     }
@@ -84,11 +84,13 @@ export function drawHud(ctx: CanvasRenderingContext2D, theme: SeesawTheme, hud: 
 
     theme.animals.draw(ctx, slot.item.species, {
       x: slot.x,
-      y: slot.y,
+      // Tray animals stand on the shelf, so the pose sits at their feet too.
+      y: slot.y + 24,
       scale: selected ? 0.68 : 0.6,
       tiltRad: 0,
       wobble: selected ? Math.sin(time * 7) * 0.35 : 0,
       slide: 0,
+      dance: 0,
       expression: 'calm',
     });
   }

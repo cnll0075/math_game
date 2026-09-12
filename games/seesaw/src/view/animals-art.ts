@@ -20,6 +20,18 @@ const ellipse = (ctx: CanvasRenderingContext2D, x: number, y: number, rx: number
 };
 
 const drawEyes = (ctx: CanvasRenderingContext2D, spread: number, y: number, expression: Expression): void => {
+  if (expression === 'cheer') {
+    // Happy closed eyes: two upward arcs.
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 2.4;
+    ctx.lineCap = 'round';
+    for (const side of [-1, 1]) {
+      ctx.beginPath();
+      ctx.arc(side * spread, y + 2, 5, Math.PI * 1.15, Math.PI * 1.85);
+      ctx.stroke();
+    }
+    return;
+  }
   const radius = expression === 'alarmed' ? 6.5 : expression === 'surprised' ? 5.5 : 4.5;
   for (const side of [-1, 1]) {
     ellipse(ctx, side * spread, y, radius, radius, EYE_WHITE);
@@ -33,7 +45,14 @@ const drawMouth = (ctx: CanvasRenderingContext2D, y: number, expression: Express
   ctx.lineWidth = 2;
   ctx.lineCap = 'round';
   ctx.beginPath();
-  if (expression === 'calm') {
+  if (expression === 'cheer') {
+    // A wide open grin.
+    ctx.arc(0, y - 4, 9, 0.15 * Math.PI, 0.85 * Math.PI);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-8.5, y - 1);
+    ctx.lineTo(8.5, y - 1);
+  } else if (expression === 'calm') {
     // A small smile.
     ctx.arc(0, y - 3, 6, 0.25 * Math.PI, 0.75 * Math.PI);
   } else if (expression === 'surprised') {
@@ -146,14 +165,41 @@ const PAINTERS: Record<AnimalId, (ctx: CanvasRenderingContext2D, pose: AnimalPos
   bear: drawBear,
 };
 
+/**
+ * How far each species' lowest point sits below its drawing origin. A pose
+ * positions an animal's FEET, so each body is lifted by its own height and the
+ * animals stand on the plank instead of sinking halfway through it.
+ */
+const FOOT_OFFSET: Record<AnimalId, number> = {
+  rabbit: 21,
+  cat: 24,
+  dog: 25,
+  bear: 33,
+};
+
+/** Half the height of the tallest animal, for hit testing a placed animal. */
+export const ANIMAL_HIT_LIFT = 26;
+
+/** How high a dancing animal hops, in local units. */
+const HOP_HEIGHT = 26;
+
 export const vectorAnimalArtist: AnimalArtist = {
   draw(ctx, species, pose) {
+    // One hop arc per unit of dance: up, over, down, landing back on the plank.
+    const hop = pose.dance > 0 ? Math.abs(Math.sin(pose.dance * Math.PI * 3)) * HOP_HEIGHT : 0;
+    const spin = pose.dance > 0 ? Math.sin(pose.dance * Math.PI * 6) * 0.22 : 0;
+    // Squash on landing, stretch at the top: the hop reads as weight, not float.
+    const squash = pose.dance > 0 ? 1 + (hop / HOP_HEIGHT) * 0.08 : 1;
+
     ctx.save();
-    ctx.translate(pose.x + pose.slide, pose.y);
-    ctx.rotate(pose.tiltRad + pose.wobble * 0.08);
+    ctx.translate(pose.x + pose.slide, pose.y - hop);
+    ctx.rotate(pose.tiltRad + pose.wobble * 0.08 + spin);
     ctx.scale(pose.scale, pose.scale);
-    // Squash slightly on the downhill lean so the weight reads physically.
-    ctx.scale(1 + Math.abs(pose.wobble) * 0.04, 1 - Math.abs(pose.wobble) * 0.04);
+    ctx.scale(
+      (1 + Math.abs(pose.wobble) * 0.04) / squash,
+      (1 - Math.abs(pose.wobble) * 0.04) * squash,
+    );
+    ctx.translate(0, -FOOT_OFFSET[species]);
     PAINTERS[species](ctx, pose);
     ctx.restore();
   },

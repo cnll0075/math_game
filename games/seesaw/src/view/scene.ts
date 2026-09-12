@@ -2,6 +2,7 @@ import { describeSeesaw, type PlacedAnimal, type SeesawSnapshot, type Side } fro
 import { SCENE, platformAnchor } from './geometry.js';
 import { DESIGN, fitToScreen, slotPositions, type Point, type Size } from './layout.js';
 import { createSpring } from './spring.js';
+import { TIMING } from './timing.js';
 import { drawHud, drawSideTargets, traySlots, type TraySlot } from './hud.js';
 import type { TrayItem } from '../logic/game.js';
 import type { AnimalPose, Expression, SeesawTheme, SeesawView } from './theme.js';
@@ -11,8 +12,9 @@ export interface SceneModel {
   placed: readonly PlacedAnimal[];
   /** Normalized balance the target marker sits at, or null when unused. */
   targetBalance: number | null;
-  gateOpen: boolean;
   celebrating: boolean;
+  /** Set while the level's finishing dance plays. */
+  dancing: boolean;
   tray: readonly TrayItem[];
   selectedTrayIndex: number | null;
   caption: string;
@@ -35,6 +37,7 @@ export interface Scene {
   toDesign(point: Point, screen: Size): Point;
   readonly tiltSettled: boolean;
   readonly plankAngle: number;
+  readonly danceProgress: number;
 }
 
 const expressionFor = (zone: SeesawSnapshot['zone']): Expression =>
@@ -44,8 +47,8 @@ const emptyModel = (): SceneModel => ({
   snapshot: describeSeesaw([]),
   placed: [],
   targetBalance: null,
-  gateOpen: false,
   celebrating: false,
+  dancing: false,
   tray: [],
   selectedTrayIndex: null,
   caption: '',
@@ -62,11 +65,12 @@ export function createScene(theme: SeesawTheme): Scene {
   const tilt = createSpring(0);
   const needle = createSpring(0);
   const flag = createSpring(0);
-  const gate = createSpring(0);
 
   let model = emptyModel();
   let time = 0;
   let celebrate = 0;
+  /** Seconds since the finishing dance began; negative when nobody is dancing. */
+  let danceElapsed = -1;
   /** Per-animal phase so a row of animals does not wobble in lockstep. */
   const phases = new Map<string, number>();
 
@@ -80,21 +84,42 @@ export function createScene(theme: SeesawTheme): Scene {
     return phase;
   };
 
+  /** A gentle bob under the dancers. Rendering only; balance state is untouched. */
+  const celebrationBob = (): number =>
+    danceElapsed < 0 ? 0 : Math.sin(danceElapsed * 7) * 0.018 * danceIntensity();
+
+  /** Fades the dance in quickly and out over its final third. */
+  const danceIntensity = (): number => {
+    if (danceElapsed < 0) return 0;
+    const remaining = TIMING.danceSeconds - danceElapsed;
+    if (remaining <= 0) return 0;
+    return Math.min(1, danceElapsed / 0.12, remaining / 0.5);
+  };
+
+  /** Each animal starts its hop a beat after the one before it. */
+  const danceFor = (index: number): number => {
+    if (danceElapsed < 0) return 0;
+    const start = index * TIMING.danceStaggerSeconds;
+    const progress = (danceElapsed - start) / (TIMING.danceSeconds - start);
+    if (progress <= 0 || progress >= 1) return 0;
+    return progress * danceIntensity();
+  };
+
   const viewState = (): SeesawView => ({
-    plankAngle: tilt.value,
+    plankAngle: tilt.value + celebrationBob(),
     needle: needle.value,
     zone: model.snapshot.zone,
     flagHeight: flag.value,
     flagSide: model.snapshot.heavySide,
-    gateOpen: gate.value,
-    celebrate,
+    celebrate: Math.max(celebrate, danceIntensity()),
     targetAngle: model.targetBalance === null ? null : -model.targetBalance * SCENE.maxTiltRad,
     time,
   });
 
   const placementsFor = (): AnimalPlacement[] => {
     const result: AnimalPlacement[] = [];
-    const tiltAmount = tilt.value;
+    const tiltAmount = tilt.value + celebrationBob();
+    let danceIndex = 0;
 
     for (const side of ['left', 'right'] as Side[]) {
       const animals = model.placed.filter((animal) => animal.side === side);
@@ -115,6 +140,9 @@ export function createScene(theme: SeesawTheme): Scene {
           y: anchor.y + offset * Math.sin(tiltAmount) - SCENE.platformHeight - 6,
         };
 
+        const dance = danceFor(danceIndex);
+        danceIndex += 1;
+
         result.push({
           animal,
           pose: {
@@ -122,9 +150,11 @@ export function createScene(theme: SeesawTheme): Scene {
             y: local.y,
             scale: 0.92,
             tiltRad: tiltAmount,
-            wobble,
+            // Dancers hold still apart from the hop; a wobble on top reads as noise.
+            wobble: dance > 0 ? 0 : wobble,
             slide,
-            expression: expressionFor(model.snapshot.zone),
+            dance,
+            expression: dance > 0 ? 'cheer' : expressionFor(model.snapshot.zone),
           },
         });
       });
@@ -140,12 +170,13 @@ export function createScene(theme: SeesawTheme): Scene {
       tilt.target = -next.snapshot.normalizedBalance * SCENE.maxTiltRad;
       needle.target = next.snapshot.normalizedBalance;
       flag.target = next.snapshot.zone === 'red' ? 1 : 0;
-      gate.target = next.gateOpen ? 1 : 0;
 
       tilt.step(dt);
       needle.step(dt);
       flag.step(dt);
-      gate.step(dt);
+
+      if (next.dancing) danceElapsed = danceElapsed < 0 ? 0 : danceElapsed + dt;
+      else danceElapsed = -1;
 
       celebrate = next.celebrating ? Math.min(1, celebrate + dt * 3) : Math.max(0, celebrate - dt * 1.6);
     },
@@ -165,13 +196,13 @@ export function createScene(theme: SeesawTheme): Scene {
 
       const view = viewState();
       theme.drawBackground(ctx, view);
-      theme.drawGate(ctx, view);
-      if (model.selectedTrayIndex !== null) drawSideTargets(ctx, tilt.value, time);
+      if (model.selectedTrayIndex !== null) drawSideTargets(ctx, view.plankAngle, time);
       theme.drawSeesaw(ctx, view);
       for (const { animal, pose } of placementsFor()) theme.animals.draw(ctx, animal.species, pose);
       theme.drawTarget(ctx, view);
       theme.drawFlag(ctx, view);
       theme.drawGauge(ctx, view);
+      theme.drawCelebration(ctx, view);
       drawHud(
         ctx,
         theme,
@@ -201,7 +232,12 @@ export function createScene(theme: SeesawTheme): Scene {
     },
 
     get plankAngle() {
-      return tilt.value;
+      return tilt.value + celebrationBob();
+    },
+
+    /** How far through the finishing dance the scene is, 0 when not dancing. */
+    get danceProgress() {
+      return danceElapsed < 0 ? 0 : Math.min(1, danceElapsed / TIMING.danceSeconds);
     },
   };
 }

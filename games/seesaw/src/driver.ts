@@ -24,7 +24,7 @@ export interface Driver {
   tick(dt: number): SessionEvent[];
   /** The player chose a side. */
   drop(side: Side): SessionEvent[];
-  /** The player picked up a tray animal. Puzzle only. */
+  /** The player picked up a tray animal, or chose one from the arcade queue. */
   pick(trayIndex: number): void;
   /** The player tapped a placed animal. Puzzle only. */
   takeBack(uid: string): SessionEvent[];
@@ -72,6 +72,10 @@ function puzzleDriver(game: Game): Driver {
       stageLabel: stageLabel(),
       won: game.state.status === 'won',
       queue: [],
+      selectedQueueIndex: 0,
+      groupSize: 0,
+      bells: 0,
+      bellTarget: null,
       progress: null,
       impatience: 0,
       danger: 0,
@@ -114,9 +118,9 @@ function arcadeDriver(run: ArcadeRun, best: number | null): Driver {
       stages: 1,
       stagesCleared: run.state.status === 'won' ? 1 : 0,
       secondsRemaining: run.target === null ? null : Math.max(0, run.target - run.state.elapsed),
-      // The arcade has no "pick up" step, so without this there is nothing on
-      // screen saying that tapping a side is what seats the animal.
-      showPlacementHint: playerPlacements < 2 && run.state.queue.length > 0,
+      // Until the player has seated a couple themselves, nothing on screen
+      // says that choosing an animal and tapping a side is the verb.
+      showPlacementHint: playerPlacements < 2 && run.state.queue.length > 0 && !run.state.celebrating,
       targetBalance: null,
       tray: [],
       selectedTrayIndex: null,
@@ -124,6 +128,10 @@ function arcadeDriver(run: ArcadeRun, best: number | null): Driver {
       stageLabel: null,
       won: run.state.status === 'won',
       queue: run.state.queue,
+      selectedQueueIndex: run.state.selected,
+      groupSize: run.state.groupSize,
+      bells: run.state.bells,
+      bellTarget: run.bellTarget,
       progress: run.progress,
       impatience: run.state.impatience,
       danger: run.state.danger,
@@ -138,12 +146,12 @@ function arcadeDriver(run: ArcadeRun, best: number | null): Driver {
     }),
     tick: (dt) => run.tick(dt),
     stats: () => run.state.stats,
+    pick: (index) => run.select(index),
     drop: (side) => {
       const events = run.place(side);
       if (events.length > 0) playerPlacements += 1;
       return events;
     },
-    pick: () => {},
     takeBack: () => [],
   };
 }

@@ -51,6 +51,21 @@ export interface ArcadeSettings {
   maxHeavyRun?: number;
   /** Weather, from level 9 onwards. Omit for still air. */
   wind?: Omit<WindSettings, 'seed'>;
+  /**
+   * Balance Rush: how big a gap is seeded after each bell. The player closes it
+   * with animals from the queue, which is where the arithmetic lives.
+   */
+  seedGap?: readonly [number, number];
+  /** Seconds the seesaw holds its balance before the animals hop off. */
+  celebrateSeconds?: number;
+  /**
+   * Families that must all be seated: the player splits them across the sides,
+   * which is partitioning rather than comparison. [min, max] members; omit for
+   * single arrivals only.
+   */
+  groupSize?: readonly [number, number];
+  /** Chance from 0 to 1 that an arrival is a family rather than one animal. */
+  groupChance?: number;
   /** Endless rounds only: how the pace tightens as the round goes on. */
   ramp?: {
     /** Arrival gap approaches this floor. */
@@ -66,7 +81,7 @@ export interface ArcadeSettings {
  */
 export interface ArcadeLevelDef extends LevelCommon {
   mode: 'arcade';
-  objective: { kind: 'survive'; seconds: number } | { kind: 'endless' };
+  objective: { kind: 'survive'; seconds: number } | { kind: 'bells'; count: number; seconds: number } | { kind: 'endless' };
   arcade: ArcadeSettings;
 }
 

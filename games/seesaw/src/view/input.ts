@@ -68,7 +68,10 @@ export function createInput(
 
   const trayIndexAt = (point: Point): number | null => {
     for (const slot of scene.traySlots()) {
-      if (distance(point, { x: slot.x, y: slot.y }) <= slot.radius) return slot.index;
+      // Generous vertically: the animals stand below their slot centre, and a
+      // child aiming at an animal should hit it.
+      const near = Math.hypot(point.x - slot.x, (point.y - slot.y - 12) * 0.8) <= slot.radius + 8;
+      if (near) return slot.index;
     }
     return null;
   };

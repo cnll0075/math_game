@@ -9,6 +9,7 @@ import { createScene, type SceneModel } from './view/scene.js';
 import { createVectorTheme } from './view/vector-theme.js';
 import { createInput } from './view/input.js';
 import { TIMING } from './view/timing.js';
+import { countdownStep } from './view/countdown.js';
 import { DESIGN } from './view/layout.js';
 
 export interface SeesawOptions {
@@ -36,6 +37,11 @@ export interface SeesawTestHooks {
   windPhase(): 'calm' | 'warning' | 'blowing';
   showPlacementHint(): boolean;
   secondsRemaining(): number | null;
+  pick(index: number): void;
+  bells(): number;
+  groupSize(): number;
+  selectedQueueIndex(): number;
+  placedSpecies(): readonly AnimalId[];
 }
 
 export interface SeesawSession extends GameSession {
@@ -227,17 +233,10 @@ export const seesawGame: SeesawModule = {
         sounds.play('goal');
       }
 
-      // The last few seconds tick, once each.
-      const remaining = model.secondsRemaining;
-      if (remaining === null || driver.status !== 'playing') {
-        lastTick = Number.POSITIVE_INFINITY;
-      } else {
-        const whole = Math.ceil(remaining);
-        if (whole <= 5 && whole > 0 && whole < lastTick) {
-          lastTick = whole;
-          sounds.play('tick');
-        }
-      }
+      // The last few seconds are counted out loud.
+      const counting = countdownStep(lastTick, driver.status === 'playing' ? model.secondsRemaining : null);
+      lastTick = counting.whole;
+      if (counting.tick) sounds.play('tick');
 
       if (pendingDing && scene.tiltSettled) {
         dingTimer += dt;
@@ -300,6 +299,11 @@ export const seesawGame: SeesawModule = {
         windPhase: () => driver.model().wind.phase,
         showPlacementHint: () => driver.model().showPlacementHint,
         secondsRemaining: () => driver.model().secondsRemaining,
+        pick: (index) => driver.pick(index),
+        bells: () => driver.model().bells,
+        groupSize: () => driver.model().groupSize,
+        selectedQueueIndex: () => driver.model().selectedQueueIndex,
+        placedSpecies: () => driver.placed().map((animal) => animal.species),
       },
     };
   },

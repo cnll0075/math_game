@@ -3,7 +3,7 @@ import { SCENE, platformAnchor } from './geometry.js';
 import { DESIGN, fitToScreen, slotPositions, visibleBounds, type Bounds, type Point, type Size } from './layout.js';
 import { createSpring } from './spring.js';
 import { TIMING } from './timing.js';
-import { drawHud, drawSideTargets, traySlots, type TraySlot } from './hud.js';
+import { drawHud, drawSideTargets, queueSlots, traySlots, type TraySlot } from './hud.js';
 import type { TrayItem } from '../logic/game.js';
 import type { AnimalId } from '../logic/animals.js';
 import type { AnimalPose, Expression, SeesawTheme, SeesawView } from './theme.js';
@@ -23,6 +23,13 @@ export interface SceneModel {
   won: boolean;
   /** Arcade only; empty in a puzzle. */
   queue: readonly AnimalId[];
+  /** Which queued animal is chosen. */
+  selectedQueueIndex: number;
+  /** When above zero, the first this many are a family that must all be seated. */
+  groupSize: number;
+  /** Bells rung, and how many the level asks for. */
+  bells: number;
+  bellTarget: number | null;
   /** Arcade only: 0..1 through the round, or null in a puzzle. */
   progress: number | null;
   /** Arcade only: 0..1 how close the waiting animal is to placing itself. */
@@ -79,6 +86,10 @@ const emptyModel = (): SceneModel => ({
   stageLabel: null,
   won: false,
   queue: [],
+  selectedQueueIndex: 0,
+  groupSize: 0,
+  bells: 0,
+  bellTarget: null,
   progress: null,
   impatience: 0,
   danger: 0,
@@ -275,6 +286,10 @@ export function createScene(theme: SeesawTheme): Scene {
           stageLabel: model.stageLabel,
           won: model.won,
           queue: model.queue,
+          selectedQueueIndex: model.selectedQueueIndex,
+          groupSize: model.groupSize,
+          bells: model.bells,
+          bellTarget: model.bellTarget,
           progress: model.progress,
           impatience: model.impatience,
           survivalSeconds: model.survivalSeconds,
@@ -294,7 +309,9 @@ export function createScene(theme: SeesawTheme): Scene {
 
     placements: placementsFor,
 
-    traySlots: () => traySlots(model.tray),
+    // The arcade hand is choosable in exactly the way the tray is, so it hit
+    // tests through the same path.
+    traySlots: () => (model.queue.length > 0 ? queueSlots(model.queue) : traySlots(model.tray)),
 
     toDesign(point, screen) {
       return fitToScreen(screen).toDesign(point);

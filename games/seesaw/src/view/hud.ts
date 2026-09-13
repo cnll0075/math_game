@@ -174,6 +174,13 @@ export interface HudModel {
   won: boolean;
   /** Arcade only: animals waiting to be placed, the current one first. */
   queue: readonly AnimalId[];
+  /** Which queued animal is chosen. */
+  selectedQueueIndex: number;
+  /** When above zero, the first this many are a family that must all be seated. */
+  groupSize: number;
+  /** Bells rung, and how many the level asks for. */
+  bells: number;
+  bellTarget: number | null;
   /** Arcade only: 0..1 through the round, or null in a puzzle. */
   progress: number | null;
   /** Arcade only: 0..1 how close the waiting animal is to placing itself. */
@@ -194,17 +201,54 @@ export interface HudModel {
   stamp: number;
 }
 
-const QUEUE_SPACING = 84;
+const QUEUE_SPACING = 108;
 
-/** Where the animal being placed sits, and where the ones behind it queue up. */
+/**
+ * The hand: every waiting animal can be chosen, so they are laid out evenly and
+ * the chosen one is lifted, rather than the first being special. Picking which
+ * animal closes the gap is where the arithmetic lives, so the hand has to read
+ * as a set of options rather than as a conveyor belt.
+ */
 export function queueSlots(queue: readonly AnimalId[]): TraySlot[] {
+  const start = DESIGN.width / 2 - ((queue.length - 1) * QUEUE_SPACING) / 2;
   return queue.map((species, position) => ({
     index: position,
     item: { uid: `queue-${position}`, species, used: false },
-    x: DESIGN.width / 2 + (position === 0 ? 0 : 30 + position * QUEUE_SPACING),
+    x: start + position * QUEUE_SPACING,
     y: SCENE.trayY,
-    radius: position === 0 ? TRAY_SLOT_RADIUS : TRAY_SLOT_RADIUS * 0.7,
+    radius: TRAY_SLOT_RADIUS,
   }));
+}
+
+/** Bells rung so far, drawn as bells: progress readable without numerals. */
+function drawBells(ctx: CanvasRenderingContext2D, hud: HudModel, time: number): void {
+  const total = hud.bellTarget ?? Math.max(hud.bells, 1);
+  const gap = 42;
+  const start = DESIGN.width / 2 - ((total - 1) * gap) / 2;
+
+  for (let index = 0; index < total; index++) {
+    const rung = index < hud.bells;
+    const justRung = rung && index === hud.bells - 1;
+    const lift = justRung ? Math.abs(Math.sin(time * 9)) * 4 : 0;
+
+    ctx.save();
+    ctx.translate(start + index * gap, 144 - lift);
+    ctx.globalAlpha = rung ? 1 : 0.3;
+    ctx.fillStyle = rung ? '#ffc21f' : 'rgba(255,255,255,0.85)';
+    ctx.strokeStyle = rung ? '#c98a00' : 'rgba(29,43,50,0.35)';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(0, 2, 12, Math.PI, 0);
+    ctx.lineTo(13, 9);
+    ctx.lineTo(-13, 9);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, 12, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
 }
 
 /**
@@ -298,14 +342,34 @@ function drawRun(ctx: CanvasRenderingContext2D, seconds: number, best: number | 
  */
 function drawQueue(ctx: CanvasRenderingContext2D, theme: SeesawTheme, hud: HudModel, time: number): void {
   const slots = queueSlots(hud.queue);
+  const bound = hud.groupSize > 0 ? Math.min(hud.groupSize, slots.length) : 0;
 
-  for (const slot of [...slots].reverse()) {
-    const current = slot.index === 0;
+  // A family arrives roped together and every member must be seated, so it is
+  // drawn as one bracketed group rather than as separate animals.
+  if (bound > 1) {
+    const first = slots[0]!;
+    const last = slots[bound - 1]!;
+    const left = first.x - TRAY_SLOT_RADIUS - 12;
+    const width = last.x + TRAY_SLOT_RADIUS + 12 - left;
+    ctx.save();
+    ctx.fillStyle = 'rgba(255,194,31,0.22)';
+    ctx.strokeStyle = 'rgba(201,138,0,0.55)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.roundRect?.(left, first.y - TRAY_SLOT_RADIUS - 10, width, TRAY_SLOT_RADIUS * 2 + 36, 26);
+    if (!ctx.roundRect) ctx.rect(left, first.y - TRAY_SLOT_RADIUS - 10, width, TRAY_SLOT_RADIUS * 2 + 36);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
 
-    if (current) {
-      // A ring that empties as the animal's patience runs out.
+  for (const slot of slots) {
+    const chosen = slot.index === hud.selectedQueueIndex;
+    const choosable = bound === 0 || slot.index < bound;
+
+    if (chosen) {
       ctx.save();
-      ctx.strokeStyle = hud.impatience > 0.7 ? 'rgba(228,105,95,0.95)' : 'rgba(255,210,63,0.9)';
+      ctx.strokeStyle = hud.impatience > 0.7 ? 'rgba(228,105,95,0.95)' : 'rgba(255,210,63,0.95)';
       ctx.lineWidth = 6;
       ctx.lineCap = 'round';
       ctx.beginPath();
@@ -320,24 +384,28 @@ function drawQueue(ctx: CanvasRenderingContext2D, theme: SeesawTheme, hud: HudMo
       ctx.restore();
     }
 
-    if (current && hud.showPlacementHint) drawPlacementHint(ctx, slot.x, slot.y, time);
+    if (chosen && hud.showPlacementHint) drawPlacementHint(ctx, slot.x, slot.y, time);
 
+    ctx.save();
+    ctx.globalAlpha = choosable ? 1 : 0.4;
     theme.animals.draw(ctx, slot.item.species, {
       x: slot.x,
-      y: slot.y + (current ? 24 : 16),
-      scale: current ? 0.78 : 0.5,
+      y: slot.y + 24 - (chosen ? 10 : 0),
+      scale: chosen ? 0.8 : 0.66,
       tiltRad: 0,
-      wobble: current ? Math.sin(time * 6) * 0.25 : 0,
+      wobble: chosen ? Math.sin(time * 6) * 0.2 : 0,
       slide: 0,
       dance: 0,
       expression: 'calm',
     });
+    ctx.restore();
   }
 }
 
 export function drawHud(ctx: CanvasRenderingContext2D, theme: SeesawTheme, hud: HudModel, time: number): void {
   drawGoal(ctx, hud, time);
 
+  if (hud.bellTarget !== null || hud.bells > 0) drawBells(ctx, hud, time);
   if (hud.progress !== null) drawProgress(ctx, hud.progress, hud.secondsRemaining, time);
   else if (hud.survivalSeconds !== null) drawRun(ctx, hud.survivalSeconds, hud.bestSeconds);
 

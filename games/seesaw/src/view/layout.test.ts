@@ -179,3 +179,11 @@ describe('the goal announcement keeps out of the way', () => {
     expect(cardBottom).toBeLessThan(seesawTopAtRest);
   });
 });
+
+describe('the top bar does not stack on itself', () => {
+  it('keeps the bells clear of the clock above them', () => {
+    const clockBottom = SCENE.gaugeY + 34 + 18;
+    const bellTop = 144 - 14;
+    expect(bellTop).toBeGreaterThan(clockBottom);
+  });
+});

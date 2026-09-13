@@ -185,6 +185,93 @@ players aiming at the wrong one.
 - Games never ask whether the player paid; the shell hands down a content
   manifest.
 
+## The arcade half: Balance Rush (levels 6–10)
+
+A gap sits on the plank — say the left is 5 heavier. A hand of animals waits
+below. The player picks **which** animal closes the gap and **which side** it
+goes on. Land exactly level and the bell rings, the animals cheer and hop off,
+and a fresh gap is set.
+
+That shape is deliberate. An earlier arcade asked only "keep it balanced", one
+animal at a time, two choices — and the whole game could be won by dropping each
+animal on the lighter side without ever reading a number. Ringing the bell is
+now the score rather than a bonus, gaps are wider than any single animal, and
+the hand holds several options, so closing one means combining: 7 is 5 and 2, or
+3 and 3 and 1.
+
+The pressure comes from the physical world rather than from arithmetic drills:
+
+- **Impatience.** The chosen animal climbs on by itself if ignored, onto the
+  side already down — so dithering makes the gap worse.
+- **Families** (level 8 on). Two or three animals arrive roped together and all
+  must be seated, so they have to be split between the sides. That is
+  partitioning a set, the richest arithmetic in the game.
+- **Wind** (level 9 on) leans on the plank as a phantom weight, so the sum has
+  to account for it.
+- **The danger meter** ends a round that gets away from the player entirely, and
+  a lost round simply starts again.
+
+`animal-generator.ts` proposes an arrival; `fairness.ts` disposes. Keeping them
+apart means difficulty is tuned in one place rather than smeared through the
+random draw. The generator judges against `snapshot()`, so it accounts for the
+wind that is actually blowing.
+
+**Level 10** never ends: the pace keeps tightening, so every run is eventually
+lost, and the bells rung are the score. It tracks time survived, animals
+handled, perfect balances, longest streak and near misses, and keeps a personal
+best.
+
+### Proving the math matters
+
+`arcade-levels.test.ts` plays every level two ways at a child's pace — one
+placement every 1.6 seconds, so a hand of options actually accumulates:
+
+- **Arithmetic:** pick the animal and side that land closest to level.
+- **Comparison:** take the first animal, drop it on the lighter side. No numbers
+  consulted. This is the strategy that used to win.
+
+The suite requires that arithmetic wins from every seed (so the generator can
+never deal a dead round) and that it rings at least half again as many bells as
+comparison in the same time. Level 6 is exempt from the second: it teaches the
+loop and should be winnable by feel.
+
+## Telling the player what is being asked
+
+Each level asks for something different, and in play that was easy to miss. Two
+things carry it:
+
+- **The goal announces itself.** It arrives large in the middle of the screen
+  with a sound, holds, then flies up into the top bar. It fires again for each
+  challenge inside a level, so a new ask is always seen arriving rather than
+  discovered.
+- **Stage dots.** A level with several challenges shows one dot per challenge,
+  ticked off as they are cleared, so it visibly differs from a level that asks
+  for one thing.
+
+In the arcade there is no picking-up step, so both landing zones glow whenever
+an animal is waiting, and arrows sweep out from it towards them until the player
+has seated two animals themselves. Without that there is nothing on screen
+saying that tapping a side is the verb.
+
+The target for a tilt objective is **one** thing: a ghost of the plank where it
+should end up, with the star at the end of it. An earlier version drew the ghost
+and floated the star above the basket, which read as two separate goals and sent
+players aiming at the wrong one.
+
+## Design rules worth keeping
+
+- The mathematical state is authoritative. Perfect balance is
+  `leftWeight === rightWeight`, edge-triggered, never derived from the rendered
+  angle — visual smoothing can never move the moment the bell rings.
+- The presentation layer reads game state and never writes to it.
+- Animal weights exist only in the animal catalog, including the numeral each
+  animal wears.
+- Finishing a level is celebrated by the animals themselves — they hop, cheer,
+  and chirp in a wave while the plank bobs — not by a score screen. The bob is
+  added to the rendered angle only and never reaches the balance state.
+- Games never ask whether the player paid; the shell hands down a content
+  manifest.
+
 ## The arcade half (levels 6–10)
 
 Animals arrive on a timer and wander off after a while, so the balance drifts

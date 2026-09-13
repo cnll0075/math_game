@@ -403,3 +403,33 @@ adult playing it, and what each turned out to be:
 - **The countdown was easy to miss.** The bar is taller, carries the seconds
   remaining as a numeral, pulses over the last five seconds, and ticks once a
   second through them.
+
+
+**The arcade half became Balance Rush** (2026-09-12). The survival arcade of
+sections 17 to 21 was built, played, and found to contain very little
+arithmetic — the fairness simulation's own "competent player" won every level by
+dropping each animal on the lighter side, which consults no numbers at all. A
+turn of one animal and two choices is a comparison, not a sum.
+
+The mode was rebuilt around a different turn:
+
+- A gap is seeded on the plank; the player chooses **which** animal from a hand
+  of several closes it, and on which side.
+- Exact balance is the score rather than a bonus: the bell rings, the animals
+  hop off, and a fresh gap is set. Rounds ask for a number of bells against a
+  clock; level 10 counts them forever.
+- Gaps are wider than any single animal, so closing one means combining.
+- Families (level 8) arrive roped together and must be split between the sides,
+  which is partitioning; wind (level 9) adds itself to the sum.
+
+Three things had to be true at once for the arithmetic to matter, and each was
+found by simulation rather than by reasoning: the hand must hold several options
+(arrivals now outpace a deliberating child), the fairness rule must not narrow
+the pool to near-identical animals (its thresholds were widened per level), and
+the clock must reward efficiency rather than merely punish slowness.
+
+The suite asserts what can honestly be claimed: a player who works out the sums
+wins from every seed and rings at least half again as many bells as one who
+guesses. It does not assert that guessing always loses — a clock tight enough
+for that also fails careful players on unlucky seeds, and punishing a child for
+a bad shuffle is worse than letting a guesser scrape through.

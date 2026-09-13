@@ -1,5 +1,5 @@
 import { createRng } from '@bundle/core';
-import type { AnimalId } from './animals.js';
+import { weightOf, type AnimalId } from './animals.js';
 import { createAnimalGenerator } from './animal-generator.js';
 import { balanceConfigFor, type ArcadeLevelDef } from './level.js';
 import { describeSeesaw, type PlacedAnimal, type SeesawSnapshot, type Side, type Zone } from './seesaw-state.js';
@@ -22,8 +22,19 @@ export interface ArcadeStats {
 
 export interface ArcadeState {
   placed: readonly ArcadeAnimal[];
-  /** Waiting animals; the first is the one the player is placing. */
+  /** Waiting animals. Any of them can be chosen, which is the whole point. */
   queue: readonly AnimalId[];
+  /** Which queued animal the player has chosen. */
+  selected: number;
+  /**
+   * When above zero, the first this many queued animals are a family and must
+   * all be seated before the rest can be touched.
+   */
+  groupSize: number;
+  /** Bells rung this round. */
+  bells: number;
+  /** True while the seesaw holds a balance before the animals hop off. */
+  celebrating: boolean;
   elapsed: number;
   /** 0..1 how close the waiting animal is to climbing on by itself. */
   impatience: number;
@@ -42,6 +53,8 @@ export type ArcadeEvent =
   | { type: 'zoneChanged'; from: Zone; to: Zone }
   | { type: 'levelCleared' }
   | { type: 'roundLost' }
+  | { type: 'bellRung'; bells: number }
+  | { type: 'cleared' }
   | { type: 'windChanged'; phase: WindPhase };
 
 export interface ArcadeRun {
@@ -49,8 +62,12 @@ export interface ArcadeRun {
   readonly level: ArcadeLevelDef;
   /** Advances the clock. Returns everything that happened in this slice. */
   tick(dt: number): ArcadeEvent[];
-  /** Puts the animal at the head of the queue onto a side. */
+  /** Chooses which queued animal to place next. */
+  select(index: number): void;
+  /** Puts the chosen animal onto a side. */
   place(side: Side): ArcadeEvent[];
+  /** Bells this round must ring, or null when the round is not counting them. */
+  readonly bellTarget: number | null;
   snapshot(): SeesawSnapshot;
   /** 0..1 progress towards surviving the round, or null when endless. */
   readonly progress: number | null;
@@ -73,7 +90,11 @@ export function createArcadeRun(level: ArcadeLevelDef): ArcadeRun {
   const config = balanceConfigFor(level);
   const settings = level.arcade;
   /** Seconds the round must last, or null when it simply goes on. */
-  const target = level.objective.kind === 'survive' ? level.objective.seconds : null;
+  const target =
+    level.objective.kind === 'survive' || level.objective.kind === 'bells' ? level.objective.seconds : null;
+  const bellTarget = level.objective.kind === 'bells' ? level.objective.count : null;
+  const seedGap = settings.seedGap ?? ([1, 3] as const);
+  const holdSeconds = settings.celebrateSeconds ?? 1;
   const wind: Wind | null = settings.wind
     ? createWind({ ...settings.wind, seed: settings.seed * 7 + 3 })
     : null;
@@ -86,6 +107,8 @@ export function createArcadeRun(level: ArcadeLevelDef): ArcadeRun {
   // Separate streams, so changing one does not reshuffle the others.
   const stayRng = createRng(settings.seed * 31 + 17);
   const sideRng = createRng(settings.seed * 53 + 11);
+  const groupRng = createRng(settings.seed * 97 + 41);
+  const seedRng = createRng(settings.seed * 131 + 7);
 
   let placed: ArcadeAnimal[] = [
     ...level.initial.left.map((species, i) => ({ uid: `init-left-${i}`, species, side: 'left' as const, leavesIn: Infinity })),
@@ -98,6 +121,13 @@ export function createArcadeRun(level: ArcadeLevelDef): ArcadeRun {
   let untilArrival = 0;
   let waited = 0;
   let nextUid = 0;
+  let selected = 0;
+  let groupSize = 0;
+  /** A family that is due but still waiting for room in the hand. */
+  let pendingFamily = 0;
+  let bells = 0;
+  /** Counts down while a rung balance is held, before the animals hop off. */
+  let holding = 0;
   let animalsHandled = 0;
   let perfectBalances = 0;
   let streak = 0;
@@ -128,14 +158,22 @@ export function createArcadeRun(level: ArcadeLevelDef): ArcadeRun {
     return min + stayRng.next() * (max - min);
   };
 
+  /** How many of the queue's animals the player may choose between right now. */
+  const choosable = (): number => (groupSize > 0 ? Math.min(groupSize, queue.length) : queue.length);
+
   /**
-   * Puts the waiting animal onto a side. When the player does not choose, the
+   * Puts the chosen animal onto a side. When the player does not choose, the
    * animal climbs onto whichever side is already down, because that is the end
    * it can reach — so ignoring the game makes a lean worse, not better.
    */
-  const put = (side: Side, chosenByPlayer: boolean): ArcadeEvent[] => {
-    const species = queue.shift();
-    if (!species) return [];
+  const put = (side: Side, chosenByPlayer: boolean, index = selected): ArcadeEvent[] => {
+    const limit = choosable();
+    const at = Math.min(Math.max(index, 0), Math.max(0, limit - 1));
+    const species = queue[at];
+    if (species === undefined) return [];
+    queue.splice(at, 1);
+    if (groupSize > 0) groupSize -= 1;
+    selected = 0;
     waited = 0;
 
     const animal: ArcadeAnimal = {
@@ -159,6 +197,13 @@ export function createArcadeRun(level: ArcadeLevelDef): ArcadeRun {
       perfectBalances += 1;
       streak += 1;
       longestStreak = Math.max(longestStreak, streak);
+      if (bellTarget !== null || target === null) {
+        // In the rush, a rung bell is the point: it scores, the seesaw holds
+        // its balance for a beat, and then the animals hop off for a fresh one.
+        bells += 1;
+        holding = holdSeconds;
+        events.push({ type: 'bellRung', bells });
+      }
     } else if (!next.isPerfectlyBalanced && previous.isPerfectlyBalanced) {
       streak = 0;
     }
@@ -178,8 +223,61 @@ export function createArcadeRun(level: ArcadeLevelDef): ArcadeRun {
     events.push({ type: 'arrived', species });
   };
 
+  /**
+   * Sometimes a family arrives instead of one animal. Every member has to be
+   * seated, so the player splits them between the sides — which is partitioning
+   * a set, not comparing two numbers.
+   */
+  const admitArrival = (events: ArcadeEvent[]): void => {
+    // A family arrives all at once or not at all — half a family waiting
+    // outside would be a rule the player cannot see. So once one is due it
+    // holds its place in the queue rather than being skipped, and the singles
+    // stop coming until the hand has room for it.
+    if (pendingFamily === 0 && groupSize === 0 && settings.groupSize) {
+      if (groupRng.next() < (settings.groupChance ?? 0)) {
+        const [min, max] = settings.groupSize;
+        pendingFamily = Math.round(min + groupRng.next() * (max - min));
+      }
+    }
+
+    if (pendingFamily > 0) {
+      if (queue.length + pendingFamily > settings.queueLength) return;
+      for (let i = 0; i < pendingFamily; i++) admitOne(events);
+      groupSize = pendingFamily;
+      pendingFamily = 0;
+      return;
+    }
+
+    admitOne(events);
+  };
+
   // The queue starts full so the player has something to plan with.
   while (queue.length < settings.queueLength) admitOne([]);
+
+  /**
+   * Puts a gap on the plank for the player to close. One animal on one side, so
+   * the arithmetic is "what adds up to this?" — sometimes answered with one
+   * animal, sometimes by combining two or three.
+   */
+  const seedGapAnimals = (): void => {
+    const [min, max] = seedGap;
+    const wanted = Math.round(min + seedRng.next() * (max - min));
+    const side: Side = seedRng.next() < 0.5 ? 'left' : 'right';
+    const species = [...settings.pool]
+      .filter((animal) => weightOf(animal) <= wanted)
+      .sort((a, b) => weightOf(b) - weightOf(a))[0];
+    if (!species) return;
+
+    let remaining = wanted;
+    while (remaining > 0) {
+      const fits = [...settings.pool]
+        .filter((animal) => weightOf(animal) <= remaining)
+        .sort((a, b) => weightOf(b) - weightOf(a))[0];
+      if (!fits) break;
+      placed = [...placed, { uid: `seed-${nextUid++}`, species: fits, side, leavesIn: Infinity }];
+      remaining -= weightOf(fits);
+    }
+  };
 
   const step = (dt: number): ArcadeEvent[] => {
     const events: ArcadeEvent[] = [];
@@ -216,7 +314,20 @@ export function createArcadeRun(level: ArcadeLevelDef): ArcadeRun {
 
     if (untilArrival <= 0 && queue.length < settings.queueLength) {
       untilArrival = arrivalGap();
-      admitOne(events);
+      admitArrival(events);
+    }
+
+    // A rung balance is held for a beat, then the animals hop down happily and
+    // a fresh gap is seeded for the player to close.
+    if (holding > 0) {
+      holding -= dt;
+      if (holding <= 0) {
+        placed = [];
+        seedGapAnimals();
+        events.push({ type: 'cleared' });
+        previous = snapshot();
+      }
+      return events;
     }
 
     // An ignored animal loses patience and climbs on wherever it likes.
@@ -241,9 +352,13 @@ export function createArcadeRun(level: ArcadeLevelDef): ArcadeRun {
     if (danger >= 1) {
       status = 'lost';
       events.push({ type: 'roundLost' });
-    } else if (target !== null && elapsed >= target) {
+    } else if (bellTarget !== null && bells >= bellTarget) {
       status = 'won';
       events.push({ type: 'levelCleared' });
+    } else if (target !== null && elapsed >= target) {
+      // The clock is a backstop: running it out without the bells is a loss.
+      status = bellTarget === null ? 'won' : 'lost';
+      events.push(bellTarget === null ? { type: 'levelCleared' } : { type: 'roundLost' });
     }
 
     return events;
@@ -257,7 +372,11 @@ export function createArcadeRun(level: ArcadeLevelDef): ArcadeRun {
         elapsed,
         danger,
         status,
-        impatience: queue.length === 0 ? 0 : Math.min(1, waited / settings.patienceSeconds),
+        impatience: queue.length === 0 || holding > 0 ? 0 : Math.min(1, waited / settings.patienceSeconds),
+        selected: Math.min(selected, Math.max(0, choosable() - 1)),
+        groupSize,
+        bells,
+        celebrating: holding > 0,
         wind: wind?.state ?? { phase: 'calm' as const, side: 'left' as const, bias: 0, through: 0 },
         stats: {
           secondsSurvived: elapsed,
@@ -291,9 +410,21 @@ export function createArcadeRun(level: ArcadeLevelDef): ArcadeRun {
       return events;
     },
 
+    select(index) {
+      const limit = choosable();
+      if (limit <= 0) return;
+      selected = Math.min(Math.max(index, 0), limit - 1);
+    },
+
     place(side) {
-      if (status !== 'playing') return [];
+      // Placements are refused while a balance is being celebrated, so a stray
+      // tap cannot spoil the moment the child just earned.
+      if (status !== 'playing' || holding > 0) return [];
       return put(side, true);
+    },
+
+    get bellTarget() {
+      return bellTarget;
     },
   };
 }

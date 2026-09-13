@@ -10,6 +10,7 @@ export type Objective =
   | { kind: 'tilt'; target: number }
   | { kind: 'sequence'; challenges: readonly Objective[] }
   | { kind: 'survive'; seconds: number }
+  | { kind: 'bells'; count: number; seconds: number }
   | { kind: 'endless' };
 
 export function stageCount(objective: Objective): number {
@@ -38,6 +39,7 @@ export function isSatisfied(objective: Objective, snapshot: SeesawSnapshot): boo
     case 'sequence':
       return false;
     case 'survive':
+    case 'bells':
     case 'endless':
       // Survival is a matter of the clock, not of the current weights; the
       // arcade run decides it.
@@ -63,6 +65,8 @@ export function describeObjective(objective: Objective): string {
     case 'survive':
       // Concrete, and it points at the gauge that is already on screen.
       return 'Keep it out of the red';
+    case 'bells':
+      return objective.count === 1 ? 'Ring the bell' : `Ring the bell ${objective.count} times`;
     case 'endless':
       return 'How long can you keep going?';
     default: {

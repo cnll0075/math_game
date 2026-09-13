@@ -65,121 +65,168 @@ export const LEVELS: readonly LevelDef[] = [
   // their own, so the seesaw drifts whether or not the player acts. Difficulty
   // comes from pace and from how little room the danger meter allows, not from
   // harder sums.
+  // Levels 6-10: Balance Rush. A gap is on the plank; the player picks the
+  // animal from the queue that closes it exactly. Ringing the bell is the
+  // point, not merely a bonus: it scores, clears the plank, and sets a fresh
+  // gap. Comparison alone will not get you there.
   {
     id: 'level-6',
     mode: 'arcade',
-    title: 'Keep It Safe',
-    objective: { kind: 'survive', seconds: 30 },
-    initial: { left: ['cat'], right: ['cat'] },
+    title: 'Ring the Bell',
+    objective: { kind: 'bells', count: 4, seconds: 60 },
+    initial: { left: ['cat'], right: [] },
     arcade: {
       seed: 1206,
       pool: ['rabbit', 'cat', 'dog'],
-      // The first arcade level, and a player's first meeting with animals that
-      // arrive on their own: slow arrivals, a long fuse on the waiting animal,
-      // and a danger meter that takes real neglect to fill.
-      arrivalSeconds: 3.6,
+      arrivalSeconds: 2.6,
       queueLength: 3,
-      staySeconds: [11, 15],
-      patienceSeconds: 5,
+      staySeconds: [30, 40],
+      patienceSeconds: 6,
       dangerFillSeconds: 6,
       dangerDrainSeconds: 1.5,
       maxHeavyRun: 1,
+      seedGap: [1, 3],
+      celebrateSeconds: 1.1,
     },
-    hint: 'Keep everyone safe',
+    hint: 'Make both sides the same',
   },
   {
     id: 'level-7',
     mode: 'arcade',
     title: 'Faster',
-    objective: { kind: 'survive', seconds: 40 },
-    initial: { left: ['cat'], right: ['rabbit', 'rabbit'] },
+    objective: { kind: 'bells', count: 5, seconds: 44 },
+    initial: { left: ['dog'], right: [] },
+    // Room for the gaps this level seeds: a gap of seven should read as
+    // tilted rather than doomed, and the generator's fairness rule keys off
+    // these same numbers, so widening them is what keeps the queue varied
+    // enough for the choice of animal to matter.
+    balance: { green: 1, yellow: 8, maxTiltDifference: 10 },
     arcade: {
       seed: 1207,
       pool: ['rabbit', 'cat', 'dog', 'bear'],
-      arrivalSeconds: 2,
+      // Faster than a child can place, so a hand of animals builds up and
+      // choosing between them is a real decision.
+      arrivalSeconds: 1.3,
       queueLength: 3,
-      staySeconds: [9, 12],
-      patienceSeconds: 2.6,
-      dangerFillSeconds: 3.5,
-      dangerDrainSeconds: 2,
+      staySeconds: [26, 34],
+      patienceSeconds: 4.5,
+      dangerFillSeconds: 5,
+      dangerDrainSeconds: 1.5,
       maxHeavyRun: 2,
+      // Gaps wider than any single animal, so closing one means combining:
+      // 7 is 5 and 2, or 3 and 3 and 1. Reaching for the nearest animal is no
+      // longer enough.
+      seedGap: [4, 7],
+      celebrateSeconds: 1,
     },
-    hint: 'They come faster now',
+    hint: 'Bigger gaps to close',
   },
   {
     id: 'level-8',
     mode: 'arcade',
-    title: 'Danger',
-    objective: { kind: 'survive', seconds: 45 },
-    initial: { left: ['dog'], right: ['cat', 'rabbit'] },
+    title: 'Families',
+    // Families take longer to seat, so the clock allows for them.
+    objective: { kind: 'bells', count: 5, seconds: 48 },
+    initial: { left: ['bear'], right: [] },
+    // Room for the gaps this level seeds: a gap of seven should read as
+    // tilted rather than doomed, and the generator's fairness rule keys off
+    // these same numbers, so widening them is what keeps the queue varied
+    // enough for the choice of animal to matter.
+    balance: { green: 1, yellow: 8, maxTiltDifference: 10 },
     arcade: {
       seed: 1208,
       pool: ['rabbit', 'cat', 'dog', 'bear'],
-      arrivalSeconds: 1.7,
-      finalArrivalSeconds: 1.3,
-      queueLength: 3,
-      staySeconds: [8, 11],
-      patienceSeconds: 2,
-      dangerFillSeconds: 2.5,
+      // Faster than a child can place, so a hand of animals builds up and
+      // choosing between them is a real decision.
+      arrivalSeconds: 1.3,
+      queueLength: 5,
+      staySeconds: [26, 34],
+      patienceSeconds: 4.5,
+      dangerFillSeconds: 4.5,
       dangerDrainSeconds: 1.5,
       maxHeavyRun: 2,
+      seedGap: [4, 8],
+      celebrateSeconds: 1,
+      // Families arrive together and all must be seated, so they have to be
+      // split between the sides: 3 on one, 1 and 2 on the other.
+      groupSize: [2, 3],
+      groupChance: 0.55,
     },
-    hint: 'Stay out of the red',
+    hint: 'Everyone in a family must sit down',
   },
   {
     id: 'level-9',
     mode: 'arcade',
     title: 'Windy Day',
-    objective: { kind: 'survive', seconds: 45 },
-    initial: { left: ['cat'], right: ['cat'] },
+    objective: { kind: 'bells', count: 5, seconds: 46 },
+    initial: { left: ['dog'], right: [] },
+    // Room for the gaps this level seeds: a gap of seven should read as
+    // tilted rather than doomed, and the generator's fairness rule keys off
+    // these same numbers, so widening them is what keeps the queue varied
+    // enough for the choice of animal to matter.
+    balance: { green: 1, yellow: 8, maxTiltDifference: 10 },
     arcade: {
       seed: 1209,
       pool: ['rabbit', 'cat', 'dog', 'bear'],
-      arrivalSeconds: 2,
-      queueLength: 3,
-      staySeconds: [9, 12],
-      patienceSeconds: 2.4,
-      dangerFillSeconds: 3.5,
-      dangerDrainSeconds: 1.8,
+      // Faster than a child can place, so a hand of animals builds up and
+      // choosing between them is a real decision.
+      arrivalSeconds: 1.4,
+      queueLength: 4,
+      staySeconds: [26, 34],
+      patienceSeconds: 4.5,
+      dangerFillSeconds: 4.5,
+      dangerDrainSeconds: 1.6,
       maxHeavyRun: 2,
-      // One event type only, as the design document insists. Balloons and
-      // butterflies would be further entries here, not further plumbing.
+      seedGap: [4, 7],
+      celebrateSeconds: 1,
+      groupSize: [2, 2],
+      groupChance: 0.3,
+      // One event type only, as the design document insists.
       wind: {
-        calmSeconds: [6, 9],
-        warningSeconds: 1.5,
+        calmSeconds: [7, 10],
+        warningSeconds: 1.6,
         gustSeconds: [3, 5],
         strength: [1, 2],
       },
     },
-    hint: 'Lean into the wind',
+    hint: 'The wind leans on the plank too',
   },
   {
     id: 'level-10',
     mode: 'arcade',
     title: 'Animal Park',
     objective: { kind: 'endless' },
-    initial: { left: ['cat'], right: ['cat'] },
+    initial: { left: ['cat'], right: [] },
+    // Room for the gaps this level seeds: a gap of seven should read as
+    // tilted rather than doomed, and the generator's fairness rule keys off
+    // these same numbers, so widening them is what keeps the queue varied
+    // enough for the choice of animal to matter.
+    balance: { green: 1, yellow: 8, maxTiltDifference: 10 },
     arcade: {
       seed: 1210,
       pool: ['rabbit', 'cat', 'dog', 'bear'],
-      arrivalSeconds: 2.6,
-      queueLength: 3,
-      staySeconds: [9, 13],
-      patienceSeconds: 2.6,
-      dangerFillSeconds: 3.5,
-      dangerDrainSeconds: 1.8,
+      // Faster than a child can place, so a hand of animals builds up and
+      // choosing between them is a real decision.
+      arrivalSeconds: 1.6,
+      queueLength: 5,
+      staySeconds: [26, 34],
+      patienceSeconds: 4.5,
+      dangerFillSeconds: 4.5,
+      dangerDrainSeconds: 1.6,
       maxHeavyRun: 2,
+      seedGap: [4, 8],
+      celebrateSeconds: 0.9,
+      groupSize: [2, 3],
+      groupChance: 0.4,
       wind: {
-        calmSeconds: [7, 11],
+        calmSeconds: [8, 12],
         warningSeconds: 1.6,
         gustSeconds: [3, 5],
         strength: [1, 2],
       },
-      // Every run ends eventually: the pace keeps tightening. How long it takes
-      // to get there is the score.
-      ramp: { arrivalFloorSeconds: 0.9, overSeconds: 150 },
+      ramp: { arrivalFloorSeconds: 1, overSeconds: 150 },
     },
-    hint: 'How long can you keep going?',
+    hint: 'How many bells can you ring?',
   },
 ];
 

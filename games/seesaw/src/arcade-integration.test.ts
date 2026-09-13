@@ -210,18 +210,6 @@ describe('making the arcade legible', () => {
     session.unmount();
   });
 
-  it('ticks down the last few seconds out loud', async () => {
-    const played = recordSounds();
-    const { session } = await mountArcade('level-6', 'all');
-    playFor(session, 32);
-    const ticks = played.filter((event) => event === 'tick').length;
-    // One per second over the closing five, give or take the final frame.
-    expect(ticks).toBeGreaterThanOrEqual(4);
-    expect(ticks).toBeLessThanOrEqual(6);
-    session.unmount();
-    vi.restoreAllMocks();
-  });
-
   it('counts the round down rather than only filling a bar', async () => {
     const { session } = await mountArcade('level-6');
     const atStart = session.__test.secondsRemaining()!;
@@ -239,6 +227,102 @@ describe('making the arcade legible', () => {
       if (frame % 60 === 0) playOneMove(session);
     }
     expect(session.__test.status()).toBe('won');
+    session.unmount();
+  });
+});
+
+describe('Balance Rush', () => {
+  /** Picks the queued animal and side that lands closest to level. */
+  const playWithArithmetic = (session: Session): void => {
+    const queue = session.__test.queue();
+    if (queue.length === 0) return;
+    const difference = session.__test.balanceDifference();
+    const choices = session.__test.groupSize() > 0 ? Math.min(session.__test.groupSize(), queue.length) : queue.length;
+
+    let best = { index: 0, side: 'left' as 'left' | 'right', outcome: Number.POSITIVE_INFINITY };
+    for (let index = 0; index < choices; index++) {
+      const weight = weightOf(queue[index]!);
+      for (const side of ['left', 'right'] as const) {
+        const outcome = Math.abs(difference + (side === 'left' ? weight : -weight));
+        if (outcome < best.outcome) best = { index, side, outcome };
+      }
+    }
+    session.__test.pick(best.index);
+    session.__test.drop(best.side);
+  };
+
+  const playRush = (session: Session, seconds: number) => {
+    for (let frame = 0; frame < seconds * FRAMES_PER_SECOND; frame++) {
+      session.__test.step(1);
+      if (session.__test.status() !== 'playing') break;
+      if (frame % 96 === 0) playWithArithmetic(session);
+    }
+  };
+
+  it('offers a hand of animals to choose from, not just the next one', async () => {
+    const { session } = await mountArcade('level-7');
+    session.__test.step(60 * 4);
+    expect(session.__test.queue().length).toBeGreaterThan(1);
+    session.unmount();
+  });
+
+  it('places the animal the player chose, not the first one', async () => {
+    const { session } = await mountArcade('level-7');
+    session.__test.step(60 * 4);
+    // Copy it: the hand is live state, and it changes under the assertion.
+    const queue = [...session.__test.queue()];
+    const wanted = queue[queue.length - 1]!;
+    session.__test.pick(queue.length - 1);
+    session.__test.drop('right');
+    // The chosen one is on the plank and gone from the hand.
+    expect(session.__test.queue()).toHaveLength(queue.length - 1);
+    expect(session.__test.placedSpecies()).toContain(wanted);
+    session.unmount();
+  });
+
+  it('rings the bell, clears the plank and sets a fresh gap', async () => {
+    const played = recordSounds();
+    const { session } = await mountArcade('level-7');
+    let rang = false;
+    for (let frame = 0; frame < 60 * 40 && !rang; frame++) {
+      session.__test.step(1);
+      if (frame % 96 === 0) playWithArithmetic(session);
+      if (session.__test.bells() > 0) rang = true;
+    }
+    expect(rang).toBe(true);
+    // The bell waits for the plank to settle, as it always has.
+    session.__test.step(120);
+    expect(played).toContain('ding');
+
+    // The animals hop off and a new gap is waiting to be closed.
+    session.__test.step(120);
+    expect(session.__test.balanceDifference()).not.toBe(0);
+    session.unmount();
+    vi.restoreAllMocks();
+  });
+
+  it('is won by ringing the bell the asked-for number of times', async () => {
+    const { session } = await mountArcade('level-7', 'all');
+    playRush(session, 44);
+    expect(session.__test.bells()).toBeGreaterThanOrEqual(5);
+    expect(session.__test.status()).toBe('won');
+    session.unmount();
+  });
+
+  it('keeps a family together until every one of them is seated', async () => {
+    const { session } = await mountArcade('level-8');
+    let sawFamily = false;
+    for (let frame = 0; frame < 60 * 30 && !sawFamily; frame++) {
+      session.__test.step(1);
+      if (session.__test.groupSize() > 1) sawFamily = true;
+      else if (frame % 96 === 0) playWithArithmetic(session);
+    }
+    expect(sawFamily).toBe(true);
+
+    // While a family waits, only its members can be chosen.
+    const size = session.__test.groupSize();
+    session.__test.pick(size + 1);
+    expect(session.__test.selectedQueueIndex()).toBeLessThan(size);
     session.unmount();
   });
 });

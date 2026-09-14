@@ -15,118 +15,104 @@ import type { Side } from './seesaw-state.js';
 export const LEVELS: readonly LevelDef[] = [
   // --- Same and Same: what "level" means, and that two small ones can equal
   // one bigger one.
-  { id: 'l1', section: 'same', objective: { kind: 'balance' }, hint: 'Pip wants a friend', star: 'chicken',
+  { id: 'l1', section: 'same', objective: { kind: 'balance' }, hint: 'The chicken wants a friend',
     initial: { left: ['chicken'], right: [] }, tray: ['chicken'] },
-  { id: 'l2', section: 'same', objective: { kind: 'balance' }, hint: 'Two friends, please', star: 'chicken',
+  { id: 'l2', section: 'same', objective: { kind: 'balance' }, hint: 'Two chickens want two friends',
     initial: { left: ['chicken', 'chicken'], right: [] }, tray: ['chicken', 'chicken'] },
-  { id: 'l3', section: 'same', objective: { kind: 'balance' }, hint: 'How many chickens is Mango?', star: 'cat',
+  { id: 'l3', section: 'same', objective: { kind: 'balance' }, hint: 'How many chickens match the cat?',
     initial: { left: ['cat'], right: [] }, tray: ['chicken', 'chicken', 'chicken'] },
-  { id: 'l4', section: 'same', objective: { kind: 'balance' }, hint: 'Scout is heavier than he looks', star: 'dog',
+  { id: 'l4', section: 'same', objective: { kind: 'balance' }, hint: 'How many chickens match the dog?',
     initial: { left: ['dog'], right: [] }, tray: ['chicken', 'chicken', 'chicken', 'chicken'] },
-  { id: 'l5', section: 'same', objective: { kind: 'balance' }, hint: 'A cat and a chicken can do it', star: 'dog',
+  { id: 'l5', section: 'same', objective: { kind: 'balance' }, hint: 'A cat and a chicken can match it',
     initial: { left: ['dog'], right: [] }, tray: ['cat', 'chicken', 'chicken'] },
 
   // --- Make the Number: something is already there, work out the rest.
-  { id: 'l6', section: 'make', objective: { kind: 'balance' }, hint: 'Scout needs one more friend', star: 'dog',
+  { id: 'l6', section: 'make', objective: { kind: 'balance' }, hint: 'The cat needs one more friend',
     initial: { left: ['dog'], right: ['cat'] }, tray: ['chicken', 'cat'] },
-  { id: 'l7', section: 'make', objective: { kind: 'balance' }, hint: 'Who else can sit with Scout?', star: 'bear',
+  { id: 'l7', section: 'make', objective: { kind: 'balance' }, hint: 'Who else can sit with the dog?',
     initial: { left: ['bear'], right: ['dog'] }, tray: ['cat', 'chicken'] },
-  { id: 'l8', section: 'make', objective: { kind: 'balance' }, hint: 'Bramble is waiting', star: 'bear',
+  { id: 'l8', section: 'make', objective: { kind: 'balance' }, hint: 'The cat needs more friends',
     initial: { left: ['bear'], right: ['cat'] }, tray: ['dog', 'chicken'] },
-  { id: 'l9', section: 'make', objective: { kind: 'balance' }, hint: 'Just one more will do it', star: 'bear',
+  { id: 'l9', section: 'make', objective: { kind: 'balance' }, hint: 'One more friend will do it',
     initial: { left: ['bear', 'cat'], right: ['bear'] }, tray: ['cat', 'chicken'] },
-  { id: 'l10', section: 'make', objective: { kind: 'balance' }, hint: 'Nearly there already', star: 'bear',
+  { id: 'l10', section: 'make', objective: { kind: 'balance' }, hint: 'Almost the same already',
     initial: { left: ['bear', 'dog'], right: ['bear', 'cat'] }, tray: ['chicken', 'cat'] },
 
   // --- Build It: the numbers nothing weighs, and the gaps that need both sides.
-  { id: 'l11', section: 'build', objective: { kind: 'balance' }, hint: 'Nobody weighs four!', star: 'dog',
+  { id: 'l11', section: 'build', objective: { kind: 'balance' }, hint: 'Nobody weighs four!',
     initial: { left: ['dog', 'chicken'], right: [] }, tray: ['dog', 'chicken', 'cat'] },
-  { id: 'l12', section: 'build', objective: { kind: 'balance' }, hint: 'Four again: two and two', star: 'cat',
+  { id: 'l12', section: 'build', objective: { kind: 'balance' }, hint: 'Four again. Which two match?',
     initial: { left: ['cat', 'cat'], right: [] }, tray: ['cat', 'cat', 'dog'] },
-  { id: 'l13', section: 'build', objective: { kind: 'balance' }, hint: 'Four one more time', star: 'bear',
+  { id: 'l13', section: 'build', objective: { kind: 'balance' }, hint: 'Still four to make',
     initial: { left: ['bear', 'dog'], right: ['dog', 'chicken'] }, tray: ['cat', 'cat', 'dog'] },
   // The gap is one and there is no chicken: the only way through is adding to
   // BOTH sides, which is the first time subtracting shows up as an idea.
-  { id: 'l14', section: 'build', objective: { kind: 'balance' }, hint: 'No chickens left! Use both sides', star: 'dog',
+  { id: 'l14', section: 'build', objective: { kind: 'balance' }, hint: 'The heavy side can have a friend',
     initial: { left: ['dog'], right: ['cat'] }, tray: ['cat', 'dog'] },
-  { id: 'l15', section: 'build', objective: { kind: 'balance' }, hint: 'Both sides again', star: 'bear',
+  { id: 'l15', section: 'build', objective: { kind: 'balance' }, hint: 'The heavy side needs one too',
     initial: { left: ['bear'], right: ['dog', 'chicken'] }, tray: ['cat', 'dog'] },
 
   // --- Groups: the tray offers ready-made bundles, so the question is how many
   // of them rather than how many drags.
-  { id: 'l16', section: 'groups', objective: { kind: 'balance' }, hint: 'Which group fits?', star: 'dog',
+  { id: 'l16', section: 'groups', objective: { kind: 'balance' }, hint: 'Which group matches the dogs?',
     initial: { left: ['dog', 'dog'], right: [] },
     tray: [{ of: 'cat', count: 2 }, { of: 'cat', count: 3 }, { of: 'cat', count: 4 }] },
-  { id: 'l17', section: 'groups', objective: { kind: 'balance' }, hint: 'Count the cats in twos', star: 'bear',
+  { id: 'l17', section: 'groups', objective: { kind: 'balance' }, hint: 'Which group of cats matches?',
     initial: { left: ['bear', 'dog'], right: [] },
-    tray: [{ of: 'cat', count: 3 }, { of: 'cat', count: 4 }, { of: 'cat', count: 5 }] },
-  { id: 'l18', section: 'groups', objective: { kind: 'balance' }, hint: 'Now count in threes', star: 'dog',
+    tray: [{ of: 'cat', count: 2 }, { of: 'cat', count: 3 }, { of: 'cat', count: 4 }] },
+  { id: 'l18', section: 'groups', objective: { kind: 'balance' }, hint: 'Which group of dogs matches?',
     initial: { left: ['dog', 'dog', 'dog'], right: [] },
     tray: [{ of: 'dog', count: 2 }, { of: 'dog', count: 3 }, { of: 'dog', count: 4 }] },
-  { id: 'l19', section: 'groups', objective: { kind: 'balance' }, hint: 'A whole flock of chickens', star: 'bear',
+  { id: 'l19', section: 'groups', objective: { kind: 'balance' }, hint: 'Which group of chickens matches?',
+    initial: { left: ['cat', 'cat'], right: [] },
+    tray: [{ of: 'chicken', count: 2 }, { of: 'chicken', count: 3 }, { of: 'chicken', count: 4 }] },
+  { id: 'l20', section: 'groups', objective: { kind: 'balance' }, hint: 'A group, and one more',
     initial: { left: ['bear', 'cat'], right: [] },
-    tray: [{ of: 'chicken', count: 5 }, { of: 'chicken', count: 7 }, { of: 'chicken', count: 9 }] },
-  { id: 'l20', section: 'groups', objective: { kind: 'balance' }, hint: 'A group, and one more', star: 'bear',
-    initial: { left: ['bear', 'bear'], right: [] },
-    tray: [{ of: 'cat', count: 4 }, { of: 'cat', count: 5 }, 'chicken'] },
+    tray: [{ of: 'cat', count: 3 }, { of: 'cat', count: 2 }, 'chicken'] },
 
   // --- Take One Off: taught before it is needed. The first question can be
   // solved by lifting the extra animal, with nothing in the tray to confuse it.
   { id: 'l21', section: 'takeoff', objective: { kind: 'balance' }, allowRemoval: true,
-    hint: 'One chicken wants to go home', star: 'chicken',
+    hint: 'One chicken wants to go home',
     initial: { left: ['chicken', 'chicken'], right: ['chicken'] }, tray: [] },
   { id: 'l22', section: 'takeoff', objective: { kind: 'balance' }, allowRemoval: true,
-    hint: 'Mango is ready for bed', star: 'cat',
+    hint: 'The cat is ready for bed',
     initial: { left: ['bear', 'cat'], right: ['bear'] }, tray: [] },
   { id: 'l23', section: 'takeoff', objective: { kind: 'balance' }, allowRemoval: true,
-    hint: 'One dog should go home', star: 'dog',
+    hint: 'One dog wants to go home',
     initial: { left: ['dog', 'dog'], right: ['dog'] }, tray: [] },
   { id: 'l24', section: 'takeoff', objective: { kind: 'balance' }, allowRemoval: true,
-    hint: 'Who needs to go home?', star: 'chicken',
+    hint: 'Who should go home?',
     initial: { left: ['bear', 'dog', 'chicken'], right: ['bear', 'dog'] }, tray: [] },
   { id: 'l25', section: 'takeoff', objective: { kind: 'balance' }, allowRemoval: true,
-    hint: 'One goes home, one arrives', star: 'bear',
+    hint: 'One goes home, one arrives',
     initial: { left: ['bear', 'dog'], right: ['bear'] }, tray: ['chicken'] },
 
   // --- Fair Shares: the whole pile has to go on, split evenly.
   { id: 'l26', section: 'share', objective: { kind: 'balance' }, requireEmptyTray: true,
-    hint: 'Everybody wants a turn', star: 'cat',
+    hint: 'Everybody wants a turn',
     initial: { left: [], right: [] }, tray: ['cat', 'cat', 'chicken', 'chicken'] },
   { id: 'l27', section: 'share', objective: { kind: 'balance' }, requireEmptyTray: true,
-    hint: 'Share them out fairly', star: 'dog',
+    hint: 'Share them out fairly',
     initial: { left: [], right: [] }, tray: ['dog', 'dog', 'cat', 'cat'] },
   { id: 'l28', section: 'share', objective: { kind: 'balance' }, requireEmptyTray: true,
-    hint: 'Nobody gets left out', star: 'bear',
+    hint: 'Nobody gets left out',
     initial: { left: [], right: [] }, tray: ['bear', 'dog', 'cat', 'chicken', 'dog'] },
 
   // --- Animal Park: one of each idea, met again.
-  { id: 'l29', section: 'mixed', objective: { kind: 'balance' }, hint: 'Which group fits now?', star: 'bear',
+  { id: 'l29', section: 'mixed', objective: { kind: 'balance' }, hint: 'Which group matches?',
     initial: { left: ['bear', 'dog'], right: [] },
-    tray: [{ of: 'cat', count: 3 }, { of: 'cat', count: 4 }, { of: 'chicken', count: 6 }] },
+    tray: [{ of: 'cat', count: 3 }, { of: 'cat', count: 4 }, { of: 'dog', count: 2 }] },
   { id: 'l30', section: 'mixed', objective: { kind: 'balance' }, allowRemoval: true,
-    hint: 'Somebody has to go home', star: 'chicken',
+    hint: 'Somebody has to go home',
     initial: { left: ['bear', 'dog', 'chicken'], right: ['bear', 'dog'] }, tray: [] },
   { id: 'l31', section: 'mixed', objective: { kind: 'balance' }, requireEmptyTray: true,
-    hint: 'Everybody on, evenly', star: 'bear',
+    hint: 'Everybody on, evenly',
     initial: { left: [], right: [] }, tray: ['bear', 'dog', 'cat', 'chicken', 'dog'] },
   { id: 'l32', section: 'mixed', objective: { kind: 'balance' },
-    hint: 'Both sides, one last time', star: 'bear',
+    hint: 'The heavy side needs one too',
     initial: { left: ['bear', 'dog'], right: ['bear', 'cat'] }, tray: ['cat', 'dog'] },
 ];
-
-/**
- * Whose question this is. Named in the level when it matters, and otherwise the
- * heaviest animal already on the seesaw — which is usually the one the question
- * is about.
- */
-export function starOf(level: LevelDef): AnimalId {
-  if (level.star) return level.star;
-  const onBoard = [...level.initial.left, ...level.initial.right];
-  const heaviest = [...onBoard].sort((a, b) => weightOf(b) - weightOf(a))[0];
-  if (heaviest) return heaviest;
-  const fromTray = level.tray.map(specOf).sort((a, b) => weightOf(b) - weightOf(a))[0];
-  return fromTray ?? 'chicken';
-}
 
 export const getLevel = (id: string): LevelDef | undefined => LEVELS.find((level) => level.id === id);
 

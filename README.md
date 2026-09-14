@@ -92,14 +92,19 @@ far through it the player is.
 
 Chapters and questions are written as little stories rather than as labels:
 "Nobody weighs four!" rather than "No Four", "One chicken wants to go home"
-rather than "Tap an animal to take it off". The animals have names — Pip the
-chicken, Mango the cat, Scout the dog, Bramble the bear — for the questions that
-are about one of them.
+rather than "Tap an animal to take it off". They talk about species — the cat,
+the dogs — never about named individuals: a pet name muddles with a count as
+soon as a question holds three cats.
 
-A chapter announces its name on its first question. Below the gauge, a row shows
-**the friends helped so far in this chapter**: the animal each question is about,
-greyed out until it is answered, then filled in and cheering. An earlier version
-showed abstract dots, which said nothing to a child and appeared to do nothing.
+A chapter announces its name on its first question, and that is the only
+progress indicator. Two earlier attempts — abstract dots, then a row of animal
+portraits — both had to be explained, which is the answer about whether they
+worked.
+
+**Groups are counted, not read.** A group's animals are drawn small, laid out so
+none hides behind another, and wear no weight tags: a number on each would turn
+counting into matching digits. No group holds more than four, which is as many
+as reads at a glance.
 
 **The tray is the level design.** What is *missing* from it is what makes a
 question interesting:

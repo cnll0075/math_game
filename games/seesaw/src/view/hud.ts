@@ -1,4 +1,3 @@
-import type { AnimalId } from '../logic/animals.js';
 import type { TrayItem } from '../logic/game.js';
 import { DESIGN } from './layout.js';
 import { SCENE } from './geometry.js';
@@ -10,23 +9,14 @@ export interface HudModel {
   selectedTrayIndex: number | null;
   caption: string;
   won: boolean;
-  /** How many levels this chapter has, and how many are behind the player. */
-  stages: number;
-  stagesCleared: number;
-  /** Whose question each one in the chapter is. */
-  sectionFaces: readonly AnimalId[];
   /** The chapter's name, on the question that opens it. */
   chapter: string | null;
   /** 0..1 through the goal's arrival, or null when it has settled. */
   announcing: number | null;
-  /** Counts down after a level is stamped off. */
-  stamp: number;
 }
 
 /** Where the goal sits once it has settled. */
 const GOAL_RESTING_Y = 36;
-/** The row of round markers, clear of the gauge above it. */
-export const ROUND_DOTS_Y = 116;
 /** Where it arrives, before flying up: over the sky, clear of the seesaw. */
 const GOAL_ARRIVAL_Y = 196;
 
@@ -101,68 +91,6 @@ function drawGoal(ctx: CanvasRenderingContext2D, theme: SeesawTheme, hud: HudMod
   }
   ctx.restore();
 
-  if (hud.stages > 1) drawSectionProgress(ctx, theme, hud, ROUND_DOTS_Y, time);
-}
-
-/**
- * The friends helped so far in this chapter, and who is being helped now. A row
- * of abstract dots said nothing to a child; a row of faces filling up with
- * animals they have already helped says what it is.
- */
-function drawSectionProgress(
-  ctx: CanvasRenderingContext2D,
-  theme: SeesawTheme,
-  hud: HudModel,
-  y: number,
-  time: number,
-): void {
-  const gap = 62;
-  const start = DESIGN.width / 2 - ((hud.stages - 1) * gap) / 2;
-
-  for (let index = 0; index < hud.stages; index++) {
-    const helped = index < hud.stagesCleared;
-    const current = index === hud.stagesCleared;
-    const justHelped = hud.stamp > 0 && index === hud.stagesCleared - 1;
-    const species = hud.sectionFaces[index] ?? 'chicken';
-
-    ctx.save();
-    ctx.translate(start + index * gap, y);
-
-    // A friend already helped sits in a bright ring; the one being helped now
-    // pulses; the ones still to come wait, greyed out.
-    const radius = 22 + (justHelped ? Math.sin(hud.stamp * Math.PI * 1.2) * 6 : 0);
-    ctx.beginPath();
-    ctx.arc(0, 0, radius, 0, Math.PI * 2);
-    ctx.fillStyle = helped ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)';
-    ctx.fill();
-    ctx.lineWidth = current ? 3.5 + Math.sin(time * 5) : 2.5;
-    ctx.strokeStyle = helped ? '#63c07a' : current ? '#ffc21f' : 'rgba(29,43,50,0.2)';
-    ctx.stroke();
-
-    ctx.save();
-    // Clipped to its own circle, so a face is a portrait rather than an animal
-    // spilling out of a badge.
-    ctx.beginPath();
-    ctx.arc(0, 0, radius - 2, 0, Math.PI * 2);
-    ctx.clip();
-    ctx.globalAlpha = helped ? 1 : current ? 0.85 : 0.35;
-    // The animal whose question it is, so the row reads as friends helped
-    // rather than as boxes ticked.
-    theme.animals.draw(ctx, species, {
-      x: 0,
-      y: 20,
-      scale: 0.38,
-      tiltRad: 0,
-      wobble: justHelped ? Math.sin(time * 14) * 0.5 : 0,
-      slide: 0,
-      dance: 0,
-      arriving: 1,
-      clock: time,
-      expression: helped ? 'cheer' : 'calm',
-    });
-    ctx.restore();
-    ctx.restore();
-  }
 }
 
 export interface TraySlot {
@@ -175,7 +103,7 @@ export interface TraySlot {
 
 const TRAY_SPACING = 96;
 /** Groups need a pen each, so they stand further apart than single animals. */
-const GROUP_SPACING = 150;
+const GROUP_SPACING = 178;
 export const TRAY_SLOT_RADIUS = 42;
 
 export function traySlots(tray: readonly TrayItem[]): TraySlot[] {
@@ -187,26 +115,32 @@ export function traySlots(tray: readonly TrayItem[]): TraySlot[] {
     item,
     x: start + position * spacing,
     y: SCENE.trayY,
-    radius: item.count > 1 ? TRAY_SLOT_RADIUS + 18 : TRAY_SLOT_RADIUS,
+    radius: item.count > 1 ? TRAY_SLOT_RADIUS + 32 : TRAY_SLOT_RADIUS,
   }));
 }
 
-/** Where each member of a group sits inside its huddle. */
+/**
+ * Where each member of a group sits in its pen. The whole question in this
+ * chapter is "how many?", so no animal may hide behind another: two and three
+ * stand in a row, four stand in a square, and nothing overlaps.
+ */
 export function groupOffsets(count: number): Array<{ x: number; y: number; scale: number }> {
   if (count <= 1) return [{ x: 0, y: 0, scale: 1 }];
-  const perRow = count <= 4 ? 2 : 3;
+
+  const perRow = count <= 3 ? count : 2;
   const rows = Math.ceil(count / perRow);
-  const spread = count <= 4 ? 26 : 22;
-  const scale = count <= 4 ? 0.62 : 0.5;
+  const acrossGap = count <= 2 ? 50 : 46;
+  const downGap = 44;
+  const scale = count <= 2 ? 0.56 : count === 3 ? 0.5 : 0.46;
 
   return Array.from({ length: count }, (_, index) => {
     const row = Math.floor(index / perRow);
     const inRow = index % perRow;
     const rowCount = Math.min(perRow, count - row * perRow);
     return {
-      x: (inRow - (rowCount - 1) / 2) * spread,
-      // Back rows sit higher and behind, so every animal stays countable.
-      y: (row - (rows - 1) / 2) * -spread * 0.62,
+      x: (inRow - (rowCount - 1) / 2) * acrossGap,
+      // Back rows sit higher, and far enough up to clear the row in front.
+      y: (row - (rows - 1) / 2) * -downGap,
       scale,
     };
   });
@@ -235,7 +169,7 @@ function drawTrayItem(
     ctx.lineWidth = 3;
     ctx.beginPath();
     const width = slot.radius * 2 + 10;
-    const height = TRAY_SLOT_RADIUS * 2 + 12;
+    const height = TRAY_SLOT_RADIUS * 2 + (item.count > 2 ? 56 : 12);
     ctx.roundRect?.(slot.x - width / 2, slot.y - height / 2 - 6, width, height, 22);
     if (!ctx.roundRect) ctx.rect(slot.x - width / 2, slot.y - height / 2 - 6, width, height);
     ctx.fill();
@@ -248,7 +182,7 @@ function drawTrayItem(
     theme.animals.draw(ctx, item.species, {
       x: slot.x + offset.x,
       y: slot.y + offset.y + 18,
-      scale: (selected ? 0.68 : 0.6) * offset.scale * (item.count > 1 ? 1.35 : 1),
+      scale: (selected ? 0.68 : 0.6) * offset.scale * (item.count > 1 ? 1.5 : 1),
       tiltRad: 0,
       wobble: selected ? Math.sin(time * 7 + offset.x) * 0.3 : 0,
       slide: 0,

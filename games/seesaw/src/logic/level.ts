@@ -48,8 +48,6 @@ export interface LevelDef {
   requireEmptyTray?: boolean;
   /** The little story this question tells. */
   hint?: string;
-  /** Whose question this is, shown in the row of friends helped. */
-  star?: AnimalId;
 }
 
 export const balanceConfigFor = (level: LevelDef): BalanceConfig => ({

@@ -495,3 +495,18 @@ question and so the row only changed during the win. It is now the **friends
 helped in this chapter**: a portrait of the animal each question is about, grey
 until answered, then filled in and cheering. The same information, in a form a
 child can read.
+
+
+**Plainer words, and countable groups** (2026-09-13). Playtesting again:
+
+- The animals' pet names were dropped. "How many chickens match Mango?" mixes a
+  species with an individual, and a question can hold three cats anyway.
+  Questions now talk about species throughout.
+- The progress row was removed. It was tried as abstract dots and then as
+  portraits of the animals helped; both had to be explained, which is the answer.
+  The chapter card is now the only indicator of where the player is.
+- Several questions were still labels rather than stories ("Four again: 2 and 2",
+  "Use both sides") and were rewritten.
+- Groups are capped at four and laid out so no animal hides behind another, with
+  a test that checks the geometry. They carry no weight tags: the question is how
+  many there are, and a number on each would turn counting into reading.

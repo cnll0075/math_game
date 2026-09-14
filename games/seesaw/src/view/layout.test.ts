@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { DESIGN, fitToScreen, slotPositions, visibleBounds } from './layout.js';
 import { SCENE, platformAnchor } from './geometry.js';
-import { ROUND_DOTS_Y, traySlots } from './hud.js';
+import { groupOffsets, traySlots } from './hud.js';
+import { BADGE_FROM_SCALE } from './animals-art.js';
 
 describe('fitToScreen', () => {
   it('scales to fit a wide screen and letterboxes the sides', () => {
@@ -189,13 +190,6 @@ describe('the top bar does not stack on itself', () => {
   });
 });
 
-describe('the top of the screen does not stack on itself', () => {
-  it('keeps the round markers clear of the gauge above them', () => {
-    const gaugeBottom = SCENE.gaugeY + 22;
-    expect(ROUND_DOTS_Y - 14).toBeGreaterThan(gaugeBottom);
-  });
-});
-
 describe('the tray gives groups room', () => {
   it('keeps group pens from overlapping', () => {
     const tray = [
@@ -220,6 +214,44 @@ describe('the tray gives groups room', () => {
     for (const slot of traySlots(tray)) {
       expect(slot.x - slot.radius).toBeGreaterThan(0);
       expect(slot.x + slot.radius).toBeLessThan(DESIGN.width);
+    }
+  });
+});
+
+describe('a group can be counted', () => {
+  it('never hides one animal behind another', () => {
+    // The question in that chapter is "how many?", so every member has to be
+    // separately visible.
+    for (const count of [2, 3, 4]) {
+      const offsets = groupOffsets(count);
+      expect(offsets).toHaveLength(count);
+      for (let a = 0; a < offsets.length; a++) {
+        for (let b = a + 1; b < offsets.length; b++) {
+          const gap = Math.hypot(offsets[a]!.x - offsets[b]!.x, offsets[a]!.y - offsets[b]!.y);
+          // An animal is about 48 units across at full size.
+          expect(gap, `${count}: ${a} vs ${b}`).toBeGreaterThan(48 * offsets[a]!.scale);
+        }
+      }
+    }
+  });
+
+  it('keeps a group inside its pen', () => {
+    const tray = [{ uid: 'a', species: 'cat' as const, count: 4, used: false }];
+    const slot = traySlots(tray)[0]!;
+    for (const offset of groupOffsets(4)) {
+      expect(Math.abs(offset.x) + 24 * offset.scale).toBeLessThan(slot.radius);
+    }
+  });
+});
+
+describe('groups are counted, not read', () => {
+  it('draws every group member below the size that carries a weight tag', () => {
+    for (const count of [2, 3, 4]) {
+      for (const offset of groupOffsets(count)) {
+        // The tray draws a group member at this scale; it must stay under the
+        // threshold, or the answer would be written on the animals.
+        expect(0.6 * offset.scale * 1.5).toBeLessThan(BADGE_FROM_SCALE);
+      }
     }
   });
 });

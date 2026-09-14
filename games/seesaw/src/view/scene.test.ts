@@ -4,7 +4,6 @@ import { createVectorTheme } from './vector-theme.js';
 import { recordingContext, depthOf } from './recording-context.js';
 import { describeSeesaw, type PlacedAnimal } from '../logic/seesaw-state.js';
 import { DESIGN } from './layout.js';
-import { ROUND_DOTS_Y } from './hud.js';
 import type { AnimalId } from '../logic/animals.js';
 
 const modelFor = (placed: PlacedAnimal[], overrides: Partial<SceneModel> = {}): SceneModel => ({
@@ -18,9 +17,6 @@ const modelFor = (placed: PlacedAnimal[], overrides: Partial<SceneModel> = {}): 
   caption: 'Make it level',
   won: false,
   goalToken: 'test:0',
-  stages: 1,
-  stagesCleared: 0,
-  sectionFaces: ['chicken'],
   chapter: null,
   ...overrides,
 });
@@ -259,36 +255,3 @@ describe('announcing the goal', () => {
   });
 });
 
-describe('showing a level with several challenges', () => {
-  it('draws a dot for each challenge, ticked as they are cleared', () => {
-    const scene = createScene(createVectorTheme());
-    const model = modelFor([], { goalToken: 'level-5:1', stages: 3, stagesCleared: 1 });
-    for (let i = 0; i < 200; i++) scene.update(1 / 60, model);
-    const withDots = recordingContext();
-    scene.render(withDots.ctx, { width: 1024, height: 768 });
-
-    const plain = createScene(createVectorTheme());
-    const single = modelFor([], { goalToken: 'level-1:0', stages: 1, stagesCleared: 0 });
-    for (let i = 0; i < 200; i++) plain.update(1 / 60, single);
-    const withoutDots = recordingContext();
-    plain.render(withoutDots.ctx, { width: 1024, height: 768 });
-
-    // A three-challenge level visibly carries more than a one-challenge level.
-    expect(withDots.calls.length).toBeGreaterThan(withoutDots.calls.length);
-  });
-});
-
-describe('the goal arriving does not disturb what is already there', () => {
-  it('keeps the stage dots in one place throughout the announcement', () => {
-    const model = modelFor([], { goalToken: 'level-5:1', stages: 3, stagesCleared: 1 });
-    for (const frames of [2, 20, 60, 100, 200]) {
-      const scene = createScene(createVectorTheme());
-      for (let i = 0; i < frames; i++) scene.update(1 / 60, model);
-      const { ctx, translations } = recordingContext();
-      scene.render(ctx, { width: 1024, height: 768 });
-      // Three dots, on the same row, every frame of the announcement.
-      const onTheRow = translations.filter((point) => Math.abs(point.y - ROUND_DOTS_Y) < 0.5);
-      expect(onTheRow, `frame ${frames}`).toHaveLength(3);
-    }
-  });
-});

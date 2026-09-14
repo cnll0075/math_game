@@ -198,6 +198,9 @@ const BADGE_POS: Record<AnimalId, { x: number; y: number }> = {
 
 const BADGE_RADIUS = 13;
 
+/** Below this, an animal is one of a group and shows no weight. */
+export const BADGE_FROM_SCALE = 0.56;
+
 /**
  * The animal's weight, worn as a tag. Drawn inside the animal's own transform
  * so it tips and hops with the animal and reads as part of it rather than as
@@ -342,9 +345,9 @@ export const vectorAnimalArtist: AnimalArtist = {
     ctx.translate(0, -FOOT_OFFSET[species]);
     drawMotion(ctx, species, travelling ? 1 - landing : 0, pose.clock);
     PAINTERS[species](ctx, pose);
-    // The weight tag is unreadable below thumbnail size, and at that size it is
-    // just clutter on the animal's face.
-    if (pose.scale >= 0.45) drawWeightBadge(ctx, species);
+    // Animals in a group are drawn small and wear no tag: the question there is
+    // how many there are, and a number on each would turn counting into reading.
+    if (pose.scale >= BADGE_FROM_SCALE) drawWeightBadge(ctx, species);
     ctx.restore();
   },
 };

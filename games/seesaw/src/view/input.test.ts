@@ -22,9 +22,6 @@ const model = (overrides: Partial<SceneModel> = {}): SceneModel => ({
   caption: 'Make it level',
   won: false,
   goalToken: 'test:0',
-  stages: 1,
-  stagesCleared: 0,
-  sectionFaces: ['chicken'],
   chapter: null,
   ...overrides,
 });

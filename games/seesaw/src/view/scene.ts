@@ -1,4 +1,3 @@
-import type { AnimalId } from '../logic/animals.js';
 import { describeSeesaw, type PlacedAnimal, type SeesawSnapshot, type Side } from '../logic/seesaw-state.js';
 import { SCENE, platformAnchor } from './geometry.js';
 import { DESIGN, fitToScreen, slotPositions, visibleBounds, type Bounds, type Point, type Size } from './layout.js';
@@ -23,10 +22,6 @@ export interface SceneModel {
   /** Changes whenever a new goal is being asked for, which triggers its arrival. */
   goalToken: string;
   /** How many rounds this level has, and how many are done. */
-  stages: number;
-  stagesCleared: number;
-  /** Whose question each one in the chapter is. */
-  sectionFaces: readonly AnimalId[];
   /** The chapter's name, on the question that opens it. */
   chapter: string | null;
 }
@@ -64,9 +59,6 @@ const emptyModel = (): SceneModel => ({
   caption: '',
   won: false,
   goalToken: '',
-  stages: 1,
-  stagesCleared: 0,
-  sectionFaces: [],
   chapter: null,
 });
 
@@ -88,9 +80,6 @@ export function createScene(theme: SeesawTheme): Scene {
   /** Seconds left of the current goal announcement; negative when idle. */
   let announcing = -1;
   let announcedToken = '';
-  let stagesCleared = 0;
-  /** Counts down briefly each time a stage is stamped off. */
-  let stamp = 0;
   /** Seconds since the finishing dance began; negative when nobody is dancing. */
   let danceElapsed = -1;
   /** Per-animal phase so a row of animals does not wobble in lockstep. */
@@ -246,9 +235,6 @@ export function createScene(theme: SeesawTheme): Scene {
         announcing = Math.max(0, announcing - dt);
       }
 
-      if (next.stagesCleared > stagesCleared) stamp = 0.9;
-      stagesCleared = next.stagesCleared;
-      if (stamp > 0) stamp = Math.max(0, stamp - dt);
 
       celebrate = next.celebrating ? Math.min(1, celebrate + dt * 3) : Math.max(0, celebrate - dt * 1.6);
     },
@@ -282,12 +268,8 @@ export function createScene(theme: SeesawTheme): Scene {
           selectedTrayIndex: model.selectedTrayIndex,
           caption: model.caption,
           won: model.won,
-          stages: model.stages,
-          stagesCleared: model.stagesCleared,
-          sectionFaces: model.sectionFaces,
           chapter: model.chapter,
           announcing: announcing > 0 ? 1 - announcing / TIMING.goalAnnounceSeconds : null,
-          stamp,
         },
         time,
       );

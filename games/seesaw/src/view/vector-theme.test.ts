@@ -4,6 +4,7 @@ import { recordingContext, depthOf } from './recording-context.js';
 import { ANIMAL_IDS, ANIMALS } from '../logic/animals.js';
 import { DESIGN } from './layout.js';
 import { SCENE, platformAnchor } from './geometry.js';
+import { BADGE_FROM_SCALE } from './animals-art.js';
 import type { Expression, SeesawView } from './theme.js';
 
 const view = (overrides: Partial<SeesawView> = {}): SeesawView => ({
@@ -180,15 +181,15 @@ describe('the target marker', () => {
   });
 });
 
-describe('animals at thumbnail size', () => {
-  it('drops the weight tag, which is unreadable that small', () => {
+describe('animals drawn small', () => {
+  it('wears no weight tag inside a group, so the child counts instead of reads', () => {
     const theme = createVectorTheme();
-    const big = recordingContext();
-    const tiny = recordingContext();
+    const alone = recordingContext();
+    const inAGroup = recordingContext();
     const pose = { x: 0, y: 0, tiltRad: 0, wobble: 0, slide: 0, dance: 0, arriving: 1, clock: 0 } as const;
-    theme.animals.draw(big.ctx, 'cat', { ...pose, scale: 1, expression: 'calm' });
-    theme.animals.draw(tiny.ctx, 'cat', { ...pose, scale: 0.34, expression: 'calm' });
-    expect(big.texts).toContain('2');
-    expect(tiny.texts).toHaveLength(0);
+    theme.animals.draw(alone.ctx, 'cat', { ...pose, scale: 1, expression: 'calm' });
+    theme.animals.draw(inAGroup.ctx, 'cat', { ...pose, scale: BADGE_FROM_SCALE - 0.05, expression: 'calm' });
+    expect(alone.texts).toContain('2');
+    expect(inAGroup.texts).toHaveLength(0);
   });
 });

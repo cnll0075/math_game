@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { LEVELS, getLevel, levelsInSection, solutionsFor, starOf } from './levels.data.js';
+import { LEVELS, getLevel, levelsInSection, solutionsFor } from './levels.data.js';
 import { createGame } from './game.js';
 import { SECTION_TITLES, specCount, specOf, type LevelDef, type SectionId } from './level.js';
 import { ANIMAL_IDS, weightOf, type AnimalId } from './animals.js';
@@ -106,9 +106,23 @@ describe('what each section is for', () => {
       const groups = level.tray.filter((spec) => specCount(spec) > 1);
       // More than one group on offer, so choosing between them is the question.
       expect(groups.length, level.id).toBeGreaterThanOrEqual(2);
-      // And one placement answers it.
+      // And it is answered in a tap or two, never by dragging animals one at a
+      // time until the numbers happen to match.
       const shortest = solutionsFor(level).sort((a, b) => a.length - b.length)[0]!;
-      expect(shortest.length, level.id).toBe(1);
+      expect(shortest.length, level.id).toBeLessThanOrEqual(2);
+      const usesAGroup = shortest.some(
+        (move) => move.kind === 'place' && specCount(level.tray[move.trayIndex]!) > 1,
+      );
+      expect(usesAGroup, level.id).toBe(true);
+    }
+  });
+
+  it('keeps every group small enough to count at a glance', () => {
+    for (const level of LEVELS) {
+      for (const spec of level.tray) {
+        // Five animals in a pen were an unreadable huddle; four is the cap.
+        expect(specCount(spec), level.id).toBeLessThanOrEqual(4);
+      }
     }
   });
 
@@ -152,9 +166,11 @@ describe('the stories the levels tell', () => {
     }
   });
 
-  it('names a friend for every question, to show in the row helped', () => {
+  it('talks about animals, never about named individuals', () => {
+    // Mixing "How many chickens match Mango?" muddled a species with a pet
+    // name, and a level can hold three cats anyway.
     for (const level of LEVELS) {
-      expect(ANIMAL_IDS, level.id).toContain(starOf(level));
+      expect(level.hint!, level.id).not.toMatch(/\b(Pip|Mango|Scout|Bramble)\b/);
     }
   });
 

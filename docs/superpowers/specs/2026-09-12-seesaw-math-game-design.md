@@ -510,3 +510,21 @@ child can read.
 - Groups are capped at four and laid out so no animal hides behind another, with
   a test that checks the geometry. They carry no weight tags: the question is how
   many there are, and a number on each would turn counting into reading.
+
+
+**Four more from playtesting** (2026-09-13):
+
+- **No animal appears on both sides** after the opening chapter. A bear opposite
+  a bear can be cancelled by spotting the pair, which is matching rather than
+  adding; nine levels were rewritten, the Time to Go Home chapter most of all,
+  where the extra animal used to have a twin facing it.
+- **Groups show their weights again.** Hiding them, decided a day earlier to
+  stop the answer being read off, required a child to remember that a cat weighs
+  two. The tag now stops shrinking once the animal is small, so it stays legible
+  inside a pen.
+- Two more question lines were still labels ("Four again") and were rewritten.
+- **The last chapter no longer repeats the earlier ones.** Each of its questions
+  now needs two ideas at once: two groups combined, a removal plus a group, or a
+  whole pile shared where one of the pieces is a group. A test checks both that
+  no question shape appears twice and that the final chapter's answers use more
+  than one idea.

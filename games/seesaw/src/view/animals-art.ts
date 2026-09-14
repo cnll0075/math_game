@@ -198,17 +198,28 @@ const BADGE_POS: Record<AnimalId, { x: number; y: number }> = {
 
 const BADGE_RADIUS = 13;
 
-/** Below this, an animal is one of a group and shows no weight. */
-export const BADGE_FROM_SCALE = 0.56;
+/**
+ * The smallest an animal can be drawn before its weight tag stops shrinking
+ * with it. A child should never have to remember what a cat weighs, so the tag
+ * stays readable even on the small animals inside a group.
+ */
+export const BADGE_MIN_SCALE = 0.62;
 
 /**
  * The animal's weight, worn as a tag. Drawn inside the animal's own transform
  * so it tips and hops with the animal and reads as part of it rather than as
  * an overlay.
  */
-const drawWeightBadge = (ctx: CanvasRenderingContext2D, species: AnimalId): void => {
+const drawWeightBadge = (ctx: CanvasRenderingContext2D, species: AnimalId, drawnAt: number): void => {
   const { x, y } = BADGE_POS[species];
   const weight = ANIMALS[species].weight;
+  // Counter the animal's own shrinking, so the number stays legible in a group.
+  const relief = Math.max(1, BADGE_MIN_SCALE / drawnAt);
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(relief, relief);
+  ctx.translate(-x, -y);
 
   ctx.beginPath();
   ctx.arc(x, y, BADGE_RADIUS, 0, Math.PI * 2);
@@ -223,6 +234,7 @@ const drawWeightBadge = (ctx: CanvasRenderingContext2D, species: AnimalId): void
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(String(weight), x, y + 1);
+  ctx.restore();
 };
 
 /**
@@ -345,9 +357,7 @@ export const vectorAnimalArtist: AnimalArtist = {
     ctx.translate(0, -FOOT_OFFSET[species]);
     drawMotion(ctx, species, travelling ? 1 - landing : 0, pose.clock);
     PAINTERS[species](ctx, pose);
-    // Animals in a group are drawn small and wear no tag: the question there is
-    // how many there are, and a number on each would turn counting into reading.
-    if (pose.scale >= BADGE_FROM_SCALE) drawWeightBadge(ctx, species);
+    drawWeightBadge(ctx, species, pose.scale);
     ctx.restore();
   },
 };

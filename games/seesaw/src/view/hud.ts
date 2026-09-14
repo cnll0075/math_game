@@ -170,8 +170,10 @@ function drawTrayItem(
     ctx.beginPath();
     const width = slot.radius * 2 + 10;
     const height = TRAY_SLOT_RADIUS * 2 + (item.count > 2 ? 56 : 12);
-    ctx.roundRect?.(slot.x - width / 2, slot.y - height / 2 - 6, width, height, 22);
-    if (!ctx.roundRect) ctx.rect(slot.x - width / 2, slot.y - height / 2 - 6, width, height);
+    // A tall pen has to sit higher, or its bottom runs off the screen.
+    const lift = item.count > 2 ? 26 : 6;
+    ctx.roundRect?.(slot.x - width / 2, slot.y - height / 2 - lift, width, height, 22);
+    if (!ctx.roundRect) ctx.rect(slot.x - width / 2, slot.y - height / 2 - lift, width, height);
     ctx.fill();
     ctx.stroke();
     ctx.restore();
@@ -181,7 +183,7 @@ function drawTrayItem(
   for (const offset of [...offsets].sort((a, b) => a.y - b.y)) {
     theme.animals.draw(ctx, item.species, {
       x: slot.x + offset.x,
-      y: slot.y + offset.y + 18,
+      y: slot.y + offset.y + (item.count > 2 ? -2 : 18),
       scale: (selected ? 0.68 : 0.6) * offset.scale * (item.count > 1 ? 1.5 : 1),
       tiltRad: 0,
       wobble: selected ? Math.sin(time * 7 + offset.x) * 0.3 : 0,

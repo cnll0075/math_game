@@ -182,3 +182,39 @@ describe('the stories the levels tell', () => {
     }
   });
 });
+
+describe('what the two sides look like', () => {
+  it('does not let the same animal sit on both sides, once past the opening', () => {
+    // Matching a bear against a bear is spotting a pair, not working out a sum.
+    // The first chapter is exempt: matching identical animals is its lesson.
+    for (const level of LEVELS) {
+      if (level.section === 'same') continue;
+      const shared = level.initial.left.filter((species) => level.initial.right.includes(species));
+      expect(shared, level.id).toEqual([]);
+    }
+  });
+
+  it('never repeats a question later in the game', () => {
+    const shapes = LEVELS.map((level) =>
+      JSON.stringify({
+        left: [...level.initial.left].sort(),
+        right: [...level.initial.right].sort(),
+        tray: level.tray.map((spec) => `${specCount(spec)}x${specOf(spec)}`).sort(),
+      }),
+    );
+    expect(new Set(shapes).size, 'every question is its own').toBe(shapes.length);
+  });
+
+  it('makes the last chapter need two ideas at once, not one again', () => {
+    for (const level of levelsInSection('mixed')) {
+      const shortest = solutionsFor(level).sort((a, b) => a.length - b.length)[0]!;
+      const usesGroup = shortest.some(
+        (move) => move.kind === 'place' && specCount(level.tray[move.trayIndex]!) > 1,
+      );
+      const usesRemoval = shortest.some((move) => move.kind === 'remove');
+      const sharesOut = level.requireEmptyTray === true;
+      const ideas = [usesGroup, usesRemoval, sharesOut, shortest.length > 1].filter(Boolean).length;
+      expect(ideas, level.id).toBeGreaterThanOrEqual(2);
+    }
+  });
+});

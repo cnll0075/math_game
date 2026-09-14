@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { DESIGN, fitToScreen, slotPositions, visibleBounds } from './layout.js';
 import { SCENE, platformAnchor } from './geometry.js';
 import { groupOffsets, traySlots } from './hud.js';
-import { BADGE_FROM_SCALE } from './animals-art.js';
 
 describe('fitToScreen', () => {
   it('scales to fit a wide screen and letterboxes the sides', () => {
@@ -244,14 +243,17 @@ describe('a group can be counted', () => {
   });
 });
 
-describe('groups are counted, not read', () => {
-  it('draws every group member below the size that carries a weight tag', () => {
-    for (const count of [2, 3, 4]) {
-      for (const offset of groupOffsets(count)) {
-        // The tray draws a group member at this scale; it must stay under the
-        // threshold, or the answer would be written on the animals.
-        expect(0.6 * offset.scale * 1.5).toBeLessThan(BADGE_FROM_SCALE);
-      }
-    }
+
+describe('the tray stays on screen', () => {
+  it('keeps a tall group pen inside the frame', () => {
+    const tray = [{ uid: 'a', species: 'cat' as const, count: 4, used: false }];
+    const slot = traySlots(tray)[0]!;
+    // The pen a group is drawn in, as the hud lays it out.
+    const height = 42 * 2 + 56;
+    const top = slot.y - height / 2 - 26;
+    // Fully on screen. It may overlap the fence line behind it; that reads as
+    // a pen standing in front of the fence, which is what it is.
+    expect(top).toBeGreaterThan(0);
+    expect(top + height).toBeLessThanOrEqual(DESIGN.height);
   });
 });

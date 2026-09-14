@@ -101,10 +101,16 @@ progress indicator. Two earlier attempts — abstract dots, then a row of animal
 portraits — both had to be explained, which is the answer about whether they
 worked.
 
-**Groups are counted, not read.** A group's animals are drawn small, laid out so
-none hides behind another, and wear no weight tags: a number on each would turn
-counting into matching digits. No group holds more than four, which is as many
-as reads at a glance.
+**Groups can be counted.** A group's animals are drawn small and laid out so
+none hides behind another, and each still wears its weight — nobody should have
+to remember what a cat weighs. The tag stops shrinking once the animal is small,
+so it stays readable inside a pen. No group holds more than four, which is as
+many as reads at a glance.
+
+**The two sides never share an animal**, once past the opening chapter. A bear
+opposite a bear can be cancelled by spotting a pair, which is matching rather
+than arithmetic. A test enforces it, as it does that no question is ever
+repeated later in the game.
 
 **The tray is the level design.** What is *missing* from it is what makes a
 question interesting:

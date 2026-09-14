@@ -34,23 +34,23 @@ export const LEVELS: readonly LevelDef[] = [
   { id: 'l8', section: 'make', objective: { kind: 'balance' }, hint: 'The cat needs more friends',
     initial: { left: ['bear'], right: ['cat'] }, tray: ['dog', 'chicken'] },
   { id: 'l9', section: 'make', objective: { kind: 'balance' }, hint: 'One more friend will do it',
-    initial: { left: ['bear', 'cat'], right: ['bear'] }, tray: ['cat', 'chicken'] },
+    initial: { left: ['bear', 'cat'], right: ['dog', 'dog'] }, tray: ['chicken', 'cat'] },
   { id: 'l10', section: 'make', objective: { kind: 'balance' }, hint: 'Almost the same already',
-    initial: { left: ['bear', 'dog'], right: ['bear', 'cat'] }, tray: ['chicken', 'cat'] },
+    initial: { left: ['bear', 'dog'], right: ['cat', 'cat', 'cat'] }, tray: ['cat', 'chicken'] },
 
   // --- Build It: the numbers nothing weighs, and the gaps that need both sides.
   { id: 'l11', section: 'build', objective: { kind: 'balance' }, hint: 'Nobody weighs four!',
     initial: { left: ['dog', 'chicken'], right: [] }, tray: ['dog', 'chicken', 'cat'] },
-  { id: 'l12', section: 'build', objective: { kind: 'balance' }, hint: 'Four again. Which two match?',
+  { id: 'l12', section: 'build', objective: { kind: 'balance' }, hint: 'The dog is too big this time',
     initial: { left: ['cat', 'cat'], right: [] }, tray: ['cat', 'cat', 'dog'] },
-  { id: 'l13', section: 'build', objective: { kind: 'balance' }, hint: 'Still four to make',
-    initial: { left: ['bear', 'dog'], right: ['dog', 'chicken'] }, tray: ['cat', 'cat', 'dog'] },
+  { id: 'l13', section: 'build', objective: { kind: 'balance' }, hint: 'Four more to go',
+    initial: { left: ['bear', 'dog'], right: ['cat', 'cat'] }, tray: ['cat', 'cat', 'dog'] },
   // The gap is one and there is no chicken: the only way through is adding to
   // BOTH sides, which is the first time subtracting shows up as an idea.
   { id: 'l14', section: 'build', objective: { kind: 'balance' }, hint: 'The heavy side can have a friend',
     initial: { left: ['dog'], right: ['cat'] }, tray: ['cat', 'dog'] },
   { id: 'l15', section: 'build', objective: { kind: 'balance' }, hint: 'The heavy side needs one too',
-    initial: { left: ['bear'], right: ['dog', 'chicken'] }, tray: ['cat', 'dog'] },
+    initial: { left: ['bear'], right: ['cat', 'cat'] }, tray: ['chicken', 'dog', 'cat'] },
 
   // --- Groups: the tray offers ready-made bundles, so the question is how many
   // of them rather than how many drags.
@@ -72,21 +72,23 @@ export const LEVELS: readonly LevelDef[] = [
 
   // --- Take One Off: taught before it is needed. The first question can be
   // solved by lifting the extra animal, with nothing in the tray to confuse it.
+  // The extra animal is never matched by a twin opposite it, so the child works
+  // out which one to send home rather than spotting the odd one out.
   { id: 'l21', section: 'takeoff', objective: { kind: 'balance' }, allowRemoval: true,
-    hint: 'One chicken wants to go home',
-    initial: { left: ['chicken', 'chicken'], right: ['chicken'] }, tray: [] },
+    hint: 'One of them wants to go home',
+    initial: { left: ['bear', 'chicken'], right: ['dog', 'cat'] }, tray: [] },
   { id: 'l22', section: 'takeoff', objective: { kind: 'balance' }, allowRemoval: true,
-    hint: 'The cat is ready for bed',
-    initial: { left: ['bear', 'cat'], right: ['bear'] }, tray: [] },
+    hint: 'Somebody is ready for bed',
+    initial: { left: ['bear', 'cat', 'chicken'], right: ['dog', 'dog'] }, tray: [] },
   { id: 'l23', section: 'takeoff', objective: { kind: 'balance' }, allowRemoval: true,
     hint: 'One dog wants to go home',
-    initial: { left: ['dog', 'dog'], right: ['dog'] }, tray: [] },
+    initial: { left: ['dog', 'dog', 'cat'], right: ['bear'] }, tray: [] },
   { id: 'l24', section: 'takeoff', objective: { kind: 'balance' }, allowRemoval: true,
     hint: 'Who should go home?',
-    initial: { left: ['bear', 'dog', 'chicken'], right: ['bear', 'dog'] }, tray: [] },
+    initial: { left: ['dog', 'chicken', 'chicken'], right: ['cat', 'cat'] }, tray: [] },
   { id: 'l25', section: 'takeoff', objective: { kind: 'balance' }, allowRemoval: true,
     hint: 'One goes home, one arrives',
-    initial: { left: ['bear', 'dog'], right: ['bear'] }, tray: ['chicken'] },
+    initial: { left: ['bear', 'dog'], right: ['cat'] }, tray: ['dog'] },
 
   // --- Fair Shares: the whole pile has to go on, split evenly.
   { id: 'l26', section: 'share', objective: { kind: 'balance' }, requireEmptyTray: true,
@@ -100,18 +102,19 @@ export const LEVELS: readonly LevelDef[] = [
     initial: { left: [], right: [] }, tray: ['bear', 'dog', 'cat', 'chicken', 'dog'] },
 
   // --- Animal Park: one of each idea, met again.
-  { id: 'l29', section: 'mixed', objective: { kind: 'balance' }, hint: 'Which group matches?',
-    initial: { left: ['bear', 'dog'], right: [] },
-    tray: [{ of: 'cat', count: 3 }, { of: 'cat', count: 4 }, { of: 'dog', count: 2 }] },
+  // Each of these needs two ideas at once, so the last chapter is not the
+  // earlier ones played again.
+  { id: 'l29', section: 'mixed', objective: { kind: 'balance' }, hint: 'Two groups this time',
+    initial: { left: ['bear', 'bear'], right: [] },
+    tray: [{ of: 'cat', count: 3 }, { of: 'cat', count: 2 }, { of: 'dog', count: 2 }] },
   { id: 'l30', section: 'mixed', objective: { kind: 'balance' }, allowRemoval: true,
-    hint: 'Somebody has to go home',
-    initial: { left: ['bear', 'dog', 'chicken'], right: ['bear', 'dog'] }, tray: [] },
+    hint: 'One leaves, and a group arrives',
+    initial: { left: ['bear', 'dog', 'chicken'], right: ['cat'] },
+    tray: [{ of: 'cat', count: 3 }] },
   { id: 'l31', section: 'mixed', objective: { kind: 'balance' }, requireEmptyTray: true,
     hint: 'Everybody on, evenly',
-    initial: { left: [], right: [] }, tray: ['bear', 'dog', 'cat', 'chicken', 'dog'] },
-  { id: 'l32', section: 'mixed', objective: { kind: 'balance' },
-    hint: 'The heavy side needs one too',
-    initial: { left: ['bear', 'dog'], right: ['bear', 'cat'] }, tray: ['cat', 'dog'] },
+    initial: { left: [], right: [] },
+    tray: [{ of: 'dog', count: 2 }, 'cat', 'cat', 'chicken', 'chicken'] },
 ];
 
 export const getLevel = (id: string): LevelDef | undefined => LEVELS.find((level) => level.id === id);

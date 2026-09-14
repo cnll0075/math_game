@@ -4,7 +4,6 @@ import { recordingContext, depthOf } from './recording-context.js';
 import { ANIMAL_IDS, ANIMALS } from '../logic/animals.js';
 import { DESIGN } from './layout.js';
 import { SCENE, platformAnchor } from './geometry.js';
-import { BADGE_FROM_SCALE } from './animals-art.js';
 import type { Expression, SeesawView } from './theme.js';
 
 const view = (overrides: Partial<SeesawView> = {}): SeesawView => ({
@@ -182,14 +181,22 @@ describe('the target marker', () => {
 });
 
 describe('animals drawn small', () => {
-  it('wears no weight tag inside a group, so the child counts instead of reads', () => {
+  it('still wears its weight, so nobody has to remember what a cat weighs', () => {
     const theme = createVectorTheme();
-    const alone = recordingContext();
-    const inAGroup = recordingContext();
     const pose = { x: 0, y: 0, tiltRad: 0, wobble: 0, slide: 0, dance: 0, arriving: 1, clock: 0 } as const;
-    theme.animals.draw(alone.ctx, 'cat', { ...pose, scale: 1, expression: 'calm' });
-    theme.animals.draw(inAGroup.ctx, 'cat', { ...pose, scale: BADGE_FROM_SCALE - 0.05, expression: 'calm' });
-    expect(alone.texts).toContain('2');
-    expect(inAGroup.texts).toHaveLength(0);
+    for (const scale of [1, 0.6, 0.4, 0.25]) {
+      const { ctx, texts } = recordingContext();
+      theme.animals.draw(ctx, 'cat', { ...pose, scale, expression: 'calm' });
+      expect(texts, `scale ${scale}`).toContain('2');
+    }
+  });
+
+  it('stops the tag shrinking once the animal is small', () => {
+    const theme = createVectorTheme();
+    const pose = { x: 0, y: 0, tiltRad: 0, wobble: 0, slide: 0, dance: 0, arriving: 1, clock: 0 } as const;
+    const small = recordingContext();
+    theme.animals.draw(small.ctx, 'cat', { ...pose, scale: 0.3, expression: 'calm' });
+    // The tag is drawn under its own relief scaling rather than the animal's.
+    expect(small.calls.filter((call) => call === 'scale').length).toBeGreaterThan(2);
   });
 });

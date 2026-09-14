@@ -4,6 +4,7 @@ import { createVectorTheme } from './vector-theme.js';
 import { recordingContext, depthOf } from './recording-context.js';
 import { describeSeesaw, type PlacedAnimal } from '../logic/seesaw-state.js';
 import { DESIGN } from './layout.js';
+import { ROUND_DOTS_Y } from './hud.js';
 import type { AnimalId } from '../logic/animals.js';
 
 const modelFor = (placed: PlacedAnimal[], overrides: Partial<SceneModel> = {}): SceneModel => ({
@@ -15,24 +16,10 @@ const modelFor = (placed: PlacedAnimal[], overrides: Partial<SceneModel> = {}): 
   tray: [],
   selectedTrayIndex: null,
   caption: 'Make it level',
-  stageLabel: null,
   won: false,
-  queue: [],
-  progress: null,
-  impatience: 0,
-  danger: 0,
-  wind: { phase: 'calm', side: 'left', strength: 0, through: 0 },
-  survivalSeconds: null,
-  bestSeconds: null,
-  selectedQueueIndex: 0,
-  groupSize: 0,
-  bells: 0,
-  bellTarget: null,
   goalToken: 'test:0',
   stages: 1,
   stagesCleared: 0,
-  secondsRemaining: null,
-  showPlacementHint: false,
   ...overrides,
 });
 
@@ -63,7 +50,7 @@ describe('scene', () => {
 
   it('puts the heavy platform lower on screen', () => {
     const scene = createScene(createVectorTheme());
-    settle(scene, modelFor([animal('bear', 'left'), animal('rabbit', 'right')]));
+    settle(scene, modelFor([animal('bear', 'left'), animal('chicken', 'right')]));
     const [left, right] = ['left', 'right'].map(
       (side) => scene.placements().find((placement) => placement.animal.side === side)!,
     );
@@ -85,7 +72,7 @@ describe('scene', () => {
 
   it('gives every placed animal a pose, without overlapping', () => {
     const scene = createScene(createVectorTheme());
-    const placed = Array.from({ length: 5 }, (_, i) => animal('rabbit', 'left', i));
+    const placed = Array.from({ length: 5 }, (_, i) => animal('chicken', 'left', i));
     settle(scene, modelFor(placed));
     const poses = scene.placements().filter((placement) => placement.animal.side === 'left');
     expect(poses).toHaveLength(5);
@@ -139,14 +126,14 @@ describe('scene', () => {
     const scene = createScene(createVectorTheme());
     const model = modelFor([animal('cat', 'left')], {
       tray: [
-        { uid: 'tray-0', species: 'rabbit', used: false },
+        { uid: 'tray-0', species: 'chicken', used: false },
         { uid: 'tray-1', species: 'dog', used: true },
       ],
       selectedTrayIndex: 0,
     });
     scene.update(1 / 60, model);
     expect(scene.traySlots()).toHaveLength(1);
-    expect(scene.traySlots()[0]!.item.species).toBe('rabbit');
+    expect(scene.traySlots()[0]!.item.species).toBe('chicken');
     const { ctx, calls } = recordingContext();
     scene.render(ctx, { width: 1024, height: 768 });
     expect(calls).toContain('fillText');
@@ -154,7 +141,7 @@ describe('scene', () => {
   });
 
   describe('finishing dance', () => {
-    const dancers = [animal('rabbit', 'left', 0), animal('cat', 'right', 0), animal('rabbit', 'right', 1)];
+    const dancers = [animal('chicken', 'left', 0), animal('cat', 'right', 0), animal('chicken', 'right', 1)];
     const dancing = () => modelFor(dancers, { dancing: true });
     const still = () => modelFor(dancers, { dancing: false });
 
@@ -288,50 +275,6 @@ describe('showing a level with several challenges', () => {
   });
 });
 
-describe('the arcade landing zones', () => {
-  const queued = (overrides: Partial<SceneModel> = {}) =>
-    modelFor([], { queue: ['rabbit'], caption: 'Keep it out of the red', ...overrides });
-
-  it('shows where to put an animal whenever one is waiting', () => {
-    const scene = createScene(createVectorTheme());
-    scene.update(1 / 60, queued());
-    const withQueue = recordingContext();
-    scene.render(withQueue.ctx, { width: 1024, height: 768 });
-
-    const idle = createScene(createVectorTheme());
-    idle.update(1 / 60, modelFor([]));
-    const withoutQueue = recordingContext();
-    idle.render(withoutQueue.ctx, { width: 1024, height: 768 });
-
-    expect(withQueue.calls.length).toBeGreaterThan(withoutQueue.calls.length);
-  });
-
-  it('points the way harder before the player has placed anything', () => {
-    const scene = createScene(createVectorTheme());
-    scene.update(1 / 60, queued({ showPlacementHint: true }));
-    const hinted = recordingContext();
-    scene.render(hinted.ctx, { width: 1024, height: 768 });
-
-    const quiet = createScene(createVectorTheme());
-    quiet.update(1 / 60, queued({ showPlacementHint: false }));
-    const settled = recordingContext();
-    quiet.render(settled.ctx, { width: 1024, height: 768 });
-
-    expect(hinted.calls.length).toBeGreaterThan(settled.calls.length);
-  });
-});
-
-describe('the countdown', () => {
-  it('shows the seconds left, not just a bar', () => {
-    const scene = createScene(createVectorTheme());
-    const model = modelFor([], { progress: 0.5, secondsRemaining: 12.4, caption: 'Keep it out of the red' });
-    for (let i = 0; i < 200; i++) scene.update(1 / 60, model);
-    const { ctx, texts } = recordingContext();
-    scene.render(ctx, { width: 1024, height: 768 });
-    expect(texts).toContain('13s');
-  });
-});
-
 describe('the goal arriving does not disturb what is already there', () => {
   it('keeps the stage dots in one place throughout the announcement', () => {
     const model = modelFor([], { goalToken: 'level-5:1', stages: 3, stagesCleared: 1 });
@@ -341,7 +284,7 @@ describe('the goal arriving does not disturb what is already there', () => {
       const { ctx, translations } = recordingContext();
       scene.render(ctx, { width: 1024, height: 768 });
       // Three dots, on the same row, every frame of the announcement.
-      const onTheRow = translations.filter((point) => Math.abs(point.y - 74) < 0.5);
+      const onTheRow = translations.filter((point) => Math.abs(point.y - ROUND_DOTS_Y) < 0.5);
       expect(onTheRow, `frame ${frames}`).toHaveLength(3);
     }
   });

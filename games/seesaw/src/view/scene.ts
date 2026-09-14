@@ -3,9 +3,8 @@ import { SCENE, platformAnchor } from './geometry.js';
 import { DESIGN, fitToScreen, slotPositions, visibleBounds, type Bounds, type Point, type Size } from './layout.js';
 import { createSpring } from './spring.js';
 import { TIMING } from './timing.js';
-import { drawHud, drawSideTargets, queueSlots, traySlots, type TraySlot } from './hud.js';
+import { drawHud, drawSideTargets, traySlots, type TraySlot } from './hud.js';
 import type { TrayItem } from '../logic/game.js';
-import type { AnimalId } from '../logic/animals.js';
 import type { AnimalPose, Expression, SeesawTheme, SeesawView } from './theme.js';
 
 export interface SceneModel {
@@ -19,37 +18,12 @@ export interface SceneModel {
   tray: readonly TrayItem[];
   selectedTrayIndex: number | null;
   caption: string;
-  stageLabel: string | null;
   won: boolean;
-  /** Arcade only; empty in a puzzle. */
-  queue: readonly AnimalId[];
-  /** Which queued animal is chosen. */
-  selectedQueueIndex: number;
-  /** When above zero, the first this many are a family that must all be seated. */
-  groupSize: number;
-  /** Bells rung, and how many the level asks for. */
-  bells: number;
-  bellTarget: number | null;
-  /** Arcade only: 0..1 through the round, or null in a puzzle. */
-  progress: number | null;
-  /** Arcade only: 0..1 how close the waiting animal is to placing itself. */
-  impatience: number;
-  /** Arcade only: 0..1 how full the danger meter is. */
-  danger: number;
-  /** Arcade only: the weather. */
-  wind: SeesawView['wind'];
   /** Changes whenever a new goal is being asked for, which triggers its arrival. */
   goalToken: string;
-  /** How many challenges this level has, and how many are done. */
+  /** How many rounds this level has, and how many are done. */
   stages: number;
   stagesCleared: number;
-  /** Timed arcade levels: seconds left, for the countdown. */
-  secondsRemaining: number | null;
-  /** Show the player where an arcade animal can be seated. */
-  showPlacementHint: boolean;
-  /** Endless only: seconds survived so far, and the record to beat. */
-  survivalSeconds: number | null;
-  bestSeconds: number | null;
 }
 
 export interface AnimalPlacement {
@@ -83,24 +57,10 @@ const emptyModel = (): SceneModel => ({
   tray: [],
   selectedTrayIndex: null,
   caption: '',
-  stageLabel: null,
   won: false,
-  queue: [],
-  selectedQueueIndex: 0,
-  groupSize: 0,
-  bells: 0,
-  bellTarget: null,
-  progress: null,
-  impatience: 0,
-  danger: 0,
-  wind: { phase: 'calm', side: 'left', strength: 0, through: 0 },
-  survivalSeconds: null,
-  bestSeconds: null,
   goalToken: '',
   stages: 1,
   stagesCleared: 0,
-  secondsRemaining: null,
-  showPlacementHint: false,
 });
 
 /**
@@ -167,8 +127,6 @@ export function createScene(theme: SeesawTheme): Scene {
     flagHeight: flag.value,
     flagSide: model.snapshot.heavySide,
     celebrate: Math.max(celebrate, danceIntensity()),
-    danger: model.danger,
-    wind: model.wind,
     targetAngle: model.targetBalance === null ? null : -model.targetBalance * SCENE.maxTiltRad,
     bounds,
     time,
@@ -266,15 +224,12 @@ export function createScene(theme: SeesawTheme): Scene {
       // In the arcade there is no picking-up step, so the landing zones show
       // themselves whenever an animal is waiting: without this there is nothing
       // on screen saying that a side tap is what seats it.
-      const waiting = model.selectedTrayIndex !== null || model.queue.length > 0;
-      if (waiting) drawSideTargets(ctx, view.plankAngle, time, model.showPlacementHint ? 1 : 0.55);
+      if (model.selectedTrayIndex !== null) drawSideTargets(ctx, view.plankAngle, time);
       theme.drawSeesaw(ctx, view);
       for (const { animal, pose } of placementsFor()) theme.animals.draw(ctx, animal.species, pose);
       theme.drawTarget(ctx, view);
       theme.drawFlag(ctx, view);
-      theme.drawWeather(ctx, view);
       theme.drawGauge(ctx, view);
-      theme.drawDanger(ctx, view);
       theme.drawCelebration(ctx, view);
       drawHud(
         ctx,
@@ -283,21 +238,9 @@ export function createScene(theme: SeesawTheme): Scene {
           tray: model.tray,
           selectedTrayIndex: model.selectedTrayIndex,
           caption: model.caption,
-          stageLabel: model.stageLabel,
           won: model.won,
-          queue: model.queue,
-          selectedQueueIndex: model.selectedQueueIndex,
-          groupSize: model.groupSize,
-          bells: model.bells,
-          bellTarget: model.bellTarget,
-          progress: model.progress,
-          impatience: model.impatience,
-          survivalSeconds: model.survivalSeconds,
-          bestSeconds: model.bestSeconds,
           stages: model.stages,
           stagesCleared: model.stagesCleared,
-          secondsRemaining: model.secondsRemaining,
-          showPlacementHint: model.showPlacementHint,
           announcing: announcing > 0 ? 1 - announcing / TIMING.goalAnnounceSeconds : null,
           stamp,
         },
@@ -311,7 +254,7 @@ export function createScene(theme: SeesawTheme): Scene {
 
     // The arcade hand is choosable in exactly the way the tray is, so it hit
     // tests through the same path.
-    traySlots: () => (model.queue.length > 0 ? queueSlots(model.queue) : traySlots(model.tray)),
+    traySlots: () => traySlots(model.tray),
 
     toDesign(point, screen) {
       return fitToScreen(screen).toDesign(point);

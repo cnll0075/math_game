@@ -13,8 +13,6 @@ const view = (overrides: Partial<SeesawView> = {}): SeesawView => ({
   flagHeight: 1,
   flagSide: 'left',
   celebrate: 0,
-  danger: 0,
-  wind: { phase: 'calm' as const, side: 'left' as const, strength: 0, through: 0 },
   targetAngle: -0.1,
   bounds: { left: 0, top: 0, right: DESIGN.width, bottom: DESIGN.height },
   time: 1.5,
@@ -97,7 +95,7 @@ describe('vector theme', () => {
     const theme = createVectorTheme();
     for (const dance of [0.01, 0.25, 0.5, 0.75, 0.99]) {
       const { ctx, calls } = recordingContext();
-      theme.animals.draw(ctx, 'rabbit', {
+      theme.animals.draw(ctx, 'chicken', {
         x: 0,
         y: 0,
         scale: 1,
@@ -110,32 +108,6 @@ describe('vector theme', () => {
       expect(calls.length, String(dance)).toBeGreaterThan(0);
       expect(depthOf(ctx), String(dance)).toBe(0);
     }
-  });
-
-  it('draws weather only when the wind is up', () => {
-    const theme = createVectorTheme();
-    const still = recordingContext();
-    const warning = recordingContext();
-    const gust = recordingContext();
-    theme.drawWeather(still.ctx, view());
-    theme.drawWeather(warning.ctx, view({ wind: { phase: 'warning', side: 'left', strength: 0, through: 0.5 } }));
-    theme.drawWeather(gust.ctx, view({ wind: { phase: 'blowing', side: 'right', strength: 2, through: 0.5 } }));
-    expect(still.calls).toHaveLength(0);
-    expect(warning.calls.length).toBeGreaterThan(0);
-    // A gust is more than a few leaves.
-    expect(gust.calls.length).toBeGreaterThan(warning.calls.length);
-    expect(depthOf(gust.ctx)).toBe(0);
-  });
-
-  it('draws the danger glow only when danger is rising', () => {
-    const theme = createVectorTheme();
-    const safe = recordingContext();
-    const alarming = recordingContext();
-    theme.drawDanger(safe.ctx, view({ danger: 0 }));
-    theme.drawDanger(alarming.ctx, view({ danger: 0.8 }));
-    expect(safe.calls).toHaveLength(0);
-    expect(alarming.calls.length).toBeGreaterThan(0);
-    expect(depthOf(alarming.ctx)).toBe(0);
   });
 
   it('draws petals only while celebrating', () => {

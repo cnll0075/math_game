@@ -1,33 +1,16 @@
 import type { SeesawSnapshot, Side } from './seesaw-state.js';
 
 /**
- * What a level asks the player to make happen. New kinds can be added for the
- * arcade half without touching existing evaluators.
+ * What a round asks for. Levels are made of rounds, so there is no longer a
+ * "several things in a row" objective: a level whose rounds ask different
+ * things is simply a level whose rounds ask different things.
  */
 export type Objective =
   | { kind: 'balance' }
   | { kind: 'sideDown'; side: Side }
-  | { kind: 'tilt'; target: number }
-  | { kind: 'sequence'; challenges: readonly Objective[] }
-  | { kind: 'survive'; seconds: number }
-  | { kind: 'bells'; count: number; seconds: number }
-  | { kind: 'endless' };
+  | { kind: 'tilt'; target: number };
 
-export function stageCount(objective: Objective): number {
-  return objective.kind === 'sequence' ? objective.challenges.length : 1;
-}
-
-/** The challenge the player is working on right now. */
-export function currentChallenge(objective: Objective, stage: number): Objective {
-  if (objective.kind !== 'sequence') return objective;
-  const index = Math.min(Math.max(stage, 0), objective.challenges.length - 1);
-  return objective.challenges[index] ?? objective;
-}
-
-/**
- * Whether a single challenge is met by the current mathematical state. A
- * sequence is never satisfied directly; the game advances it stage by stage.
- */
+/** Whether a round's goal is met by the current mathematical state. */
 export function isSatisfied(objective: Objective, snapshot: SeesawSnapshot): boolean {
   switch (objective.kind) {
     case 'balance':
@@ -36,14 +19,6 @@ export function isSatisfied(objective: Objective, snapshot: SeesawSnapshot): boo
       return snapshot.heavySide === objective.side;
     case 'tilt':
       return snapshot.balanceDifference === objective.target;
-    case 'sequence':
-      return false;
-    case 'survive':
-    case 'bells':
-    case 'endless':
-      // Survival is a matter of the clock, not of the current weights; the
-      // arcade run decides it.
-      return false;
     default: {
       const exhaustive: never = objective;
       return exhaustive;
@@ -60,15 +35,6 @@ export function describeObjective(objective: Objective): string {
       return `Make the ${objective.side} side go down`;
     case 'tilt':
       return 'Reach the star';
-    case 'sequence':
-      return describeObjective(currentChallenge(objective, 0));
-    case 'survive':
-      // Concrete, and it points at the gauge that is already on screen.
-      return 'Keep it out of the red';
-    case 'bells':
-      return objective.count === 1 ? 'Ring the bell' : `Ring the bell ${objective.count} times`;
-    case 'endless':
-      return 'How long can you keep going?';
     default: {
       const exhaustive: never = objective;
       return exhaustive;

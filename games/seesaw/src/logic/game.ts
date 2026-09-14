@@ -1,6 +1,6 @@
 import type { AnimalId } from './animals.js';
-import { balanceConfigFor, type PuzzleLevelDef } from './level.js';
-import { currentChallenge, isSatisfied, stageCount } from './objectives.js';
+import { balanceConfigFor, objectiveFor, roundAt, roundCount, type LevelDef } from './level.js';
+import { isSatisfied } from './objectives.js';
 import { describeSeesaw, type PlacedAnimal, type SeesawSnapshot, type Side, type Zone } from './seesaw-state.js';
 
 export interface TrayItem {
@@ -12,7 +12,8 @@ export interface TrayItem {
 export interface GameState {
   placed: readonly PlacedAnimal[];
   tray: readonly TrayItem[];
-  stage: number;
+  /** Which round of the level is being played. */
+  round: number;
   status: 'playing' | 'won';
 }
 
@@ -21,48 +22,58 @@ export type GameEvent =
   | { type: 'takenBack'; animal: PlacedAnimal }
   | { type: 'perfectBalance' }
   | { type: 'zoneChanged'; from: Zone; to: Zone }
-  | { type: 'stageCleared'; stage: number }
+  | { type: 'roundCleared'; round: number }
   | { type: 'levelCleared' }
   | { type: 'reset' };
 
 export interface Game {
   readonly state: GameState;
-  readonly level: PuzzleLevelDef;
+  readonly level: LevelDef;
   place(trayIndex: number, side: Side): GameEvent[];
   takeBack(uid: string): GameEvent[];
   reset(): GameEvent[];
   snapshot(): SeesawSnapshot;
 }
 
-/** Animals the level starts with cannot be taken back; this marks them. */
+/** Animals a round starts with. Whether they can be lifted is a level's choice. */
 const INITIAL_PREFIX = 'init-';
 
-const buildInitial = (level: PuzzleLevelDef): PlacedAnimal[] => [
-  ...level.initial.left.map((species, index) => ({ uid: `${INITIAL_PREFIX}left-${index}`, species, side: 'left' as const })),
-  ...level.initial.right.map((species, index) => ({ uid: `${INITIAL_PREFIX}right-${index}`, species, side: 'right' as const })),
-];
+const buildInitial = (level: LevelDef, round: number): PlacedAnimal[] => {
+  const { initial } = roundAt(level, round);
+  return [
+    ...initial.left.map((species, index) => ({ uid: `${INITIAL_PREFIX}left-${index}`, species, side: 'left' as const })),
+    ...initial.right.map((species, index) => ({ uid: `${INITIAL_PREFIX}right-${index}`, species, side: 'right' as const })),
+  ];
+};
 
-const buildTray = (level: PuzzleLevelDef): TrayItem[] =>
-  level.tray.map((species, index) => ({ uid: `tray-${index}`, species, used: false }));
+const buildTray = (level: LevelDef, round: number): TrayItem[] =>
+  roundAt(level, round).tray.map((species, index) => ({ uid: `tray-${index}`, species, used: false }));
 
 /**
- * The rules of the seesaw game. Pure: no DOM, no timers, no audio. Everything
- * the presentation layer needs to react to comes back as an event, and the
- * events that matter — perfect balance, zone changes — are edge-triggered, so
- * the bell rings on the move that achieved balance and not on every frame.
+ * The rules. Pure: no DOM, no timers, no audio. Everything the presentation
+ * layer needs to react to comes back as an event, and the events that matter —
+ * perfect balance, zone changes — are edge-triggered, so the bell rings on the
+ * move that achieved balance and not on every frame.
  */
-export function createGame(level: PuzzleLevelDef): Game {
+export function createGame(level: LevelDef): Game {
   const config = balanceConfigFor(level);
-  const totalStages = stageCount(level.objective);
+  const rounds = roundCount(level);
 
-  let placed: PlacedAnimal[] = buildInitial(level);
-  let tray: TrayItem[] = buildTray(level);
-  let stage = 0;
+  let round = 0;
+  let placed: PlacedAnimal[] = buildInitial(level, round);
+  let tray: TrayItem[] = buildTray(level, round);
   let status: GameState['status'] = 'playing';
 
   let previousSnapshot = describeSeesaw(placed, config);
 
   const snapshot = (): SeesawSnapshot => describeSeesaw(placed, config);
+
+  const startRound = (index: number): void => {
+    round = index;
+    placed = buildInitial(level, index);
+    tray = buildTray(level, index);
+    previousSnapshot = snapshot();
+  };
 
   /** Compares the new state against the previous one and reports what changed. */
   const settle = (): GameEvent[] => {
@@ -75,24 +86,25 @@ export function createGame(level: PuzzleLevelDef): Game {
     if (next.isPerfectlyBalanced && !previousSnapshot.isPerfectlyBalanced) {
       events.push({ type: 'perfectBalance' });
     }
+    previousSnapshot = next;
 
-    if (status === 'playing' && isSatisfied(currentChallenge(level.objective, stage), next)) {
-      events.push({ type: 'stageCleared', stage });
-      if (stage + 1 >= totalStages) {
+    const trayEmptied = !level.requireEmptyTray || tray.every((item) => item.used);
+    if (status === 'playing' && trayEmptied && isSatisfied(objectiveFor(level, round), next)) {
+      events.push({ type: 'roundCleared', round });
+      if (round + 1 >= rounds) {
         status = 'won';
         events.push({ type: 'levelCleared' });
       } else {
-        stage += 1;
+        startRound(round + 1);
       }
     }
 
-    previousSnapshot = next;
     return events;
   };
 
   return {
     get state() {
-      return { placed, tray, stage, status };
+      return { placed, tray, round, status };
     },
     level,
     snapshot,
@@ -111,7 +123,9 @@ export function createGame(level: PuzzleLevelDef): Game {
 
     takeBack(uid) {
       if (status === 'won') return [];
-      if (uid.startsWith(INITIAL_PREFIX)) return [];
+      // Lifting an animal the round started with is subtraction, and only the
+      // levels built around it allow it.
+      if (uid.startsWith(INITIAL_PREFIX) && !level.allowRemoval) return [];
       const animal = placed.find((entry) => entry.uid === uid);
       if (!animal) return [];
 
@@ -122,11 +136,8 @@ export function createGame(level: PuzzleLevelDef): Game {
     },
 
     reset() {
-      placed = buildInitial(level);
-      tray = buildTray(level);
-      stage = 0;
+      startRound(0);
       status = 'playing';
-      previousSnapshot = snapshot();
       return [{ type: 'reset' }];
     },
   };

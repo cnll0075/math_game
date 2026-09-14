@@ -17,7 +17,8 @@ describe('synth sound pack', () => {
     expect(SOUND_EVENTS).toContain('danger');
     expect(SOUND_EVENTS).toContain('success');
     expect(SOUND_EVENTS).toContain('cheer');
-    expect(SOUND_EVENTS).toContain('chirp:rabbit');
+    expect(SOUND_EVENTS).toContain('voice:chicken');
+    expect(SOUND_EVENTS).toContain('voice:chicken');
     expect(new Set(SOUND_EVENTS).size).toBe(SOUND_EVENTS.length);
   });
 
@@ -34,15 +35,29 @@ describe('synth sound pack', () => {
     expect(context.createdOscillators.length).toBeGreaterThanOrEqual(2);
   });
 
-  it('gives each animal its own pitch', async () => {
+  it('gives each animal its own voice, the small ones higher', async () => {
     const { bus, context } = await unlockedBus();
     const pack = createSynthSoundPack(bus);
-    pack.play('chirp:rabbit');
-    const rabbitFundamental = context.createdOscillators[0]!.frequency.value;
-    const afterRabbit = context.createdOscillators.length;
-    pack.play('chirp:bear');
-    const bearFundamental = context.createdOscillators[afterRabbit]!.frequency.value;
-    expect(rabbitFundamental).toBeGreaterThan(bearFundamental);
+    pack.play('voice:chicken');
+    const chicken = context.createdOscillators[0]!.frequency.value;
+    const afterChicken = context.createdOscillators.length;
+    pack.play('voice:bear');
+    const bear = context.createdOscillators[afterChicken]!.frequency.value;
+    expect(chicken).toBeGreaterThan(bear);
+  });
+
+  it('clucks three times but growls once', async () => {
+    const { bus, context } = await unlockedBus();
+    const pack = createSynthSoundPack(bus);
+    pack.play('voice:chicken');
+    const cluckStarts = new Set(context.createdOscillators.map((voice) => voice.startedAt.toFixed(3)));
+    const afterCluck = context.createdOscillators.length;
+    pack.play('voice:bear');
+    const growlStarts = new Set(
+      context.createdOscillators.slice(afterCluck).map((voice) => voice.startedAt.toFixed(3)),
+    );
+    // A cluck is repeated notes; a growl is one long one.
+    expect(cluckStarts.size).toBeGreaterThan(growlStarts.size);
   });
 
   it('stays silent and safe before unlock', () => {
@@ -60,7 +75,7 @@ describe('synth sound pack', () => {
     const { bus, context } = await unlockedBus();
     const pack = createSynthSoundPack(bus);
     context.currentTime = 10;
-    pack.play('chirp:cat', { delay: 0.5 });
+    pack.play('voice:cat', { delay: 0.5 });
     // A delayed voice is scheduled ahead of the clock rather than played now,
     // which is what lets the dance stagger without timers.
     expect(context.createdOscillators[0]!.startedAt).toBeCloseTo(10.5, 3);

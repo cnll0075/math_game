@@ -2,14 +2,13 @@ import { createTicker, type GameHost, type GameModule, type GameSession } from '
 import { createDriver, type Driver, type SessionEvent } from './driver.js';
 import { LEVELS, getLevel } from './logic/levels.data.js';
 import type { LevelDef } from './logic/level.js';
-import type { Side, Zone } from './logic/seesaw-state.js';
 import type { AnimalId } from './logic/animals.js';
+import type { Side, Zone } from './logic/seesaw-state.js';
 import { createSynthSoundPack } from './audio/seesaw-sounds.js';
 import { createScene, type SceneModel } from './view/scene.js';
 import { createVectorTheme } from './view/vector-theme.js';
-import { createInput } from './view/input.js';
+import { createInput, type InputIntent } from './view/input.js';
 import { TIMING } from './view/timing.js';
-import { countdownStep } from './view/countdown.js';
 import { DESIGN } from './view/layout.js';
 
 export interface SeesawOptions {
@@ -20,27 +19,15 @@ export interface SeesawOptions {
 /** Test seam: drive the game without synthesising pointer geometry. */
 export interface SeesawTestHooks {
   place(trayIndex: number, side: Side): void;
-  drop(side: Side): void;
+  pick(trayIndex: number): void;
   takeBack(uid: string): void;
   step(frames?: number): void;
-  status(): 'playing' | 'won' | 'lost';
+  status(): 'playing' | 'won';
   zone(): Zone;
   flagRaised(): boolean;
   level(): string;
+  round(): number;
   danceProgress(): number;
-  danger(): number;
-  queueLength(): number;
-  queue(): readonly AnimalId[];
-  balanceDifference(): number;
-  survivalSeconds(): number | null;
-  bestSeconds(): number | null;
-  windPhase(): 'calm' | 'warning' | 'blowing';
-  showPlacementHint(): boolean;
-  secondsRemaining(): number | null;
-  pick(index: number): void;
-  bells(): number;
-  groupSize(): number;
-  selectedQueueIndex(): number;
   placedSpecies(): readonly AnimalId[];
 }
 
@@ -76,24 +63,16 @@ export const seesawGame: SeesawModule = {
 
     const scene = createScene(theme);
 
-    const bestKey = (levelId: string): string => `best:${levelId}`;
-    const bestFor = (levelId: string): number | null => {
-      const stored = host.storage.get<number>(bestKey(levelId), 0);
-      return stored > 0 ? stored : null;
-    };
-
     const requested = options.startLevel ? getLevel(options.startLevel) : undefined;
     let level: LevelDef = requested ?? firstUnlockedLevel(host);
-    let driver: Driver = createDriver(level, bestFor(level.id));
+    let driver: Driver = createDriver(level);
 
     /** Set when balance is reached; the bell waits for the plank to settle. */
     let pendingDing = false;
     let dingTimer = 0;
     let celebrating = 0;
-    /** Seconds since the round finished, won or lost. */
+    /** Seconds since the level was finished. */
     let finishedFor = 0;
-    /** Last whole second announced by the countdown, so it ticks once each. */
-    let lastTick = Number.POSITIVE_INFINITY;
     let announcedGoal = '';
 
     const applySettings = (): void => {
@@ -115,12 +94,11 @@ export const seesawGame: SeesawModule = {
       for (const event of events) {
         switch (event.type) {
           case 'placed':
-            sounds.play(`chirp:${event.animal.species}`);
+            sounds.play(`voice:${event.animal.species}`);
             sounds.play('land');
             sounds.play('creak');
             break;
           case 'takenBack':
-          case 'left':
             sounds.play('creak');
             break;
           case 'perfectBalance':
@@ -131,13 +109,8 @@ export const seesawGame: SeesawModule = {
           case 'zoneChanged':
             if (event.to === 'red') sounds.play('danger');
             break;
-          case 'stageCleared':
+          case 'roundCleared':
             sounds.play('stamp');
-            break;
-          case 'windChanged':
-            // The warning is the sound that matters: it is the beat of notice
-            // the child gets before the push arrives.
-            if (event.phase === 'warning') sounds.play('gust');
             break;
           default:
             break;
@@ -150,27 +123,14 @@ export const seesawGame: SeesawModule = {
         sounds.play('cheer', { delay: 0.12 });
         // One chirp per dancer, in the same wave the hops run in.
         driver.placed().forEach((animal, index) => {
-          sounds.play(`chirp:${animal.species}`, { delay: 0.2 + index * TIMING.danceStaggerSeconds });
+          sounds.play(`voice:${animal.species}`, { delay: 0.2 + index * TIMING.danceStaggerSeconds });
         });
-      }
-      if (events.some((event) => event.type === 'roundLost')) {
-        finishedFor = 0;
-        pendingDing = false;
-        sounds.play('tumble');
-        // An endless run is only worth anything if the best is remembered.
-        const stats = driver.stats();
-        if (stats && driver.model().survivalSeconds !== null) {
-          const best = host.storage.get<number>(bestKey(level.id), 0);
-          if (stats.secondsSurvived > best) {
-            host.storage.set(bestKey(level.id), Math.floor(stats.secondsSurvived));
-          }
-        }
       }
     };
 
     const startLevel = (next: LevelDef): void => {
       level = next;
-      driver = createDriver(level, bestFor(next.id));
+      driver = createDriver(level);
       finishedFor = 0;
       celebrating = 0;
       pendingDing = false;
@@ -187,15 +147,22 @@ export const seesawGame: SeesawModule = {
       startLevel(next);
     };
 
-    const input = createInput(
-      canvas,
-      scene,
-      (intent) => {
+    /**
+     * One path for every way an intention can arrive, so a tap in the browser
+     * and a nudge from a test go through exactly the same code.
+     */
+    const handleIntent = (intent: InputIntent): void => {
+      {
         void host.audio.unlock();
         switch (intent.kind) {
-          case 'pickTray':
+          case 'pickTray': {
             driver.pick(intent.index);
+            // Touching an animal makes it speak. A child who cannot read the
+            // number can still hear which animal they are holding.
+            const held = driver.holding;
+            if (held) sounds.play(`voice:${held}`);
             break;
+          }
           case 'dropSide':
             handleEvents(driver.drop(intent.side));
             break;
@@ -206,9 +173,10 @@ export const seesawGame: SeesawModule = {
             driver.pick(-1);
             break;
         }
-      },
-      () => driver.armed,
-    );
+      }
+    };
+
+    const input = createInput(canvas, scene, handleIntent, () => driver.armed);
 
     const resize = (): void => {
       const ratio = Math.min(globalThis.devicePixelRatio || 1, 3);
@@ -221,8 +189,6 @@ export const seesawGame: SeesawModule = {
     globalThis.addEventListener?.('resize', resize);
 
     const frame = (dt: number): void => {
-      if (driver.status === 'playing') handleEvents(driver.tick(dt));
-
       const model = modelFor();
       scene.update(dt, model);
 
@@ -232,11 +198,6 @@ export const seesawGame: SeesawModule = {
         announcedGoal = model.goalToken;
         sounds.play('goal');
       }
-
-      // The last few seconds are counted out loud.
-      const counting = countdownStep(lastTick, driver.status === 'playing' ? model.secondsRemaining : null);
-      lastTick = counting.whole;
-      if (counting.tick) sounds.play('tick');
 
       if (pendingDing && scene.tiltSettled) {
         dingTimer += dt;
@@ -252,11 +213,6 @@ export const seesawGame: SeesawModule = {
         finishedFor += dt;
         // Let the animals finish dancing before the next level arrives.
         if (finishedFor > TIMING.danceSeconds + TIMING.levelChangeSeconds) advanceLevel();
-      } else if (driver.status === 'lost') {
-        finishedFor += dt;
-        // A lost round simply starts again: the point is another go, not a
-        // verdict on the child.
-        if (finishedFor > TIMING.retrySeconds) startLevel(level);
       }
 
       if (ctx) scene.render(ctx, { width: canvas.width, height: canvas.height });
@@ -277,11 +233,11 @@ export const seesawGame: SeesawModule = {
       },
       __test: {
         place(trayIndex, side) {
-          driver.pick(trayIndex);
-          handleEvents(driver.drop(side));
+          handleIntent({ kind: 'pickTray', index: trayIndex });
+          handleIntent({ kind: 'dropSide', side });
         },
-        drop: (side) => handleEvents(driver.drop(side)),
-        takeBack: (uid) => handleEvents(driver.takeBack(uid)),
+        pick: (trayIndex) => handleIntent({ kind: 'pickTray', index: trayIndex }),
+        takeBack: (uid) => handleIntent({ kind: 'takeBack', uid }),
         step: (frames = 1) => {
           for (let i = 0; i < frames; i++) frame(1 / 60);
         },
@@ -289,20 +245,8 @@ export const seesawGame: SeesawModule = {
         zone: () => driver.snapshot().zone,
         flagRaised: () => driver.snapshot().zone === 'red',
         level: () => level.id,
+        round: () => driver.model().stagesCleared,
         danceProgress: () => scene.danceProgress,
-        danger: () => driver.model().danger,
-        queueLength: () => driver.model().queue.length,
-        queue: () => driver.model().queue,
-        balanceDifference: () => driver.snapshot().balanceDifference,
-        survivalSeconds: () => driver.model().survivalSeconds,
-        bestSeconds: () => driver.model().bestSeconds,
-        windPhase: () => driver.model().wind.phase,
-        showPlacementHint: () => driver.model().showPlacementHint,
-        secondsRemaining: () => driver.model().secondsRemaining,
-        pick: (index) => driver.pick(index),
-        bells: () => driver.model().bells,
-        groupSize: () => driver.model().groupSize,
-        selectedQueueIndex: () => driver.model().selectedQueueIndex,
         placedSpecies: () => driver.placed().map((animal) => animal.species),
       },
     };
@@ -310,6 +254,6 @@ export const seesawGame: SeesawModule = {
 };
 
 export default seesawGame;
-export { LEVELS, PUZZLE_LEVELS, ARCADE_LEVELS, getLevel, solutionsFor } from './logic/levels.data.js';
+export { LEVELS, getLevel, solutionsFor } from './logic/levels.data.js';
 export { createSynthSoundPack, SOUND_EVENTS } from './audio/seesaw-sounds.js';
-export type { LevelDef, PuzzleLevelDef, ArcadeLevelDef } from './logic/level.js';
+export type { LevelDef } from './logic/level.js';

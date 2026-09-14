@@ -8,7 +8,7 @@ const place = (side: Side, ...species: AnimalId[]): PlacedAnimal[] =>
 
 describe('describeSeesaw', () => {
   it('sums each side', () => {
-    const state = describeSeesaw([...place('left', 'cat', 'rabbit'), ...place('right', 'dog')]);
+    const state = describeSeesaw([...place('left', 'cat', 'chicken'), ...place('right', 'dog')]);
     expect(state.leftWeight).toBe(3);
     expect(state.rightWeight).toBe(3);
     expect(state.totalAnimals).toBe(3);
@@ -27,7 +27,7 @@ describe('describeSeesaw', () => {
   });
 
   it('has no heavy side when the weights are equal', () => {
-    const state = describeSeesaw([...place('left', 'cat'), ...place('right', 'rabbit', 'rabbit')]);
+    const state = describeSeesaw([...place('left', 'cat'), ...place('right', 'chicken', 'chicken')]);
     expect(state.heavySide).toBeNull();
     expect(state.isPerfectlyBalanced).toBe(true);
   });
@@ -48,7 +48,7 @@ describe('describeSeesaw', () => {
   });
 
   it('maps differences to zones', () => {
-    expect(describeSeesaw(place('left', 'rabbit')).zone).toBe('green');
+    expect(describeSeesaw(place('left', 'chicken')).zone).toBe('green');
     expect(describeSeesaw(place('left', 'dog')).zone).toBe('yellow');
     expect(describeSeesaw(place('left', 'bear')).zone).toBe('red');
   });

@@ -12,18 +12,11 @@ export const SOUND_EVENTS: readonly string[] = [
   'danger',
   'success',
   'cheer',
-  'tumble',
-  'gust',
   'goal',
   'stamp',
-  'tick',
-  ...ANIMAL_IDS.map((id) => `chirp:${id}`),
+  ...ANIMAL_IDS.map((id) => `voice:${id}`),
 ];
 
-/**
- * `delay` is honoured by every voice. Web Audio schedules ahead of the clock,
- * so a staggered run of chirps needs no timers and nothing to clean up.
- */
 type Voice = (bus: AudioBus, delay: number) => void;
 
 /**
@@ -63,17 +56,6 @@ const cheer: Voice = (bus, delay) => {
   tone(bus, { freq: 587.33, duration: 0.4, type: 'sine', gain: 0.07, sweepTo: 880, delay: delay + 0.06 });
 };
 
-/** The round got away from them: a wooden clatter and a downward sigh. */
-const tumble: Voice = (bus, delay) => {
-  noiseBurst(bus, { duration: 0.4, gain: 0.12, filterHz: 700, sweepTo: 220, delay });
-  tone(bus, { freq: 392, duration: 0.6, type: 'triangle', gain: 0.13, sweepTo: 165, delay: delay + 0.05 });
-};
-
-/** Wind getting up: breath rising, so the gust is heard before it is felt. */
-const gust: Voice = (bus, delay) => {
-  noiseBurst(bus, { duration: 1.4, gain: 0.1, filterHz: 380, sweepTo: 1100, delay });
-};
-
 /** A new goal arriving: two rising notes, attention without alarm. */
 const goal: Voice = (bus, delay) => {
   tone(bus, { freq: 587.33, duration: 0.22, type: 'triangle', gain: 0.14, delay });
@@ -86,11 +68,6 @@ const stamp: Voice = (bus, delay) => {
   tone(bus, { freq: 990, duration: 0.22, type: 'sine', gain: 0.09, delay: delay + 0.04 });
 };
 
-/** The clock running out: one dry tick a second. */
-const tick: Voice = (bus, delay) => {
-  tone(bus, { freq: 1046.5, duration: 0.07, type: 'square', gain: 0.09, delay });
-};
-
 const VOICES: Record<string, Voice> = {
   ding,
   creak,
@@ -98,24 +75,50 @@ const VOICES: Record<string, Voice> = {
   danger,
   success,
   cheer,
-  tumble,
-  gust,
   goal,
   stamp,
-  tick,
 };
 
+/**
+ * An animal's cry, built from the description in the catalogue: a pitch that
+ * slides, repeated a few times, roughened to taste. A cluck is three clipped
+ * squares; a growl is one long rough slide down. Nobody will mistake the bear
+ * for the chicken.
+ */
 for (const id of ANIMAL_IDS) {
   const { voice } = ANIMALS[id];
-  VOICES[`chirp:${id}`] = (bus, delay) => {
-    tone(bus, { freq: voice.freq, duration: voice.duration, type: 'triangle', gain: 0.12, delay });
-    tone(bus, {
-      freq: voice.freq * 1.5,
-      duration: voice.duration * 0.7,
-      type: 'sine',
-      gain: 0.05,
-      delay: delay + 0.04,
-    });
+  VOICES[`voice:${id}`] = (bus, delay) => {
+    for (let repeat = 0; repeat < voice.repeats; repeat++) {
+      const at = delay + repeat * voice.gap;
+      tone(bus, {
+        freq: voice.from,
+        sweepTo: voice.to,
+        duration: voice.seconds,
+        type: voice.type,
+        gain: 0.16,
+        attack: voice.seconds * 0.18,
+        delay: at,
+      });
+      // Grit is a second voice a little out of tune with the first, which is
+      // what turns a clean note into an animal.
+      if (voice.grit > 0) {
+        tone(bus, {
+          freq: voice.from * (1 - 0.06 * voice.grit),
+          sweepTo: voice.to * (1 - 0.06 * voice.grit),
+          duration: voice.seconds,
+          type: 'square',
+          gain: 0.09 * voice.grit,
+          delay: at,
+        });
+        noiseBurst(bus, {
+          duration: voice.seconds * 0.8,
+          gain: 0.05 * voice.grit,
+          filterHz: voice.from * 1.4,
+          sweepTo: voice.to,
+          delay: at,
+        });
+      }
+    }
   };
 }
 

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { DESIGN, fitToScreen, slotPositions, visibleBounds } from './layout.js';
 import { SCENE, platformAnchor } from './geometry.js';
+import { ROUND_DOTS_Y } from './hud.js';
 
 describe('fitToScreen', () => {
   it('scales to fit a wide screen and letterboxes the sides', () => {
@@ -185,5 +186,12 @@ describe('the top bar does not stack on itself', () => {
     const clockBottom = SCENE.gaugeY + 34 + 18;
     const bellTop = 144 - 14;
     expect(bellTop).toBeGreaterThan(clockBottom);
+  });
+});
+
+describe('the top of the screen does not stack on itself', () => {
+  it('keeps the round markers clear of the gauge above them', () => {
+    const gaugeBottom = SCENE.gaugeY + 22;
+    expect(ROUND_DOTS_Y - 14).toBeGreaterThan(gaugeBottom);
   });
 });

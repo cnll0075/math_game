@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { currentChallenge, describeObjective, isSatisfied, stageCount, type Objective } from './objectives.js';
+import { describeObjective, isSatisfied } from './objectives.js';
 import { describeSeesaw, type PlacedAnimal } from './seesaw-state.js';
 
 /** Builds a snapshot with `left` and `right` rabbits, so weight equals count. */
 const snap = (left: number, right: number) => {
   const placed: PlacedAnimal[] = [
-    ...Array.from({ length: left }, (_, i) => ({ uid: `l${i}`, species: 'rabbit' as const, side: 'left' as const })),
-    ...Array.from({ length: right }, (_, i) => ({ uid: `r${i}`, species: 'rabbit' as const, side: 'right' as const })),
+    ...Array.from({ length: left }, (_, i) => ({ uid: `l${i}`, species: 'chicken' as const, side: 'left' as const })),
+    ...Array.from({ length: right }, (_, i) => ({ uid: `r${i}`, species: 'chicken' as const, side: 'right' as const })),
   ];
   return describeSeesaw(placed);
 };
@@ -31,39 +31,6 @@ describe('isSatisfied', () => {
     expect(isSatisfied({ kind: 'tilt', target: 2 }, snap(4, 2))).toBe(true);
   });
 
-  it('a sequence is satisfied only when every challenge has been met', () => {
-    const sequence: Objective = {
-      kind: 'sequence',
-      challenges: [{ kind: 'balance' }, { kind: 'sideDown', side: 'right' }],
-    };
-    expect(isSatisfied(sequence, snap(1, 2))).toBe(false);
-  });
-});
-
-describe('sequence helpers', () => {
-  const sequence: Objective = {
-    kind: 'sequence',
-    challenges: [{ kind: 'balance' }, { kind: 'sideDown', side: 'right' }],
-  };
-
-  it('reports the current challenge', () => {
-    expect(currentChallenge(sequence, 0)).toEqual({ kind: 'balance' });
-    expect(currentChallenge(sequence, 1)).toEqual({ kind: 'sideDown', side: 'right' });
-  });
-
-  it('counts stages', () => {
-    expect(stageCount(sequence)).toBe(2);
-    expect(stageCount({ kind: 'balance' })).toBe(1);
-  });
-
-  it('treats a plain objective as a single stage', () => {
-    expect(currentChallenge({ kind: 'balance' }, 0)).toEqual({ kind: 'balance' });
-    expect(currentChallenge({ kind: 'balance' }, 3)).toEqual({ kind: 'balance' });
-  });
-
-  it('clamps a stage beyond the end of a sequence', () => {
-    expect(currentChallenge(sequence, 9)).toEqual({ kind: 'sideDown', side: 'right' });
-  });
 });
 
 describe('describeObjective', () => {
@@ -71,6 +38,5 @@ describe('describeObjective', () => {
     expect(describeObjective({ kind: 'balance' })).toBe('Make it level');
     expect(describeObjective({ kind: 'sideDown', side: 'right' })).toBe('Make the right side go down');
     expect(describeObjective({ kind: 'tilt', target: -1 })).toBe('Reach the star');
-    expect(describeObjective({ kind: 'sequence', challenges: [{ kind: 'balance' }] })).toBe('Make it level');
   });
 });

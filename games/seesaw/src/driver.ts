@@ -1,51 +1,43 @@
 import { createGame, type Game, type GameEvent } from './logic/game.js';
-import { createArcadeRun, type ArcadeEvent, type ArcadeRun, type ArcadeStats } from './logic/arcade.js';
-import { balanceConfigFor, isArcade, type LevelDef } from './logic/level.js';
-import { currentChallenge, describeObjective, stageCount } from './logic/objectives.js';
+import { balanceConfigFor, objectiveFor, roundCount, type LevelDef } from './logic/level.js';
+import { describeObjective } from './logic/objectives.js';
 import type { PlacedAnimal, SeesawSnapshot, Side } from './logic/seesaw-state.js';
 import type { SceneModel } from './view/scene.js';
 
-export type SessionEvent = GameEvent | ArcadeEvent;
+export type SessionEvent = GameEvent;
 
-/** What the session model needs from whichever mode is running. */
-export type DriverModel = Omit<SceneModel, 'snapshot' | 'placed' | 'gateOpen' | 'celebrating' | 'dancing'>;
+/** What the scene needs from the level being played. */
+export type DriverModel = Omit<SceneModel, 'snapshot' | 'placed' | 'celebrating' | 'dancing'>;
 
 /**
- * The two modes behave differently enough to deserve separate rules, and alike
- * enough that everything around them — scene, sound, input, the frame loop —
- * should not care which is running. This is that seam.
+ * Everything around the rules — scene, sound, input, the frame loop — talks to
+ * the level through this, so none of them need to know how a level is built.
  */
 export interface Driver {
-  readonly status: 'playing' | 'won' | 'lost';
+  readonly status: 'playing' | 'won';
   snapshot(): SeesawSnapshot;
   placed(): readonly PlacedAnimal[];
   model(): DriverModel;
-  /** Advances any clock the mode has. Puzzles have none. */
-  tick(dt: number): SessionEvent[];
-  /** The player chose a side. */
+  /** The player chose a side for the animal they are holding. */
   drop(side: Side): SessionEvent[];
-  /** The player picked up a tray animal, or chose one from the arcade queue. */
+  /** The player picked up a tray animal; -1 puts it back down. */
   pick(trayIndex: number): void;
-  /** The player tapped a placed animal. Puzzle only. */
+  /** The player tapped an animal on the seesaw. */
   takeBack(uid: string): SessionEvent[];
   /** Whether a side tap would place something right now. */
   readonly armed: boolean;
-  /** How the round went, for an endless level; null for a puzzle. */
-  stats(): ArcadeStats | null;
+  /** The animal being held, for the sound a touch makes. */
+  readonly holding: PlacedAnimal['species'] | null;
 }
 
-function puzzleDriver(game: Game): Driver {
+export function createDriver(level: LevelDef): Driver {
+  const game: Game = createGame(level);
   let selected: number | null = null;
 
-  const stageLabel = (): string | null => {
-    const total = stageCount(game.level.objective);
-    return total > 1 ? `${Math.min(game.state.stage + 1, total)} of ${total}` : null;
-  };
-
   const targetBalance = (): number | null => {
-    const challenge = currentChallenge(game.level.objective, game.state.stage);
-    if (challenge.kind !== 'tilt') return null;
-    return challenge.target / balanceConfigFor(game.level).maxTiltDifference;
+    const objective = objectiveFor(level, game.state.round);
+    if (objective.kind !== 'tilt') return null;
+    return objective.target / balanceConfigFor(level).maxTiltDifference;
   };
 
   return {
@@ -55,36 +47,24 @@ function puzzleDriver(game: Game): Driver {
     get armed() {
       return selected !== null;
     },
+    get holding() {
+      if (selected === null) return null;
+      return game.state.tray[selected]?.species ?? null;
+    },
     snapshot: () => game.snapshot(),
     placed: () => game.state.placed,
     model: () => ({
       // Changes whenever the player is being asked for something new, which is
       // what makes the goal announce itself.
-      goalToken: `${game.level.id}:${game.state.stage}`,
-      stages: stageCount(game.level.objective),
-      stagesCleared: game.state.status === 'won' ? stageCount(game.level.objective) : game.state.stage,
-      secondsRemaining: null,
-      showPlacementHint: false,
+      goalToken: `${level.id}:${game.state.round}`,
+      stages: roundCount(level),
+      stagesCleared: game.state.status === 'won' ? roundCount(level) : game.state.round,
       targetBalance: targetBalance(),
       tray: game.state.tray,
       selectedTrayIndex: selected,
-      caption: describeObjective(currentChallenge(game.level.objective, game.state.stage)),
-      stageLabel: stageLabel(),
+      caption: describeObjective(objectiveFor(level, game.state.round)),
       won: game.state.status === 'won',
-      queue: [],
-      selectedQueueIndex: 0,
-      groupSize: 0,
-      bells: 0,
-      bellTarget: null,
-      progress: null,
-      impatience: 0,
-      danger: 0,
-      wind: STILL_AIR,
-      survivalSeconds: null,
-      bestSeconds: null,
     }),
-    tick: () => [],
-    stats: () => null,
     drop(side) {
       if (selected === null) return [];
       const events = game.place(selected, side);
@@ -92,75 +72,8 @@ function puzzleDriver(game: Game): Driver {
       return events;
     },
     pick(trayIndex) {
-      selected = trayIndex;
+      selected = trayIndex < 0 ? null : trayIndex;
     },
     takeBack: (uid) => game.takeBack(uid),
   };
-}
-
-const STILL_AIR = { phase: 'calm', side: 'left', strength: 0, through: 0 } as const;
-
-function arcadeDriver(run: ArcadeRun, best: number | null): Driver {
-  /** The hint stays up until the player has seated an animal themselves. */
-  let playerPlacements = 0;
-
-  return {
-    get status() {
-      return run.state.status;
-    },
-    // In the arcade there is nothing to pick up: a tap on a side always places
-    // the animal that is waiting.
-    armed: true,
-    snapshot: () => run.snapshot(),
-    placed: () => run.state.placed,
-    model: () => ({
-      goalToken: `${run.level.id}`,
-      stages: 1,
-      stagesCleared: run.state.status === 'won' ? 1 : 0,
-      secondsRemaining: run.target === null ? null : Math.max(0, run.target - run.state.elapsed),
-      // Until the player has seated a couple themselves, nothing on screen
-      // says that choosing an animal and tapping a side is the verb.
-      showPlacementHint: playerPlacements < 2 && run.state.queue.length > 0 && !run.state.celebrating,
-      targetBalance: null,
-      tray: [],
-      selectedTrayIndex: null,
-      caption: describeObjective(run.level.objective),
-      stageLabel: null,
-      won: run.state.status === 'won',
-      queue: run.state.queue,
-      selectedQueueIndex: run.state.selected,
-      groupSize: run.state.groupSize,
-      bells: run.state.bells,
-      bellTarget: run.bellTarget,
-      progress: run.progress,
-      impatience: run.state.impatience,
-      danger: run.state.danger,
-      wind: {
-        phase: run.state.wind.phase,
-        side: run.state.wind.side,
-        strength: Math.abs(run.state.wind.bias),
-        through: run.state.wind.through,
-      },
-      survivalSeconds: run.target === null ? run.state.elapsed : null,
-      bestSeconds: run.target === null ? best : null,
-    }),
-    tick: (dt) => run.tick(dt),
-    stats: () => run.state.stats,
-    pick: (index) => run.select(index),
-    drop: (side) => {
-      const events = run.place(side);
-      if (events.length > 0) playerPlacements += 1;
-      return events;
-    },
-    takeBack: () => [],
-  };
-}
-
-export function createDriver(level: LevelDef, best: number | null = null): Driver {
-  return isArcade(level) ? arcadeDriver(createArcadeRun(level), best) : puzzleDriver(createGame(level));
-}
-
-/** The run just finished, for a session that wants to record it. */
-export function statsOf(driver: Driver): ArcadeStats | null {
-  return driver.stats();
 }

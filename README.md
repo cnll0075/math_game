@@ -73,36 +73,70 @@ The shell owns the single audio bus, profile store, settings object, and
 entitlement check, and passes them to a game through `GameHost`. Games own
 nothing global, so adding the next nine changes the catalog and nothing else.
 
+## The curriculum
+
+Fifteen levels, one mechanic: put animals on the seesaw until it does what was
+asked. The depth is in the problems, not in the verbs. Every level is three to
+five **rounds** of the same idea with different numbers, because a child who has
+met "3 and 2 make 5" once has not met it.
+
+| | Level | The idea |
+|---|---|---|
+| 1 | Same | equality |
+| 2 | Count Them | counting and matching |
+| 3 | Two Little Ones | composing: 2 = 1+1 |
+| 4 | The Dog | two ways to make 3 |
+| 5 | Make Three | missing addend |
+| 6 | Make Five | missing addend, bigger |
+| 7 | No Four | nothing weighs four, so four must be built |
+| 8 | All the Same | repeated addition: six is three cats |
+| 9 | No Little Ones | compensation: add to *both* sides |
+| 10 | Make Ten | the biggest sums |
+| 11 | Take One Off | subtraction: lift an animal instead |
+| 12 | Two Ways | several right answers, all accepted |
+| 13 | Fair Shares | halve a whole pile |
+| 14 | Big Ones, Small Ones | one bear, answered many ways |
+| 15 | Animal Park | one round of each idea |
+
+**The tray is the level design.** What is *missing* from it is what makes a
+round interesting. Level 9 offers a gap of one and no chicken, so the only way
+through is a dog on the light side and a cat on the heavy one — 3 − 2 = 1, and
+the first time a child sees that adding to the heavy side can help. Level 8
+offers one species, so the question becomes "how many of these?".
+
+There is deliberately **no animal weighing four**: chicken 1, cat 2, dog 3,
+bear 5. Making four is always 3+1 or 2+2.
+
 ## Adding or changing a level
 
 Edit `games/seesaw/src/logic/levels.data.ts`. A level is data:
 
 ```ts
 {
-  id: 'level-3',
-  mode: 'puzzle',
-  title: 'Go Down',
-  objective: { kind: 'sideDown', side: 'right' },
-  initial: { left: ['dog'], right: ['rabbit'] },
-  tray: ['cat', 'rabbit', 'dog'],
+  id: 'level-9',
+  title: 'No Little Ones',
+  objective: { kind: 'balance' },
+  hint: 'You can add to both sides',
+  rounds: [
+    { initial: { left: ['dog'], right: ['cat'] }, tray: ['cat', 'dog'] },
+    // ...
+  ],
 }
 ```
 
-Objectives are `balance`, `sideDown`, `tilt` (an exact weight difference, shown
-as a star), `sequence` (several in a row), and `survive` (the arcade half). No
-gameplay code branches on a level id.
+Objectives are `balance`, `sideDown`, and `tilt` (an exact weight difference,
+shown as a star). A round may carry its own objective, so a level whose rounds
+ask different things needs no special machinery. Two level-wide switches change
+what is allowed: `allowRemoval` lets the player lift animals the round started
+with (subtraction), and `requireEmptyTray` makes every animal have to be seated
+(sharing a pile).
 
-An arcade level instead carries an `arcade` block — seed, species pool, arrival
-pace, queue length, how long animals stay, how patient they are, and how fast
-the danger meter fills and drains. Levels 6 to 8 differ only in those numbers.
-
-`levels.test.ts` brute-forces every puzzle level to prove it is solvable from
-its tray, so a level that cannot be won fails the suite rather than reaching a
-child. `arcade-levels.test.ts` does the equivalent for the arcade half by
-simulation: it plays each level to the end across forty seeds with a competent
-strategy and requires every one to be survived, and separately requires that
-ignoring the game loses. The first proves the generator cannot deal an
-unwinnable round; the second proves the mode has any tension at all.
+`levels.test.ts` brute-forces every round of every level — searching removals as
+well as placements — so a round that cannot be solved fails the suite rather
+than reaching a child. It also checks each level's mathematical intent: that
+level 7's rounds always need more than one animal, that level 9's always need
+both sides, that level 11's always need a removal, that level 12's have several
+answers, and that level 13's piles actually halve.
 
 ## Swapping the art
 
@@ -128,10 +162,16 @@ the feel and swapping the art stay independent jobs.
 
 Sounds are synthesised through Web Audio; there are no audio files.
 `createSynthSoundPack` implements `SoundPack`, whose events are `ding`, `creak`,
-`land`, `danger`, `success`, `cheer`, and `chirp:<species>`. Every event honours
-a `delay` param, which is how the celebration staggers its chirps without
-timers. A pack backed by recordings implements the same names and is swapped in
-one line.
+`land`, `danger`, `success`, `cheer`, `goal`, `stamp`, and `voice:<species>`.
+Every event honours a `delay` param, which is how the celebration staggers its
+cries without timers. A pack backed by recordings implements the same names and
+is swapped in one line.
+
+**The animals speak.** Touching one plays its cry, so a child who cannot read
+the number still knows what they are holding — which is why the smallest animal
+is a chicken rather than a rabbit. Each cry is described in the animal catalogue
+as a pitch that slides, repeated a few times, with a roughness: a cluck is three
+clipped squares, a growl is one long rough slide down.
 
 The **sound lab** fires each event from a button, for auditioning candidates
 without replaying a level: open Settings and long-press the "Settings" heading
@@ -147,6 +187,43 @@ shape is filled with park rather than letterbox bars. The clearances that let
 the seesaw fill the frame — baskets missing the ground and the gauge at full
 tilt, the tray clearing the fulcrum — are pinned by tests in `layout.test.ts`,
 because they all sit close to something they must not collide with.
+
+## Telling the player what is being asked
+
+Each level asks for something different, and in play that was easy to miss. Two
+things carry it:
+
+- **The goal announces itself.** It arrives large in the middle of the screen
+  with a sound, holds, then flies up into the top bar. It fires again for each
+  challenge inside a level, so a new ask is always seen arriving rather than
+  discovered.
+- **Stage dots.** A level with several challenges shows one dot per challenge,
+  ticked off as they are cleared, so it visibly differs from a level that asks
+  for one thing.
+
+In the arcade there is no picking-up step, so both landing zones glow whenever
+an animal is waiting, and arrows sweep out from it towards them until the player
+has seated two animals themselves. Without that there is nothing on screen
+saying that tapping a side is the verb.
+
+The target for a tilt objective is **one** thing: a ghost of the plank where it
+should end up, with the star at the end of it. An earlier version drew the ghost
+and floated the star above the basket, which read as two separate goals and sent
+players aiming at the wrong one.
+
+## Design rules worth keeping
+
+- The mathematical state is authoritative. Perfect balance is
+  `leftWeight === rightWeight`, edge-triggered, never derived from the rendered
+  angle — visual smoothing can never move the moment the bell rings.
+- The presentation layer reads game state and never writes to it.
+- Animal weights exist only in the animal catalog, including the numeral each
+  animal wears.
+- Finishing a level is celebrated by the animals themselves — they hop, cheer,
+  and chirp in a wave while the plank bobs — not by a score screen. The bob is
+  added to the rendered angle only and never reaches the balance state.
+- Games never ask whether the player paid; the shell hands down a content
+  manifest.
 
 ## Telling the player what is being asked
 
@@ -305,15 +382,10 @@ a "beat your best" bar rather than a reward screen.
 
 ## Not built yet
 
-All ten levels exist. Still open, and deliberately so:
-
-- **Balloons and butterflies.** The source document lists them after wind; they
-  would be further entries in a level's event settings, not further plumbing.
-- **Unlocks, new animals, new environments.** Deferred by the source document,
-  and bundle-shell decisions once monetisation is settled.
 - **Real art and sound.** The prototype's are swappable through `SeesawTheme`
   and `SoundPack`; see above.
 - **The other nine games.** The shell has a tile each, marked "Soon".
-
-Also deliberately absent: real IAP wiring, accounts, analytics, and the other
-nine games.
+- **Timed or scored modes.** An arcade half was built and removed: it added
+  pressure rather than arithmetic, and a player could win it by dropping each
+  animal on the lighter side without reading a number. It is in the git history
+  if it is ever wanted.

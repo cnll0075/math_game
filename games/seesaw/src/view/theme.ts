@@ -42,10 +42,6 @@ export interface SeesawView {
   flagSide: Side | null;
   /** 0..1 celebration intensity, during a perfect balance or a finished level. */
   celebrate: number;
-  /** 0..1 how full the arcade danger meter is; 0 in puzzle levels. */
-  danger: number;
-  /** The weather, for levels that have any. */
-  wind: { phase: 'calm' | 'warning' | 'blowing'; side: Side; strength: number; through: number };
   /** Marker for a tilt objective, in the same units as plankAngle; null if unused. */
   targetAngle: number | null;
   /**
@@ -70,9 +66,5 @@ export interface SeesawTheme {
   drawFlag(ctx: CanvasRenderingContext2D, view: SeesawView): void;
   /** Celebration dressing over the whole scene; draws nothing when idle. */
   drawCelebration(ctx: CanvasRenderingContext2D, view: SeesawView): void;
-  /** Rising danger, shown over the whole scene; draws nothing when safe. */
-  drawDanger(ctx: CanvasRenderingContext2D, view: SeesawView): void;
-  /** Wind, both the warning and the gust itself; draws nothing in still air. */
-  drawWeather(ctx: CanvasRenderingContext2D, view: SeesawView): void;
   animals: AnimalArtist;
 }

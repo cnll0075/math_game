@@ -433,3 +433,30 @@ wins from every seed and rings at least half again as many bells as one who
 guesses. It does not assert that guessing always loses — a clock tight enough
 for that also fails careful players on unlucky seeds, and punishing a child for
 a bad shuffle is worse than letting a guesser scrape through.
+
+
+**The arcade half was removed, and the curriculum rebuilt** (2026-09-13). Played
+end to end, the arcade added pressure rather than arithmetic, and the game as a
+whole moved far too fast for a five-year-old: each puzzle level was a single
+puzzle, solved once and left behind.
+
+The game is now fifteen levels of one mechanic — put animals on the seesaw until
+it does what was asked — with the depth in the problems:
+
+- Every level is three to five **rounds** of the same idea with different
+  numbers. The `sequence` objective was deleted: a round can carry its own goal,
+  so one concept replaced two.
+- The **tray is the level design**. Level 9 gives a gap of one and no chicken,
+  so the only way through is adding to both sides — 3 − 2 = 1. Level 8 gives one
+  species, so the question becomes how many of them. Level 7's gaps are always
+  four, and no animal weighs four.
+- Two new level switches: `allowRemoval` makes lifting an animal off a legal
+  move, which is subtraction; `requireEmptyTray` makes the whole pile have to be
+  seated, which is sharing.
+- The smallest animal became a **chicken**, because touching an animal now plays
+  its cry and nobody knows what a rabbit sounds like.
+
+The solver searches removals as well as placements, so every round of every
+level is proved solvable, and each level's mathematical intent is asserted
+directly: that level 9's rounds cannot be solved from one side, that level 11's
+always need a removal, that level 13's piles halve.

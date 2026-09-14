@@ -1,289 +1,295 @@
 import { createGame } from './game.js';
-import { isPuzzle, type ArcadeLevelDef, type LevelDef, type PuzzleLevelDef } from './level.js';
+import { objectiveFor, roundAt, roundCount, type LevelDef } from './level.js';
 import type { Side } from './seesaw-state.js';
 
 /**
- * Levels 1-5, the puzzle half. Progression is Balance -> Compare -> Add ->
- * Target -> Plan: the arithmetic barely grows, the kind of thinking does.
+ * Fifteen levels, one mechanic: put animals on the seesaw until it does what
+ * was asked. The depth is in the problems, not in the verbs.
+ *
+ * Every level is several rounds of the same idea with different numbers,
+ * because a child who has met "3 and 2 make 5" once has not met it. The tray is
+ * the real level design: what is missing from it is what makes a round
+ * interesting.
  */
 export const LEVELS: readonly LevelDef[] = [
   {
     id: 'level-1',
-    mode: 'puzzle',
-    title: 'Balance',
+    title: 'Same',
     objective: { kind: 'balance' },
-    initial: { left: ['rabbit', 'rabbit', 'rabbit'], right: ['rabbit'] },
-    tray: ['rabbit', 'rabbit'],
-    hint: 'Make it level',
+    hint: 'Make both sides the same',
+    rounds: [
+      { initial: { left: ['chicken'], right: [] }, tray: ['chicken'] },
+      { initial: { left: ['cat'], right: [] }, tray: ['cat'] },
+      { initial: { left: ['dog'], right: [] }, tray: ['dog'] },
+    ],
   },
   {
     id: 'level-2',
-    mode: 'puzzle',
-    title: 'Same Weight',
+    title: 'Count Them',
     objective: { kind: 'balance' },
-    // Rabbits only in the tray: the child cannot match cat with cat, so the
-    // only way through is discovering that two rabbits weigh the same as one.
-    initial: { left: ['cat'], right: [] },
-    tray: ['rabbit', 'rabbit', 'rabbit'],
-    hint: 'Make it level',
+    hint: 'Count what is there',
+    rounds: [
+      { initial: { left: ['chicken', 'chicken'], right: [] }, tray: ['chicken', 'chicken'] },
+      { initial: { left: ['chicken', 'chicken', 'chicken'], right: [] }, tray: ['chicken', 'chicken', 'chicken'] },
+      { initial: { left: ['chicken', 'chicken'], right: ['chicken'] }, tray: ['chicken', 'chicken'] },
+      {
+        initial: { left: ['chicken', 'chicken', 'chicken'], right: ['chicken'] },
+        tray: ['chicken', 'chicken', 'chicken'],
+      },
+    ],
   },
   {
     id: 'level-3',
-    mode: 'puzzle',
-    title: 'Go Down',
-    objective: { kind: 'sideDown', side: 'right' },
-    initial: { left: ['dog'], right: ['rabbit'] },
-    tray: ['cat', 'rabbit', 'dog'],
-    hint: 'Make the right side go down',
+    title: 'Two Little Ones',
+    objective: { kind: 'balance' },
+    hint: 'Two chickens weigh the same as one cat',
+    rounds: [
+      // Only chickens in the tray, so the cat has to be made out of them.
+      { initial: { left: ['cat'], right: [] }, tray: ['chicken', 'chicken', 'chicken'] },
+      { initial: { left: ['cat'], right: ['chicken'] }, tray: ['chicken', 'chicken'] },
+      { initial: { left: ['cat', 'cat'], right: [] }, tray: ['chicken', 'chicken', 'chicken', 'chicken'] },
+    ],
   },
   {
     id: 'level-4',
-    mode: 'puzzle',
-    title: 'Reach the Star',
-    // The star sits one unit below level on the right, so the player must add
-    // exactly four more units to the right than to the left: dog+rabbit,
-    // cat+cat, or cat+rabbit+rabbit all work.
-    objective: { kind: 'tilt', target: -1 },
-    initial: { left: ['bear'], right: ['cat'] },
-    tray: ['dog', 'cat', 'rabbit', 'rabbit', 'cat'],
-    hint: 'Reach the star',
+    title: 'The Dog',
+    objective: { kind: 'balance' },
+    hint: 'Three is a dog, or a cat and a chicken',
+    rounds: [
+      { initial: { left: ['dog'], right: [] }, tray: ['chicken', 'chicken', 'chicken'] },
+      { initial: { left: ['dog'], right: [] }, tray: ['cat', 'chicken', 'chicken'] },
+      { initial: { left: ['dog'], right: ['chicken'] }, tray: ['cat', 'chicken'] },
+      { initial: { left: ['dog', 'chicken'], right: [] }, tray: ['cat', 'cat', 'chicken'] },
+    ],
   },
   {
     id: 'level-5',
-    mode: 'puzzle',
-    title: 'Three Challenges',
-    objective: {
-      kind: 'sequence',
-      challenges: [{ kind: 'balance' }, { kind: 'sideDown', side: 'right' }, { kind: 'tilt', target: -2 }],
-    },
-    initial: { left: ['cat'], right: ['rabbit'] },
-    tray: ['rabbit', 'rabbit', 'dog', 'cat', 'rabbit', 'bear'],
-    hint: 'Three challenges in a row',
+    title: 'Make Three',
+    objective: { kind: 'balance' },
+    hint: 'How much more is needed?',
+    rounds: [
+      { initial: { left: ['dog'], right: ['cat'] }, tray: ['chicken', 'cat'] },
+      { initial: { left: ['dog'], right: ['chicken'] }, tray: ['cat', 'chicken'] },
+      { initial: { left: ['cat', 'chicken'], right: ['chicken'] }, tray: ['cat', 'chicken'] },
+      { initial: { left: ['dog'], right: ['chicken', 'chicken'] }, tray: ['chicken', 'cat'] },
+    ],
   },
-
-  // Levels 6-8: the arcade half. Animals arrive on their own and wander off on
-  // their own, so the seesaw drifts whether or not the player acts. Difficulty
-  // comes from pace and from how little room the danger meter allows, not from
-  // harder sums.
-  // Levels 6-10: Balance Rush. A gap is on the plank; the player picks the
-  // animal from the queue that closes it exactly. Ringing the bell is the
-  // point, not merely a bonus: it scores, clears the plank, and sets a fresh
-  // gap. Comparison alone will not get you there.
   {
     id: 'level-6',
-    mode: 'arcade',
-    title: 'Ring the Bell',
-    objective: { kind: 'bells', count: 4, seconds: 60 },
-    initial: { left: ['cat'], right: [] },
-    arcade: {
-      seed: 1206,
-      pool: ['rabbit', 'cat', 'dog'],
-      arrivalSeconds: 2.6,
-      queueLength: 3,
-      staySeconds: [30, 40],
-      patienceSeconds: 6,
-      dangerFillSeconds: 6,
-      dangerDrainSeconds: 1.5,
-      maxHeavyRun: 1,
-      seedGap: [1, 3],
-      celebrateSeconds: 1.1,
-    },
-    hint: 'Make both sides the same',
+    title: 'Make Five',
+    objective: { kind: 'balance' },
+    hint: 'Bigger numbers now',
+    rounds: [
+      { initial: { left: ['bear'], right: ['dog'] }, tray: ['cat', 'chicken'] },
+      { initial: { left: ['bear'], right: ['cat'] }, tray: ['dog', 'chicken'] },
+      { initial: { left: ['bear'], right: ['cat', 'chicken'] }, tray: ['cat', 'chicken'] },
+      { initial: { left: ['bear'], right: [] }, tray: ['dog', 'cat', 'chicken'] },
+    ],
   },
   {
     id: 'level-7',
-    mode: 'arcade',
-    title: 'Faster',
-    objective: { kind: 'bells', count: 5, seconds: 44 },
-    initial: { left: ['dog'], right: [] },
-    // Room for the gaps this level seeds: a gap of seven should read as
-    // tilted rather than doomed, and the generator's fairness rule keys off
-    // these same numbers, so widening them is what keeps the queue varied
-    // enough for the choice of animal to matter.
-    balance: { green: 1, yellow: 8, maxTiltDifference: 10 },
-    arcade: {
-      seed: 1207,
-      pool: ['rabbit', 'cat', 'dog', 'bear'],
-      // Faster than a child can place, so a hand of animals builds up and
-      // choosing between them is a real decision.
-      arrivalSeconds: 1.3,
-      queueLength: 3,
-      staySeconds: [26, 34],
-      patienceSeconds: 4.5,
-      dangerFillSeconds: 5,
-      dangerDrainSeconds: 1.5,
-      maxHeavyRun: 2,
-      // Gaps wider than any single animal, so closing one means combining:
-      // 7 is 5 and 2, or 3 and 3 and 1. Reaching for the nearest animal is no
-      // longer enough.
-      seedGap: [4, 7],
-      celebrateSeconds: 1,
-    },
-    hint: 'Bigger gaps to close',
+    title: 'No Four',
+    objective: { kind: 'balance' },
+    // There is no animal that weighs four, so four has to be built.
+    hint: 'Nothing weighs four',
+    rounds: [
+      // Every gap here is four, and nothing in the tray weighs four.
+      { initial: { left: ['dog', 'chicken'], right: [] }, tray: ['dog', 'chicken', 'cat'] },
+      { initial: { left: ['cat', 'cat'], right: [] }, tray: ['cat', 'cat', 'dog'] },
+      { initial: { left: ['bear', 'dog'], right: ['dog', 'chicken'] }, tray: ['cat', 'cat', 'dog', 'chicken'] },
+      { initial: { left: ['dog', 'cat'], right: ['chicken'] }, tray: ['dog', 'cat', 'chicken'] },
+    ],
   },
   {
     id: 'level-8',
-    mode: 'arcade',
-    title: 'Families',
-    // Families take longer to seat, so the clock allows for them.
-    objective: { kind: 'bells', count: 5, seconds: 48 },
-    initial: { left: ['bear'], right: [] },
-    // Room for the gaps this level seeds: a gap of seven should read as
-    // tilted rather than doomed, and the generator's fairness rule keys off
-    // these same numbers, so widening them is what keeps the queue varied
-    // enough for the choice of animal to matter.
-    balance: { green: 1, yellow: 8, maxTiltDifference: 10 },
-    arcade: {
-      seed: 1208,
-      pool: ['rabbit', 'cat', 'dog', 'bear'],
-      // Faster than a child can place, so a hand of animals builds up and
-      // choosing between them is a real decision.
-      arrivalSeconds: 1.3,
-      queueLength: 5,
-      staySeconds: [26, 34],
-      patienceSeconds: 4.5,
-      dangerFillSeconds: 4.5,
-      dangerDrainSeconds: 1.5,
-      maxHeavyRun: 2,
-      seedGap: [4, 8],
-      celebrateSeconds: 1,
-      // Families arrive together and all must be seated, so they have to be
-      // split between the sides: 3 on one, 1 and 2 on the other.
-      groupSize: [2, 3],
-      groupChance: 0.55,
-    },
-    hint: 'Everyone in a family must sit down',
+    title: 'All the Same',
+    objective: { kind: 'balance' },
+    // One species in the tray, so the answer is "how many of these?" — counting
+    // in twos and threes, which is where multiplying starts.
+    hint: 'How many of them?',
+    rounds: [
+      { initial: { left: ['dog', 'dog'], right: [] }, tray: ['cat', 'cat', 'cat', 'cat'] },
+      { initial: { left: ['bear', 'dog'], right: [] }, tray: ['cat', 'cat', 'cat', 'cat', 'cat'] },
+      { initial: { left: ['dog', 'dog', 'dog'], right: [] }, tray: ['dog', 'dog', 'dog', 'dog'] },
+      { initial: { left: ['bear', 'bear'], right: [] }, tray: ['cat', 'cat', 'cat', 'cat', 'cat', 'cat'] },
+    ],
   },
   {
     id: 'level-9',
-    mode: 'arcade',
-    title: 'Windy Day',
-    objective: { kind: 'bells', count: 5, seconds: 46 },
-    initial: { left: ['dog'], right: [] },
-    // Room for the gaps this level seeds: a gap of seven should read as
-    // tilted rather than doomed, and the generator's fairness rule keys off
-    // these same numbers, so widening them is what keeps the queue varied
-    // enough for the choice of animal to matter.
-    balance: { green: 1, yellow: 8, maxTiltDifference: 10 },
-    arcade: {
-      seed: 1209,
-      pool: ['rabbit', 'cat', 'dog', 'bear'],
-      // Faster than a child can place, so a hand of animals builds up and
-      // choosing between them is a real decision.
-      arrivalSeconds: 1.4,
-      queueLength: 4,
-      staySeconds: [26, 34],
-      patienceSeconds: 4.5,
-      dangerFillSeconds: 4.5,
-      dangerDrainSeconds: 1.6,
-      maxHeavyRun: 2,
-      seedGap: [4, 7],
-      celebrateSeconds: 1,
-      groupSize: [2, 2],
-      groupChance: 0.3,
-      // One event type only, as the design document insists.
-      wind: {
-        calmSeconds: [7, 10],
-        warningSeconds: 1.6,
-        gustSeconds: [3, 5],
-        strength: [1, 2],
-      },
-    },
-    hint: 'The wind leans on the plank too',
+    title: 'No Little Ones',
+    objective: { kind: 'balance' },
+    // The gap is one, and there is no chicken to close it with. The way through
+    // is to add to BOTH sides: a dog here, a cat there, and the difference is
+    // one. This is the level the whole game was built to arrive at.
+    hint: 'You can add to both sides',
+    rounds: [
+      { initial: { left: ['dog'], right: ['cat'] }, tray: ['cat', 'dog'] },
+      { initial: { left: ['cat'], right: ['chicken'] }, tray: ['cat', 'dog'] },
+      { initial: { left: ['bear'], right: ['dog', 'chicken'] }, tray: ['cat', 'dog'] },
+      { initial: { left: ['dog', 'dog'], right: ['bear'] }, tray: ['cat', 'dog'] },
+    ],
   },
   {
     id: 'level-10',
-    mode: 'arcade',
+    title: 'Make Ten',
+    objective: { kind: 'balance' },
+    hint: 'The biggest sums yet',
+    rounds: [
+      { initial: { left: ['bear', 'dog'], right: ['bear'] }, tray: ['dog', 'cat', 'chicken'] },
+      { initial: { left: ['bear', 'bear'], right: ['bear', 'cat'] }, tray: ['dog', 'cat', 'chicken'] },
+      { initial: { left: ['bear', 'dog', 'cat'], right: ['bear', 'dog'] }, tray: ['cat', 'chicken', 'chicken'] },
+      { initial: { left: ['bear', 'bear'], right: ['dog', 'dog'] }, tray: ['cat', 'cat', 'chicken', 'dog'] },
+    ],
+  },
+  {
+    id: 'level-11',
+    title: 'Take One Off',
+    objective: { kind: 'balance' },
+    // Lifting an animal off is subtraction, and here it is the only way through:
+    // the tray cannot close these gaps.
+    allowRemoval: true,
+    hint: 'You can take animals off too',
+    rounds: [
+      { initial: { left: ['bear', 'cat'], right: ['bear'] }, tray: [] },
+      { initial: { left: ['dog', 'dog'], right: ['dog'] }, tray: [] },
+      { initial: { left: ['bear', 'dog', 'chicken'], right: ['bear', 'dog'] }, tray: [] },
+      { initial: { left: ['bear', 'cat', 'cat'], right: ['bear', 'cat'] }, tray: ['chicken'] },
+    ],
+  },
+  {
+    id: 'level-12',
+    title: 'Two Ways',
+    objective: { kind: 'balance' },
+    // Every round here has more than one right answer, and the game accepts all
+    // of them.
+    hint: 'There is more than one way',
+    rounds: [
+      { initial: { left: ['bear', 'chicken'], right: [] }, tray: ['dog', 'dog', 'cat', 'cat', 'chicken'] },
+      { initial: { left: ['bear', 'cat'], right: [] }, tray: ['dog', 'dog', 'cat', 'cat', 'chicken', 'chicken'] },
+      { initial: { left: ['bear', 'dog'], right: [] }, tray: ['bear', 'dog', 'cat', 'cat', 'chicken', 'chicken'] },
+    ],
+  },
+  {
+    id: 'level-13',
+    title: 'Fair Shares',
+    objective: { kind: 'balance' },
+    requireEmptyTray: true,
+    // Everything in the tray has to go on, split evenly: sharing a pile in two,
+    // which is where dividing starts.
+    hint: 'Give both sides the same',
+    rounds: [
+      { initial: { left: [], right: [] }, tray: ['cat', 'cat', 'chicken', 'chicken'] },
+      { initial: { left: [], right: [] }, tray: ['dog', 'dog', 'cat', 'cat'] },
+      { initial: { left: [], right: [] }, tray: ['bear', 'dog', 'cat', 'chicken', 'dog'] },
+      { initial: { left: [], right: [] }, tray: ['bear', 'bear', 'dog', 'cat', 'chicken'] },
+    ],
+  },
+  {
+    id: 'level-14',
+    title: 'Big Ones, Small Ones',
+    objective: { kind: 'balance' },
+    // The same bear, answered three different ways across the rounds.
+    hint: 'One bear, lots of ways',
+    rounds: [
+      { initial: { left: ['bear'], right: [] }, tray: ['dog', 'cat', 'chicken'] },
+      { initial: { left: ['bear'], right: [] }, tray: ['cat', 'cat', 'chicken', 'chicken'] },
+      { initial: { left: ['bear'], right: [] }, tray: ['chicken', 'chicken', 'chicken', 'chicken', 'chicken'] },
+      { initial: { left: ['bear', 'bear'], right: [] }, tray: ['dog', 'dog', 'cat', 'cat', 'chicken', 'chicken'] },
+    ],
+  },
+  {
+    id: 'level-15',
     title: 'Animal Park',
-    objective: { kind: 'endless' },
-    initial: { left: ['cat'], right: [] },
-    // Room for the gaps this level seeds: a gap of seven should read as
-    // tilted rather than doomed, and the generator's fairness rule keys off
-    // these same numbers, so widening them is what keeps the queue varied
-    // enough for the choice of animal to matter.
-    balance: { green: 1, yellow: 8, maxTiltDifference: 10 },
-    arcade: {
-      seed: 1210,
-      pool: ['rabbit', 'cat', 'dog', 'bear'],
-      // Faster than a child can place, so a hand of animals builds up and
-      // choosing between them is a real decision.
-      arrivalSeconds: 1.6,
-      queueLength: 5,
-      staySeconds: [26, 34],
-      patienceSeconds: 4.5,
-      dangerFillSeconds: 4.5,
-      dangerDrainSeconds: 1.6,
-      maxHeavyRun: 2,
-      seedGap: [4, 8],
-      celebrateSeconds: 0.9,
-      groupSize: [2, 3],
-      groupChance: 0.4,
-      wind: {
-        calmSeconds: [8, 12],
-        warningSeconds: 1.6,
-        gustSeconds: [3, 5],
-        strength: [1, 2],
-      },
-      ramp: { arrivalFloorSeconds: 1, overSeconds: 150 },
-    },
-    hint: 'How many bells can you ring?',
+    objective: { kind: 'balance' },
+    allowRemoval: true,
+    hint: 'Everything you know',
+    rounds: [
+      // One of each idea, hardest first met last.
+      { initial: { left: ['bear', 'dog'], right: [] }, tray: ['cat', 'cat', 'cat', 'cat'] },
+      { initial: { left: ['bear'], right: ['dog', 'chicken'] }, tray: ['cat', 'dog'] },
+      { initial: { left: ['bear', 'dog', 'cat'], right: ['bear', 'dog'] }, tray: [] },
+      { initial: { left: [], right: [] }, tray: ['bear', 'dog', 'cat', 'chicken', 'dog', 'chicken'] },
+      { initial: { left: ['bear', 'bear'], right: ['dog'] }, tray: ['dog', 'dog', 'cat', 'chicken', 'chicken'] },
+    ],
   },
 ];
 
-export const PUZZLE_LEVELS: readonly PuzzleLevelDef[] = LEVELS.filter(isPuzzle);
-export const ARCADE_LEVELS: readonly ArcadeLevelDef[] = LEVELS.filter(
-  (level): level is ArcadeLevelDef => level.mode === 'arcade',
-);
-
 export const getLevel = (id: string): LevelDef | undefined => LEVELS.find((level) => level.id === id);
 
-export interface SolutionMove {
-  trayIndex: number;
-  side: Side;
-}
+export type SolutionMove =
+  | { kind: 'place'; trayIndex: number; side: Side }
+  | { kind: 'remove'; uid: string };
 
 export type TraySelection = readonly SolutionMove[];
 
 const SIDES: readonly Side[] = ['left', 'right'];
 
+/** The level as it would be if it were only this one round. */
+const singleRound = (level: LevelDef, round: number): LevelDef => ({
+  ...level,
+  rounds: [roundAt(level, round)],
+});
+
+const apply = (game: ReturnType<typeof createGame>, move: SolutionMove): void => {
+  if (move.kind === 'place') game.place(move.trayIndex, move.side);
+  else game.takeBack(move.uid);
+};
+
 /**
- * Every way to win a level, found by replaying real games rather than by
+ * Every way to clear one round, found by replaying real games rather than by
  * reasoning about weights: breadth-first over the moves the player could make,
- * so a level that the reducer would refuse to clear is reported as unsolvable.
- * Trays stay small, so the search stays cheap.
+ * so a round the reducer would refuse to clear is reported as unsolvable. It
+ * searches removals too, since on some levels taking an animal off is the only
+ * way through. Rounds stay small, so the search stays cheap.
  */
-export function solutionsFor(level: PuzzleLevelDef): TraySelection[] {
+export function solutionsFor(level: LevelDef, round = 0): TraySelection[] {
+  const only = singleRound(level, round);
   const solutions: TraySelection[] = [];
   const seen = new Set<string>();
   const queue: TraySelection[] = [[]];
 
   const replay = (moves: TraySelection) => {
-    const game = createGame(level);
-    for (const move of moves) game.place(move.trayIndex, move.side);
+    const game = createGame(only);
+    for (const move of moves) apply(game, move);
     return game;
   };
 
-  while (queue.length > 0) {
+  while (queue.length > 0 && solutions.length < 64) {
     const moves = queue.shift()!;
     const game = replay(moves);
     if (game.state.status === 'won') {
       solutions.push(moves);
-      continue; // A won level takes no further moves.
+      continue;
     }
+    if (moves.length >= 6) continue;
 
+    const next: SolutionMove[] = [];
     for (const [index, item] of game.state.tray.entries()) {
       if (item.used) continue;
-      for (const side of SIDES) {
-        const next = [...moves, { trayIndex: index, side }];
-        // Order of placement never changes the outcome, so canonicalise on the
-        // set of (index, side) pairs to keep the search from exploding.
-        const key = JSON.stringify([...next].sort((a, b) => a.trayIndex - b.trayIndex));
-        if (seen.has(key)) continue;
-        seen.add(key);
-        queue.push(next);
-      }
+      for (const side of SIDES) next.push({ kind: 'place', trayIndex: index, side });
+    }
+    if (level.allowRemoval) {
+      for (const animal of game.state.placed) next.push({ kind: 'remove', uid: animal.uid });
+    }
+
+    for (const move of next) {
+      const line = [...moves, move];
+      const key = JSON.stringify([...line].sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b))));
+      if (seen.has(key)) continue;
+      seen.add(key);
+      queue.push(line);
     }
   }
 
   return solutions;
+}
+
+/** Rounds that no sequence of placements can clear, if any. */
+export function unsolvableRounds(level: LevelDef): number[] {
+  const broken: number[] = [];
+  for (let round = 0; round < roundCount(level); round++) {
+    if (objectiveFor(level, round).kind !== 'balance') continue;
+    if (solutionsFor(level, round).length === 0) broken.push(round);
+  }
+  return broken;
 }

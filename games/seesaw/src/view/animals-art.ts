@@ -63,22 +63,42 @@ const drawMouth = (ctx: CanvasRenderingContext2D, y: number, expression: Express
   ctx.stroke();
 };
 
-const drawRabbit = (ctx: CanvasRenderingContext2D, pose: AnimalPose): void => {
-  const { body, accent, belly } = ANIMALS.rabbit.palette;
-  // Ears first so the head overlaps their base.
-  for (const side of [-1, 1]) {
+const drawChicken = (ctx: CanvasRenderingContext2D, pose: AnimalPose): void => {
+  const { body, accent, belly } = ANIMALS.chicken.palette;
+
+  // Tail feathers, fanned out behind.
+  ctx.save();
+  ctx.translate(-16, -4);
+  ctx.rotate(-0.3 + pose.wobble * 0.2);
+  for (const lean of [-0.35, 0, 0.35]) {
     ctx.save();
-    ctx.translate(side * 7, -30);
-    ctx.rotate(side * (0.16 + pose.wobble * 0.12));
-    ellipse(ctx, 0, 0, 6, 22, body);
-    ellipse(ctx, 0, 2, 3, 15, accent);
+    ctx.rotate(lean);
+    ellipse(ctx, -8, -8, 5, 15, body);
     ctx.restore();
   }
-  ellipse(ctx, 0, 2, 20, 19, body);
-  ellipse(ctx, 0, 8, 12, 11, belly);
-  ellipse(ctx, 22, 8, 7, 7, body);
-  drawEyes(ctx, 7, -2, pose.expression);
-  drawMouth(ctx, 10, pose.expression);
+  ctx.restore();
+
+  // Comb: three little peaks, the giveaway silhouette.
+  for (const offset of [-7, 0, 7]) {
+    ellipse(ctx, offset * 0.7, -26 + Math.abs(offset) * 0.25, 5, 7, accent);
+  }
+
+  ellipse(ctx, 0, 0, 19, 20, body);
+  ellipse(ctx, 0, 7, 12, 12, belly);
+
+  // Beak, pointing the way the chicken faces.
+  ctx.beginPath();
+  ctx.moveTo(17, 0);
+  ctx.lineTo(29, 4);
+  ctx.lineTo(17, 8);
+  ctx.closePath();
+  ctx.fillStyle = '#f2b33d';
+  ctx.fill();
+
+  // Wattle, under the beak.
+  ellipse(ctx, 15, 11, 4, 6, accent);
+
+  drawEyes(ctx, 7, -4, pose.expression);
 };
 
 const drawCat = (ctx: CanvasRenderingContext2D, pose: AnimalPose): void => {
@@ -159,7 +179,7 @@ const drawBear = (ctx: CanvasRenderingContext2D, pose: AnimalPose): void => {
 };
 
 const PAINTERS: Record<AnimalId, (ctx: CanvasRenderingContext2D, pose: AnimalPose) => void> = {
-  rabbit: drawRabbit,
+  chicken: drawChicken,
   cat: drawCat,
   dog: drawDog,
   bear: drawBear,
@@ -170,7 +190,7 @@ const PAINTERS: Record<AnimalId, (ctx: CanvasRenderingContext2D, pose: AnimalPos
  * silhouette edge.
  */
 const BADGE_POS: Record<AnimalId, { x: number; y: number }> = {
-  rabbit: { x: 15, y: 15 },
+  chicken: { x: 14, y: 16 },
   cat: { x: 18, y: 16 },
   dog: { x: 23, y: 15 },
   bear: { x: 29, y: 20 },
@@ -208,7 +228,7 @@ const drawWeightBadge = (ctx: CanvasRenderingContext2D, species: AnimalId): void
  * animals stand on the plank instead of sinking halfway through it.
  */
 const FOOT_OFFSET: Record<AnimalId, number> = {
-  rabbit: 21,
+  chicken: 21,
   cat: 24,
   dog: 25,
   bear: 33,

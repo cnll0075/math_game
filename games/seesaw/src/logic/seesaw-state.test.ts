@@ -4,7 +4,7 @@ import type { AnimalId } from './animals.js';
 import type { PlacedAnimal, Side } from './seesaw-state.js';
 
 const place = (side: Side, ...species: AnimalId[]): PlacedAnimal[] =>
-  species.map((animal, index) => ({ uid: `${side}-${animal}-${index}`, species: animal, side }));
+  species.map((animal, index) => ({ uid: `${side}-${animal}-${index}`, source: 'test', species: animal, side }));
 
 describe('describeSeesaw', () => {
   it('sums each side', () => {

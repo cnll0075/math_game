@@ -20,6 +20,14 @@ export interface AnimalPose {
    * from it; the prototype hops and spins procedurally.
    */
   dance: number;
+  /**
+   * 0..1 through this animal's arrival: 0 the moment it sets off, 1 once it has
+   * landed. Each species travels in its own way — a chicken flaps, a cat runs,
+   * a bear lumbers.
+   */
+  arriving: number;
+  /** Seconds since the scene began, for idle movement that never stops. */
+  clock: number;
   expression: Expression;
 }
 

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { DESIGN, fitToScreen, slotPositions, visibleBounds } from './layout.js';
 import { SCENE, platformAnchor } from './geometry.js';
-import { ROUND_DOTS_Y } from './hud.js';
+import { ROUND_DOTS_Y, traySlots } from './hud.js';
 
 describe('fitToScreen', () => {
   it('scales to fit a wide screen and letterboxes the sides', () => {
@@ -193,5 +193,33 @@ describe('the top of the screen does not stack on itself', () => {
   it('keeps the round markers clear of the gauge above them', () => {
     const gaugeBottom = SCENE.gaugeY + 22;
     expect(ROUND_DOTS_Y - 14).toBeGreaterThan(gaugeBottom);
+  });
+});
+
+describe('the tray gives groups room', () => {
+  it('keeps group pens from overlapping', () => {
+    const tray = [
+      { uid: 'a', species: 'cat' as const, count: 2, used: false },
+      { uid: 'b', species: 'cat' as const, count: 3, used: false },
+      { uid: 'c', species: 'cat' as const, count: 4, used: false },
+    ];
+    const slots = traySlots(tray);
+    for (let index = 1; index < slots.length; index++) {
+      const gap = slots[index]!.x - slots[index - 1]!.x;
+      expect(gap).toBeGreaterThan(slots[index]!.radius + slots[index - 1]!.radius);
+    }
+  });
+
+  it('keeps the whole tray on screen', () => {
+    const tray = Array.from({ length: 3 }, (_, index) => ({
+      uid: `t${index}`,
+      species: 'cat' as const,
+      count: 4,
+      used: false,
+    }));
+    for (const slot of traySlots(tray)) {
+      expect(slot.x - slot.radius).toBeGreaterThan(0);
+      expect(slot.x + slot.radius).toBeLessThan(DESIGN.width);
+    }
   });
 });

@@ -74,23 +74,23 @@ describe('seesaw game module', () => {
 
   it('opens the first level by default and the requested one when asked', async () => {
     const first = await mountGame();
-    expect(first.session.__test.level()).toBe('level-1');
+    expect(first.session.__test.level()).toBe('l1');
     first.session.unmount();
 
-    const requested = await mountGame({ startLevel: 'level-3' });
-    expect(requested.session.__test.level()).toBe('level-3');
+    const requested = await mountGame({ startLevel: 'l3' });
+    expect(requested.session.__test.level()).toBe('l3');
     requested.session.unmount();
   });
 
   it('opens the first unlocked level when earlier ones are locked', async () => {
-    const { session } = await mountGame({ unlocked: ['seesaw:level-3'] });
-    expect(session.__test.level()).toBe('level-3');
+    const { session } = await mountGame({ unlocked: ['seesaw:l3'] });
+    expect(session.__test.level()).toBe('l3');
     session.unmount();
   });
 
   it('rings the bell only after the plank settles', async () => {
     const played = spyOnSounds();
-    const { session } = await mountGame({ startLevel: 'level-2' });
+    const { session } = await mountGame({ startLevel: 'l3' });
     session.__test.place(0, 'right');
     session.__test.place(1, 'right');
     session.__test.step(1);
@@ -103,8 +103,11 @@ describe('seesaw game module', () => {
 
   it('warns when the seesaw enters the red zone', async () => {
     const played = spyOnSounds();
-    const { session } = await mountGame({ startLevel: 'level-4' });
+    // This one starts level, so piling one side up is a real transition into
+    // trouble rather than a state it began in.
+    const { session } = await mountGame({ startLevel: 'l26' });
     session.__test.place(0, 'left');
+    session.__test.place(1, 'left');
     expect(session.__test.zone()).toBe('red');
     expect(played).toContain('danger');
     expect(session.__test.flagRaised()).toBe(true);

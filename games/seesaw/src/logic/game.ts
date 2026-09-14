@@ -1,19 +1,19 @@
 import type { AnimalId } from './animals.js';
-import { balanceConfigFor, objectiveFor, roundAt, roundCount, type LevelDef } from './level.js';
+import { balanceConfigFor, specCount, specOf, type LevelDef } from './level.js';
 import { isSatisfied } from './objectives.js';
 import { describeSeesaw, type PlacedAnimal, type SeesawSnapshot, type Side, type Zone } from './seesaw-state.js';
 
 export interface TrayItem {
   uid: string;
   species: AnimalId;
+  /** How many animals this is: one, or a ready-made group of them. */
+  count: number;
   used: boolean;
 }
 
 export interface GameState {
   placed: readonly PlacedAnimal[];
   tray: readonly TrayItem[];
-  /** Which round of the level is being played. */
-  round: number;
   status: 'playing' | 'won';
 }
 
@@ -22,7 +22,6 @@ export type GameEvent =
   | { type: 'takenBack'; animal: PlacedAnimal }
   | { type: 'perfectBalance' }
   | { type: 'zoneChanged'; from: Zone; to: Zone }
-  | { type: 'roundCleared'; round: number }
   | { type: 'levelCleared' }
   | { type: 'reset' };
 
@@ -38,16 +37,30 @@ export interface Game {
 /** Animals a round starts with. Whether they can be lifted is a level's choice. */
 const INITIAL_PREFIX = 'init-';
 
-const buildInitial = (level: LevelDef, round: number): PlacedAnimal[] => {
-  const { initial } = roundAt(level, round);
-  return [
-    ...initial.left.map((species, index) => ({ uid: `${INITIAL_PREFIX}left-${index}`, species, side: 'left' as const })),
-    ...initial.right.map((species, index) => ({ uid: `${INITIAL_PREFIX}right-${index}`, species, side: 'right' as const })),
-  ];
-};
+const buildInitial = (level: LevelDef): PlacedAnimal[] => [
+  // Each is its own source: a group goes back as a group, but the animals a
+  // level starts with are individuals, and lifting one must not take the rest.
+  ...level.initial.left.map((species, index) => ({
+    uid: `${INITIAL_PREFIX}left-${index}`,
+    source: `${INITIAL_PREFIX}left-${index}`,
+    species,
+    side: 'left' as const,
+  })),
+  ...level.initial.right.map((species, index) => ({
+    uid: `${INITIAL_PREFIX}right-${index}`,
+    source: `${INITIAL_PREFIX}right-${index}`,
+    species,
+    side: 'right' as const,
+  })),
+];
 
-const buildTray = (level: LevelDef, round: number): TrayItem[] =>
-  roundAt(level, round).tray.map((species, index) => ({ uid: `tray-${index}`, species, used: false }));
+const buildTray = (level: LevelDef): TrayItem[] =>
+  level.tray.map((spec, index) => ({
+    uid: `tray-${index}`,
+    species: specOf(spec),
+    count: specCount(spec),
+    used: false,
+  }));
 
 /**
  * The rules. Pure: no DOM, no timers, no audio. Everything the presentation
@@ -57,23 +70,14 @@ const buildTray = (level: LevelDef, round: number): TrayItem[] =>
  */
 export function createGame(level: LevelDef): Game {
   const config = balanceConfigFor(level);
-  const rounds = roundCount(level);
 
-  let round = 0;
-  let placed: PlacedAnimal[] = buildInitial(level, round);
-  let tray: TrayItem[] = buildTray(level, round);
+  let placed: PlacedAnimal[] = buildInitial(level);
+  let tray: TrayItem[] = buildTray(level);
   let status: GameState['status'] = 'playing';
 
   let previousSnapshot = describeSeesaw(placed, config);
 
   const snapshot = (): SeesawSnapshot => describeSeesaw(placed, config);
-
-  const startRound = (index: number): void => {
-    round = index;
-    placed = buildInitial(level, index);
-    tray = buildTray(level, index);
-    previousSnapshot = snapshot();
-  };
 
   /** Compares the new state against the previous one and reports what changed. */
   const settle = (): GameEvent[] => {
@@ -89,14 +93,9 @@ export function createGame(level: LevelDef): Game {
     previousSnapshot = next;
 
     const trayEmptied = !level.requireEmptyTray || tray.every((item) => item.used);
-    if (status === 'playing' && trayEmptied && isSatisfied(objectiveFor(level, round), next)) {
-      events.push({ type: 'roundCleared', round });
-      if (round + 1 >= rounds) {
-        status = 'won';
-        events.push({ type: 'levelCleared' });
-      } else {
-        startRound(round + 1);
-      }
+    if (status === 'playing' && trayEmptied && isSatisfied(level.objective, next)) {
+      status = 'won';
+      events.push({ type: 'levelCleared' });
     }
 
     return events;
@@ -104,7 +103,7 @@ export function createGame(level: LevelDef): Game {
 
   return {
     get state() {
-      return { placed, tray, round, status };
+      return { placed, tray, status };
     },
     level,
     snapshot,
@@ -115,29 +114,39 @@ export function createGame(level: LevelDef): Game {
       if (!item || item.used) return [];
 
       tray = tray.map((entry, index) => (index === trayIndex ? { ...entry, used: true } : entry));
-      const animal: PlacedAnimal = { uid: item.uid, species: item.species, side };
-      placed = [...placed, animal];
+      // A group lands as its members, so they can be counted where they sit.
+      const arrivals: PlacedAnimal[] = Array.from({ length: item.count }, (_, member) => ({
+        uid: `${item.uid}#${member}`,
+        source: item.uid,
+        species: item.species,
+        side,
+      }));
+      placed = [...placed, ...arrivals];
 
-      return [{ type: 'placed', animal }, ...settle()];
+      return [...arrivals.map((animal) => ({ type: 'placed' as const, animal })), ...settle()];
     },
 
     takeBack(uid) {
       if (status === 'won') return [];
-      // Lifting an animal the round started with is subtraction, and only the
-      // levels built around it allow it.
-      if (uid.startsWith(INITIAL_PREFIX) && !level.allowRemoval) return [];
       const animal = placed.find((entry) => entry.uid === uid);
       if (!animal) return [];
+      // Lifting an animal the level started with is subtraction, and only the
+      // levels built around it allow it.
+      if (animal.uid.startsWith(INITIAL_PREFIX) && !level.allowRemoval) return [];
 
-      placed = placed.filter((entry) => entry.uid !== uid);
-      tray = tray.map((entry) => (entry.uid === uid ? { ...entry, used: false } : entry));
+      // A group goes back as a group: it was picked up as one thing.
+      const leaving = placed.filter((entry) => entry.source === animal.source);
+      placed = placed.filter((entry) => entry.source !== animal.source);
+      tray = tray.map((entry) => (entry.uid === animal.source ? { ...entry, used: false } : entry));
 
-      return [{ type: 'takenBack', animal }, ...settle()];
+      return [...leaving.map((entry) => ({ type: 'takenBack' as const, animal: entry })), ...settle()];
     },
 
     reset() {
-      startRound(0);
+      placed = buildInitial(level);
+      tray = buildTray(level);
       status = 'playing';
+      previousSnapshot = snapshot();
       return [{ type: 'reset' }];
     },
   };

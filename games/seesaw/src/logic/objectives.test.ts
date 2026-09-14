@@ -5,8 +5,8 @@ import { describeSeesaw, type PlacedAnimal } from './seesaw-state.js';
 /** Builds a snapshot with `left` and `right` rabbits, so weight equals count. */
 const snap = (left: number, right: number) => {
   const placed: PlacedAnimal[] = [
-    ...Array.from({ length: left }, (_, i) => ({ uid: `l${i}`, species: 'chicken' as const, side: 'left' as const })),
-    ...Array.from({ length: right }, (_, i) => ({ uid: `r${i}`, species: 'chicken' as const, side: 'right' as const })),
+    ...Array.from({ length: left }, (_, i) => ({ uid: `l${i}`, source: 'test', species: 'chicken' as const, side: 'left' as const })),
+    ...Array.from({ length: right }, (_, i) => ({ uid: `r${i}`, source: 'test', species: 'chicken' as const, side: 'right' as const })),
   ];
   return describeSeesaw(placed);
 };

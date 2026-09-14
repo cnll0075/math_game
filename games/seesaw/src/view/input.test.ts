@@ -15,8 +15,8 @@ const model = (overrides: Partial<SceneModel> = {}): SceneModel => ({
   celebrating: false,
   dancing: false,
   tray: [
-    { uid: 'tray-0', species: 'chicken', used: false },
-    { uid: 'tray-1', species: 'cat', used: false },
+    { uid: 'tray-0', species: 'chicken', count: 1, used: false },
+    { uid: 'tray-1', species: 'cat', count: 1, used: false },
   ],
   selectedTrayIndex: null,
   caption: 'Make it level',
@@ -105,7 +105,7 @@ describe('createInput', () => {
   });
 
   it('takes a placed animal back when it is tapped', () => {
-    const placed = [{ uid: 'tray-0', species: 'chicken' as const, side: 'left' as const }];
+    const placed = [{ uid: 'tray-0', source: 'tray-0', species: 'chicken' as const, side: 'left' as const }];
     scene.update(1 / 60, model({ placed, snapshot: describeSeesaw(placed) }));
     for (let i = 0; i < 200; i++) scene.update(1 / 60, model({ placed, snapshot: describeSeesaw(placed) }));
     listen(false);
@@ -117,7 +117,7 @@ describe('createInput', () => {
   });
 
   it('leaves placed animals alone while an animal is armed', () => {
-    const placed = [{ uid: 'tray-0', species: 'chicken' as const, side: 'left' as const }];
+    const placed = [{ uid: 'tray-0', source: 'tray-0', species: 'chicken' as const, side: 'left' as const }];
     for (let i = 0; i < 200; i++) scene.update(1 / 60, model({ placed, snapshot: describeSeesaw(placed) }));
     listen(true);
     const pose = scene.placements()[0]!.pose;

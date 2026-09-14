@@ -2,7 +2,6 @@
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 import { seesawGame } from './index.js';
 import { LEVELS, getLevel, solutionsFor } from './logic/levels.data.js';
-import { roundCount } from './logic/level.js';
 import { createTestHost } from './test-host.js';
 import { installCanvasStub } from './canvas-stub.js';
 import * as sounds from './audio/seesaw-sounds.js';
@@ -35,9 +34,9 @@ const mountGame = async (startLevel: string, unlocked: 'all' | readonly string[]
 
 type Session = Awaited<ReturnType<typeof mountGame>>['session'];
 
-/** Plays one round using the solver's answer. */
-const solveRound = (session: Session, levelId: string, round: number): void => {
-  const solution = solutionsFor(getLevel(levelId)!, round)[0]!;
+/** Answers a level using the solver's answer. */
+const solveLevel = (session: Session, levelId: string): void => {
+  const solution = solutionsFor(getLevel(levelId)!)[0]!;
   for (const move of solution) {
     if (move.kind === 'place') session.__test.place(move.trayIndex, move.side);
     else session.__test.takeBack(move.uid);
@@ -45,13 +44,9 @@ const solveRound = (session: Session, levelId: string, round: number): void => {
   }
 };
 
-const solveLevel = (session: Session, levelId: string): void => {
-  for (let round = 0; round < roundCount(getLevel(levelId)!); round++) solveRound(session, levelId, round);
-};
-
 describe('playing a level', () => {
   it.each(LEVELS.map((level) => [level.id] as const))(
-    'plays every round of %s to completion through the real module',
+    'answers %s through the real module',
     async (id) => {
       const played = recordSounds();
       const { session } = await mountGame(id);
@@ -63,31 +58,34 @@ describe('playing a level', () => {
     },
   );
 
-  it('moves from round to round inside a level', async () => {
-    const { session } = await mountGame('level-2');
-    expect(session.__test.round()).toBe(0);
-    solveRound(session, 'level-2', 0);
-    expect(session.__test.round()).toBe(1);
-    expect(session.__test.status()).toBe('playing');
+  it('announces each new question', async () => {
+    const played = recordSounds();
+    const { session } = await mountGame('l2', 'all');
+    session.__test.step(2);
+    const atStart = eventsOf(played).filter((event) => event === 'goal' || event === 'stamp').length;
+    solveLevel(session, 'l2');
+    session.__test.step(400);
+    expect(session.__test.level()).toBe('l3');
+    expect(eventsOf(played).filter((event) => event === 'goal' || event === 'stamp').length).toBeGreaterThan(atStart);
     session.unmount();
+    vi.restoreAllMocks();
   });
 
-  it('stamps each round and announces the next one', async () => {
+  it('announces a new chapter differently from a new question', async () => {
     const played = recordSounds();
-    const { session } = await mountGame('level-2');
-    session.__test.step(2);
-    const goalsAtStart = eventsOf(played).filter((event) => event === 'goal').length;
-    solveRound(session, 'level-2', 0);
-    session.__test.step(10);
+    // l5 ends the first section, so l6 opens a new one.
+    const { session } = await mountGame('l5', 'all');
+    solveLevel(session, 'l5');
+    session.__test.step(400);
+    expect(session.__test.section()).toBe('Make the Number');
     expect(eventsOf(played)).toContain('stamp');
-    expect(eventsOf(played).filter((event) => event === 'goal').length).toBeGreaterThan(goalsAtStart);
     session.unmount();
     vi.restoreAllMocks();
   });
 
   it('rings the bell only after the plank settles', async () => {
     const played = recordSounds();
-    const { session } = await mountGame('level-1');
+    const { session } = await mountGame('l1');
     session.__test.place(0, 'right');
     session.__test.step(1);
     expect(eventsOf(played)).not.toContain('ding');
@@ -98,17 +96,17 @@ describe('playing a level', () => {
   });
 
   it('moves on to the next level after the dance', async () => {
-    const { session } = await mountGame('level-1', 'all');
-    solveLevel(session, 'level-1');
+    const { session } = await mountGame('l1', 'all');
+    solveLevel(session, 'l1');
     session.__test.step(400);
-    expect(session.__test.level()).toBe('level-2');
+    expect(session.__test.level()).toBe('l2');
     expect(session.__test.status()).toBe('playing');
     session.unmount();
   });
 
   it('leaves the game when the last unlocked level is finished', async () => {
-    const { host, session } = await mountGame('level-1');
-    solveLevel(session, 'level-1');
+    const { host, session } = await mountGame('l1');
+    solveLevel(session, 'l1');
     session.__test.step(400);
     expect(host.exited).toBeGreaterThan(0);
     session.unmount();
@@ -118,7 +116,7 @@ describe('playing a level', () => {
 describe('what the animals sound like', () => {
   it('speaks when an animal is picked up', async () => {
     const played = recordSounds();
-    const { session } = await mountGame('level-4');
+    const { session } = await mountGame('l5');
     session.__test.pick(0);
     // Touching the animal is enough: a child who cannot read the number can
     // still hear which one they are holding.
@@ -129,7 +127,7 @@ describe('what the animals sound like', () => {
 
   it('speaks again as it lands', async () => {
     const played = recordSounds();
-    const { session } = await mountGame('level-1');
+    const { session } = await mountGame('l1');
     session.__test.place(0, 'right');
     expect(eventsOf(played)).toContain('voice:chicken');
     session.unmount();
@@ -138,21 +136,31 @@ describe('what the animals sound like', () => {
 });
 
 describe('taking animals off', () => {
-  it('refuses to lift an animal the round started with, on most levels', async () => {
-    const { session } = await mountGame('level-1');
+  it('refuses to lift an animal the level started with, on most levels', async () => {
+    const { session } = await mountGame('l1');
     const before = session.__test.placedSpecies().length;
     session.__test.takeBack('init-left-0');
     expect(session.__test.placedSpecies()).toHaveLength(before);
     session.unmount();
   });
 
-  it('allows it on the level built around subtraction', async () => {
-    const { session } = await mountGame('level-11');
-    expect(session.__test.round()).toBe(0);
-    // The round starts 7 against 5; lifting the cat off balances it, which is
-    // the only way through, so a cleared round proves the removal was allowed.
+  it('allows it in the section built around subtraction', async () => {
+    const { session } = await mountGame('l22');
+    // 7 against 5: lifting the cat off balances it, which is the only way
+    // through, so a cleared level proves the removal was allowed.
     session.__test.takeBack('init-left-1');
-    expect(session.__test.round()).toBe(1);
+    expect(session.__test.status()).toBe('won');
+    session.unmount();
+  });
+
+  it('takes a whole group back, since it was picked up as one', async () => {
+    const { session } = await mountGame('l16');
+    session.__test.place(0, 'right');
+    const placed = session.__test.placedSpecies().length;
+    expect(placed).toBeGreaterThan(2);
+    session.__test.takeBack('tray-0#0');
+    // The whole group left together, back to the tray.
+    expect(session.__test.placedSpecies()).toHaveLength(2);
     session.unmount();
   });
 });

@@ -1,6 +1,6 @@
 import { createTicker, type GameHost, type GameModule, type GameSession } from '@bundle/core';
 import { createDriver, type Driver, type SessionEvent } from './driver.js';
-import { LEVELS, getLevel } from './logic/levels.data.js';
+import { LEVELS, getLevel, sectionOf } from './logic/levels.data.js';
 import type { LevelDef } from './logic/level.js';
 import type { AnimalId } from './logic/animals.js';
 import type { Side, Zone } from './logic/seesaw-state.js';
@@ -26,7 +26,7 @@ export interface SeesawTestHooks {
   zone(): Zone;
   flagRaised(): boolean;
   level(): string;
-  round(): number;
+  section(): string;
   danceProgress(): number;
   placedSpecies(): readonly AnimalId[];
 }
@@ -74,6 +74,7 @@ export const seesawGame: SeesawModule = {
     /** Seconds since the level was finished. */
     let finishedFor = 0;
     let announcedGoal = '';
+    let announcedSection = '';
 
     const applySettings = (): void => {
       host.audio.muted = host.settings.values.muted;
@@ -108,9 +109,6 @@ export const seesawGame: SeesawModule = {
             break;
           case 'zoneChanged':
             if (event.to === 'red') sounds.play('danger');
-            break;
-          case 'roundCleared':
-            sounds.play('stamp');
             break;
           default:
             break;
@@ -192,11 +190,13 @@ export const seesawGame: SeesawModule = {
       const model = modelFor();
       scene.update(dt, model);
 
-      // A new goal arrives with a sound, so it is noticed even by a child who
-      // is still looking at the animals.
+      // A new question arrives with a sound, so it is noticed even by a child
+      // who is still looking at the animals. A new chapter gets a fanfare.
       if (model.goalToken !== announcedGoal) {
+        const newSection = sectionOf(level) !== announcedSection;
         announcedGoal = model.goalToken;
-        sounds.play('goal');
+        announcedSection = sectionOf(level);
+        sounds.play(newSection ? 'stamp' : 'goal');
       }
 
       if (pendingDing && scene.tiltSettled) {
@@ -245,7 +245,7 @@ export const seesawGame: SeesawModule = {
         zone: () => driver.snapshot().zone,
         flagRaised: () => driver.snapshot().zone === 'red',
         level: () => level.id,
-        round: () => driver.model().stagesCleared,
+        section: () => sectionOf(level),
         danceProgress: () => scene.danceProgress,
         placedSpecies: () => driver.placed().map((animal) => animal.species),
       },

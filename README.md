@@ -75,68 +75,58 @@ nothing global, so adding the next nine changes the catalog and nothing else.
 
 ## The curriculum
 
-Fifteen levels, one mechanic: put animals on the seesaw until it does what was
-asked. The depth is in the problems, not in the verbs. Every level is three to
-five **rounds** of the same idea with different numbers, because a child who has
-met "3 and 2 make 5" once has not met it.
+**One level is one question.** There are 32 of them, grouped into sections that
+each introduce an idea and then practise it a few times with different numbers.
+A section announces itself when it begins, and the dots under the gauge show how
+far through it the player is.
 
-| | Level | The idea |
+| Section | Idea | Questions |
 |---|---|---|
-| 1 | Same | equality |
-| 2 | Count Them | counting and matching |
-| 3 | Two Little Ones | composing: 2 = 1+1 |
-| 4 | The Dog | two ways to make 3 |
-| 5 | Make Three | missing addend |
-| 6 | Make Five | missing addend, bigger |
-| 7 | No Four | nothing weighs four, so four must be built |
-| 8 | All the Same | repeated addition: six is three cats |
-| 9 | No Little Ones | compensation: add to *both* sides |
-| 10 | Make Ten | the biggest sums |
-| 11 | Take One Off | subtraction: lift an animal instead |
-| 12 | Two Ways | several right answers, all accepted |
-| 13 | Fair Shares | halve a whole pile |
-| 14 | Big Ones, Small Ones | one bear, answered many ways |
-| 15 | Animal Park | one round of each idea |
+| Same and Same | equality; two small ones can equal a big one | 5 |
+| Make the Number | missing addend: how much more? | 5 |
+| Build It | four, which nothing weighs; and gaps that need **both** sides | 5 |
+| Groups | ready-made bundles: which group fits? | 5 |
+| Take One Off | subtraction, by lifting an animal | 5 |
+| Fair Shares | split a whole pile evenly | 3 |
+| Animal Park | one of each, met again | 4 |
 
 **The tray is the level design.** What is *missing* from it is what makes a
-round interesting. Level 9 offers a gap of one and no chicken, so the only way
-through is a dog on the light side and a cat on the heavy one — 3 − 2 = 1, and
-the first time a child sees that adding to the heavy side can help. Level 8
-offers one species, so the question becomes "how many of these?".
+question interesting:
+
+- **Build It** gives a gap of one and no chicken, so the only way through is a
+  dog on the light side *and* a cat on the heavy one. 3 − 2 = 1, and it is the
+  first time a child sees that adding to the heavy side can help.
+- **Groups** offers ready-made bundles — two cats, three cats, four cats — as
+  single things to pick up. The question is which group fits, answered by
+  counting in twos, not by dragging cats one at a time.
+- **Take One Off** starts with an empty tray and one animal too many, so lifting
+  is the only thing to try. Nothing before that section ever requires a removal,
+  which the suite checks.
 
 There is deliberately **no animal weighing four**: chicken 1, cat 2, dog 3,
 bear 5. Making four is always 3+1 or 2+2.
 
 ## Adding or changing a level
 
-Edit `games/seesaw/src/logic/levels.data.ts`. A level is data:
+Edit `games/seesaw/src/logic/levels.data.ts`. A level is one question:
 
 ```ts
-{
-  id: 'level-9',
-  title: 'No Little Ones',
-  objective: { kind: 'balance' },
-  hint: 'You can add to both sides',
-  rounds: [
-    { initial: { left: ['dog'], right: ['cat'] }, tray: ['cat', 'dog'] },
-    // ...
-  ],
-}
+{ id: 'l16', section: 'groups', objective: { kind: 'balance' }, hint: 'Which group fits?',
+  initial: { left: ['dog', 'dog'], right: [] },
+  tray: [{ of: 'cat', count: 2 }, { of: 'cat', count: 3 }, { of: 'cat', count: 4 }] },
 ```
 
-Objectives are `balance`, `sideDown`, and `tilt` (an exact weight difference,
-shown as a star). A round may carry its own objective, so a level whose rounds
-ask different things needs no special machinery. Two level-wide switches change
-what is allowed: `allowRemoval` lets the player lift animals the round started
-with (subtraction), and `requireEmptyTray` makes every animal have to be seated
-(sharing a pile).
+A tray entry is either an animal or `{ of, count }` — a group, picked up and put
+down as one thing. Two switches change what is allowed: `allowRemoval` lets the
+player lift animals the level started with, and `requireEmptyTray` makes every
+animal have to be seated.
 
-`levels.test.ts` brute-forces every round of every level — searching removals as
-well as placements — so a round that cannot be solved fails the suite rather
-than reaching a child. It also checks each level's mathematical intent: that
-level 7's rounds always need more than one animal, that level 9's always need
-both sides, that level 11's always need a removal, that level 12's have several
-answers, and that level 13's piles actually halve.
+`levels.test.ts` brute-forces every level — searching removals as well as
+placements — so a question that cannot be answered fails the suite rather than
+reaching a child. It also checks each section's intent: that every Take One Off
+question genuinely needs a removal and that nothing earlier does, that every
+Groups question offers at least two groups and is answered in one placement with
+no two groups weighing the same, and that every Fair Shares pile actually halves.
 
 ## Swapping the art
 
@@ -169,7 +159,10 @@ is swapped in one line.
 
 **The animals speak.** Touching one plays its cry, so a child who cannot read
 the number still knows what they are holding — which is why the smallest animal
-is a chicken rather than a rabbit. Each cry is described in the animal catalogue
+is a chicken rather than a rabbit. **And they move in character**: an animal
+placed on the seesaw travels there under its own power, and each species has its
+own gait — a chicken beats its wings in a high arc, a cat pours along low and
+fast, a dog trots, a bear lumbers. On the plank they breathe. Each cry is described in the animal catalogue
 as a pitch that slides, repeated a few times, with a roughness: a cluck is three
 clipped squares, a growl is one long rough slide down.
 

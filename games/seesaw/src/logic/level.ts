@@ -4,30 +4,40 @@ import type { BalanceConfig } from './seesaw-state.js';
 import { DEFAULT_BALANCE_CONFIG } from './seesaw-state.js';
 
 /**
- * One problem. A level is several of these: the same idea met a few times with
- * different numbers, because a five-year-old meeting "2 and 3 make 5" once has
- * not met it.
+ * Something the player can pick up: one animal, or a ready-made group of them.
+ * A group is placed as a whole, which is what makes "three cats" a single idea
+ * rather than three drags.
  */
-export interface LevelRound {
-  /** What is already on the seesaw. */
-  initial: { left: readonly AnimalId[]; right: readonly AnimalId[] };
-  /** What the player has to work with. Choosing this is choosing the problem. */
-  tray: readonly AnimalId[];
-  /** Overrides the level's goal, for a level whose rounds ask different things. */
-  objective?: Objective;
-}
+export type TraySpec = AnimalId | { of: AnimalId; count: number };
 
+export const specOf = (spec: TraySpec): AnimalId => (typeof spec === 'string' ? spec : spec.of);
+export const specCount = (spec: TraySpec): number => (typeof spec === 'string' ? 1 : spec.count);
+
+/** The chapters of the game. A new one announces itself when it begins. */
+export type SectionId = 'same' | 'make' | 'build' | 'groups' | 'takeoff' | 'share' | 'mixed';
+
+export const SECTION_TITLES: Record<SectionId, string> = {
+  same: 'Same and Same',
+  make: 'Make the Number',
+  build: 'Build It',
+  groups: 'Groups',
+  takeoff: 'Take One Off',
+  share: 'Fair Shares',
+  mixed: 'Animal Park',
+};
+
+/** One level is one question. */
 export interface LevelDef {
   id: string;
-  title: string;
-  /** The goal for every round that does not name its own. */
+  section: SectionId;
   objective: Objective;
-  rounds: readonly LevelRound[];
+  initial: { left: readonly AnimalId[]; right: readonly AnimalId[] };
+  tray: readonly TraySpec[];
   balance?: Partial<BalanceConfig>;
   /**
    * Lets the player lift animals the level started with, not only ones they
    * placed. Taking one off is subtraction, and it is the whole point of the
-   * levels that turn it on.
+   * section that turns it on.
    */
   allowRemoval?: boolean;
   /**
@@ -35,7 +45,7 @@ export interface LevelDef {
    * different problem from making two sides match with some left over.
    */
   requireEmptyTray?: boolean;
-  /** One short line shown once; the level should be readable without it. */
+  /** One short line, shown with the level. */
   hint?: string;
 }
 
@@ -43,14 +53,3 @@ export const balanceConfigFor = (level: LevelDef): BalanceConfig => ({
   ...DEFAULT_BALANCE_CONFIG,
   ...level.balance,
 });
-
-export const roundCount = (level: LevelDef): number => level.rounds.length;
-
-export const roundAt = (level: LevelDef, index: number): LevelRound => {
-  const round = level.rounds[Math.min(Math.max(index, 0), level.rounds.length - 1)];
-  if (!round) throw new Error(`level ${level.id} has no rounds`);
-  return round;
-};
-
-export const objectiveFor = (level: LevelDef, index: number): Objective =>
-  roundAt(level, index).objective ?? level.objective;

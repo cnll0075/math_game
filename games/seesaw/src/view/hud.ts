@@ -4,6 +4,20 @@ import { SCENE } from './geometry.js';
 import { TIMING } from './timing.js';
 import type { SeesawTheme } from './theme.js';
 
+export interface HudModel {
+  tray: readonly TrayItem[];
+  selectedTrayIndex: number | null;
+  caption: string;
+  won: boolean;
+  /** How many levels this chapter has, and how many are behind the player. */
+  stages: number;
+  stagesCleared: number;
+  /** 0..1 through the goal's arrival, or null when it has settled. */
+  announcing: number | null;
+  /** Counts down after a level is stamped off. */
+  stamp: number;
+}
+
 /** Where the goal sits once it has settled. */
 const GOAL_RESTING_Y = 36;
 /** The row of round markers, clear of the gauge above it. */
@@ -128,32 +142,90 @@ export interface TraySlot {
 }
 
 const TRAY_SPACING = 96;
+/** Groups need a pen each, so they stand further apart than single animals. */
+const GROUP_SPACING = 150;
 export const TRAY_SLOT_RADIUS = 42;
 
 export function traySlots(tray: readonly TrayItem[]): TraySlot[] {
   const available = tray.map((item, index) => ({ item, index })).filter(({ item }) => !item.used);
-  const start = DESIGN.width / 2 - ((available.length - 1) * TRAY_SPACING) / 2;
+  const spacing = available.some(({ item }) => item.count > 1) ? GROUP_SPACING : TRAY_SPACING;
+  const start = DESIGN.width / 2 - ((available.length - 1) * spacing) / 2;
   return available.map(({ item, index }, position) => ({
     index,
     item,
-    x: start + position * TRAY_SPACING,
+    x: start + position * spacing,
     y: SCENE.trayY,
-    radius: TRAY_SLOT_RADIUS,
+    radius: item.count > 1 ? TRAY_SLOT_RADIUS + 18 : TRAY_SLOT_RADIUS,
   }));
 }
 
-export interface HudModel {
-  tray: readonly TrayItem[];
-  selectedTrayIndex: number | null;
-  caption: string;
-  won: boolean;
-  /** How many rounds this level has, and how many are done. */
-  stages: number;
-  stagesCleared: number;
-  /** 0..1 through the goal's arrival, or null when it has settled. */
-  announcing: number | null;
-  /** Counts down after a round is stamped off. */
-  stamp: number;
+/** Where each member of a group sits inside its huddle. */
+export function groupOffsets(count: number): Array<{ x: number; y: number; scale: number }> {
+  if (count <= 1) return [{ x: 0, y: 0, scale: 1 }];
+  const perRow = count <= 4 ? 2 : 3;
+  const rows = Math.ceil(count / perRow);
+  const spread = count <= 4 ? 26 : 22;
+  const scale = count <= 4 ? 0.62 : 0.5;
+
+  return Array.from({ length: count }, (_, index) => {
+    const row = Math.floor(index / perRow);
+    const inRow = index % perRow;
+    const rowCount = Math.min(perRow, count - row * perRow);
+    return {
+      x: (inRow - (rowCount - 1) / 2) * spread,
+      // Back rows sit higher and behind, so every animal stays countable.
+      y: (row - (rows - 1) / 2) * -spread * 0.62,
+      scale,
+    };
+  });
+}
+
+/**
+ * A tray item: one animal, or a huddle of them with the total on a tag. A group
+ * is picked up as one thing, so the question is which group fits rather than
+ * how many times to drag.
+ */
+function drawTrayItem(
+  ctx: CanvasRenderingContext2D,
+  theme: SeesawTheme,
+  slot: TraySlot,
+  selected: boolean,
+  time: number,
+): void {
+  const { item } = slot;
+  const offsets = groupOffsets(item.count);
+
+  if (item.count > 1) {
+    // A pen around the huddle, so it reads as one thing to pick up.
+    ctx.save();
+    ctx.fillStyle = selected ? 'rgba(255,210,63,0.3)' : 'rgba(255,255,255,0.45)';
+    ctx.strokeStyle = selected ? 'rgba(224,165,0,0.9)' : 'rgba(29,43,50,0.22)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    const width = slot.radius * 2 + 10;
+    const height = TRAY_SLOT_RADIUS * 2 + 12;
+    ctx.roundRect?.(slot.x - width / 2, slot.y - height / 2 - 6, width, height, 22);
+    if (!ctx.roundRect) ctx.rect(slot.x - width / 2, slot.y - height / 2 - 6, width, height);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Back rows first, so the front of the huddle overlaps them.
+  for (const offset of [...offsets].sort((a, b) => a.y - b.y)) {
+    theme.animals.draw(ctx, item.species, {
+      x: slot.x + offset.x,
+      y: slot.y + offset.y + 18,
+      scale: (selected ? 0.68 : 0.6) * offset.scale * (item.count > 1 ? 1.35 : 1),
+      tiltRad: 0,
+      wobble: selected ? Math.sin(time * 7 + offset.x) * 0.3 : 0,
+      slide: 0,
+      dance: 0,
+      arriving: 1,
+      clock: time,
+      expression: 'calm',
+    });
+  }
 }
 
 export function drawHud(ctx: CanvasRenderingContext2D, theme: SeesawTheme, hud: HudModel, time: number): void {
@@ -178,27 +250,16 @@ export function drawHud(ctx: CanvasRenderingContext2D, theme: SeesawTheme, hud: 
 
   for (const slot of slots) {
     const selected = slot.index === hud.selectedTrayIndex;
-    ctx.save();
     if (selected) {
-      // A soft ring, pulsing, so the armed animal is obvious without text.
+      // A soft ring, pulsing, so the chosen animal is obvious without text.
+      ctx.save();
       ctx.beginPath();
       ctx.arc(slot.x, slot.y, TRAY_SLOT_RADIUS + 4 + Math.sin(time * 6) * 2, 0, Math.PI * 2);
       ctx.fillStyle = 'rgba(255,210,63,0.55)';
       ctx.fill();
+      ctx.restore();
     }
-    ctx.restore();
-
-    theme.animals.draw(ctx, slot.item.species, {
-      x: slot.x,
-      // Tray animals stand on the shelf, so the pose sits at their feet too.
-      y: slot.y + 24,
-      scale: selected ? 0.68 : 0.6,
-      tiltRad: 0,
-      wobble: selected ? Math.sin(time * 7) * 0.35 : 0,
-      slide: 0,
-      dance: 0,
-      expression: 'calm',
-    });
+    drawTrayItem(ctx, theme, slot, selected, time);
   }
 }
 

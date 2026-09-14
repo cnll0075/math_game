@@ -25,6 +25,7 @@ const modelFor = (placed: PlacedAnimal[], overrides: Partial<SceneModel> = {}): 
 
 const animal = (species: AnimalId, side: 'left' | 'right', index = 0): PlacedAnimal => ({
   uid: `${side}-${species}-${index}`,
+  source: 'test',
   species,
   side,
 });
@@ -126,8 +127,8 @@ describe('scene', () => {
     const scene = createScene(createVectorTheme());
     const model = modelFor([animal('cat', 'left')], {
       tray: [
-        { uid: 'tray-0', species: 'chicken', used: false },
-        { uid: 'tray-1', species: 'dog', used: true },
+        { uid: 'tray-0', species: 'chicken', count: 1, used: false },
+        { uid: 'tray-1', species: 'dog', count: 1, used: true },
       ],
       selectedTrayIndex: 0,
     });

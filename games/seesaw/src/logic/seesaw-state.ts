@@ -5,6 +5,8 @@ export type Zone = 'green' | 'yellow' | 'red';
 
 export interface PlacedAnimal {
   uid: string;
+  /** What it came from: a tray item's uid, or the level's own layout. */
+  source: string;
   species: AnimalId;
   side: Side;
 }

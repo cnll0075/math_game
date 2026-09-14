@@ -240,23 +240,107 @@ export const ANIMAL_HIT_LIFT = 26;
 /** How high a dancing animal hops, in local units. */
 const HOP_HEIGHT = 26;
 
+/**
+ * How each species moves while it travels to its place. A chicken beats its
+ * wings and bobs; a cat pours along in a low fast arc; a dog trots with a bounce
+ * per step; a bear lumbers and rolls. Same journey, four characters.
+ */
+interface Gait {
+  /** Height of the travelling arc, in local units. */
+  arc: number;
+  /** How many times it bobs on the way. */
+  bobs: number;
+  /** How far it leans into the run, in radians. */
+  lean: number;
+  /** How much it squashes on landing. */
+  land: number;
+}
+
+const GAITS: Record<AnimalId, Gait> = {
+  chicken: { arc: 96, bobs: 7, lean: 0.12, land: 0.1 },
+  cat: { arc: 54, bobs: 3, lean: 0.3, land: 0.16 },
+  dog: { arc: 44, bobs: 4, lean: 0.22, land: 0.2 },
+  bear: { arc: 22, bobs: 2, lean: 0.1, land: 0.26 },
+};
+
+/** Wings, legs and ears, moving because the animal is moving. */
+const drawMotion = (ctx: CanvasRenderingContext2D, species: AnimalId, effort: number, clock: number): void => {
+  if (effort <= 0.01) return;
+  const beat = Math.sin(clock * (species === 'chicken' ? 26 : 18));
+
+  if (species === 'chicken') {
+    // Wings, beating hard enough to explain the height.
+    ctx.save();
+    ctx.globalAlpha = effort;
+    for (const side of [-1, 1]) {
+      ctx.save();
+      ctx.translate(side * 12, -2);
+      ctx.rotate(side * (0.5 + beat * 0.7));
+      ctx.beginPath();
+      ctx.ellipse(side * 10, 0, 16, 7, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(29,43,50,0.25)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.restore();
+    }
+    ctx.restore();
+    return;
+  }
+
+  // Legs, reaching out in front and behind.
+  ctx.save();
+  ctx.globalAlpha = effort;
+  ctx.strokeStyle = 'rgba(29,43,50,0.55)';
+  ctx.lineWidth = species === 'bear' ? 7 : 5;
+  ctx.lineCap = 'round';
+  for (const [side, phase] of [
+    [-1, beat],
+    [1, -beat],
+  ] as const) {
+    ctx.beginPath();
+    ctx.moveTo(side * 9, 14);
+    ctx.lineTo(side * 9 + phase * 11, 26);
+    ctx.stroke();
+  }
+  ctx.restore();
+};
+
 export const vectorAnimalArtist: AnimalArtist = {
   draw(ctx, species, pose) {
+    const gait = GAITS[species];
+
     // One hop arc per unit of dance: up, over, down, landing back on the plank.
     const hop = pose.dance > 0 ? Math.abs(Math.sin(pose.dance * Math.PI * 3)) * HOP_HEIGHT : 0;
     const spin = pose.dance > 0 ? Math.sin(pose.dance * Math.PI * 6) * 0.22 : 0;
-    // Squash on landing, stretch at the top: the hop reads as weight, not float.
-    const squash = pose.dance > 0 ? 1 + (hop / HOP_HEIGHT) * 0.08 : 1;
+
+    // Travelling: a long arc with the species' own bobbing on top of it, and a
+    // squash at the end as the weight lands.
+    const travelling = pose.arriving > 0 && pose.arriving < 1;
+    const arc = travelling ? Math.sin(pose.arriving * Math.PI) * gait.arc : 0;
+    const bob = travelling ? Math.sin(pose.arriving * Math.PI * gait.bobs) * 5 : 0;
+    const lean = travelling ? Math.sin(pose.arriving * Math.PI) * gait.lean : 0;
+    const landing = pose.arriving > 0.82 && pose.arriving < 1 ? (pose.arriving - 0.82) / 0.18 : 0;
+
+    // Idling: breathing, always, so nothing on the plank looks like furniture.
+    const breath = Math.sin(pose.clock * 1.8 + pose.x * 0.03) * 0.012;
+
+    const squash =
+      (pose.dance > 0 ? 1 + (hop / HOP_HEIGHT) * 0.08 : 1) *
+      (1 - Math.sin(landing * Math.PI) * gait.land) *
+      (1 - breath);
 
     ctx.save();
-    ctx.translate(pose.x + pose.slide, pose.y - hop);
-    ctx.rotate(pose.tiltRad + pose.wobble * 0.08 + spin);
+    ctx.translate(pose.x + pose.slide, pose.y - hop - arc - bob);
+    ctx.rotate(pose.tiltRad + pose.wobble * 0.08 + spin + lean);
     ctx.scale(pose.scale, pose.scale);
     ctx.scale(
       (1 + Math.abs(pose.wobble) * 0.04) / squash,
       (1 - Math.abs(pose.wobble) * 0.04) * squash,
     );
     ctx.translate(0, -FOOT_OFFSET[species]);
+    drawMotion(ctx, species, travelling ? 1 - landing : 0, pose.clock);
     PAINTERS[species](ctx, pose);
     drawWeightBadge(ctx, species);
     ctx.restore();

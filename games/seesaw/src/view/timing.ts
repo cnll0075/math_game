@@ -8,8 +8,8 @@ export const TIMING = {
   settleSeconds: 0.45,
   /** Beat between the plank settling and the bell, so the DING lands cleanly. */
   dingDelaySeconds: 0.12,
-  /** Hop from the tray onto the platform. */
-  hopSeconds: 0.35,
+  /** How long an animal takes to travel from the tray to its place. */
+  arriveSeconds: 0.55,
   /** How long the animals dance after a level is finished. */
   danceSeconds: 2.2,
   /** Gap between one animal starting its hop and the next. */

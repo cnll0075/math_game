@@ -47,6 +47,8 @@ describe('vector theme', () => {
         wobble: 0.5,
         slide: 4,
         dance: 0,
+        arriving: 1,
+        clock: 0,
         expression: 'surprised',
       });
       expect(calls.length, species).toBeGreaterThan(0);
@@ -66,6 +68,8 @@ describe('vector theme', () => {
         wobble: 0,
         slide: 0,
         dance: 0,
+        arriving: 1,
+        clock: 0,
         expression,
       });
       expect(calls.length, expression).toBeGreaterThan(0);
@@ -85,6 +89,8 @@ describe('vector theme', () => {
         wobble: 0,
         slide: 0,
         dance: 0,
+        arriving: 1,
+        clock: 0,
         expression: 'calm',
       });
       expect(texts, species).toContain(String(ANIMALS[species].weight));
@@ -103,6 +109,8 @@ describe('vector theme', () => {
         wobble: 0,
         slide: 0,
         dance,
+        arriving: 1,
+        clock: 0,
         expression: 'cheer',
       });
       expect(calls.length, String(dance)).toBeGreaterThan(0);

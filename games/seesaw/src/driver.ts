@@ -1,5 +1,6 @@
 import { createGame, type Game, type GameEvent } from './logic/game.js';
-import { balanceConfigFor, objectiveFor, roundCount, type LevelDef } from './logic/level.js';
+import { balanceConfigFor, type LevelDef } from './logic/level.js';
+import { levelsInSection } from './logic/levels.data.js';
 import { describeObjective } from './logic/objectives.js';
 import type { PlacedAnimal, SeesawSnapshot, Side } from './logic/seesaw-state.js';
 import type { SceneModel } from './view/scene.js';
@@ -35,10 +36,13 @@ export function createDriver(level: LevelDef): Driver {
   let selected: number | null = null;
 
   const targetBalance = (): number | null => {
-    const objective = objectiveFor(level, game.state.round);
-    if (objective.kind !== 'tilt') return null;
-    return objective.target / balanceConfigFor(level).maxTiltDifference;
+    if (level.objective.kind !== 'tilt') return null;
+    return level.objective.target / balanceConfigFor(level).maxTiltDifference;
   };
+
+  // Progress through the chapter, so a level does not feel like an island.
+  const siblings = levelsInSection(level.section);
+  const placeInSection = siblings.findIndex((entry) => entry.id === level.id);
 
   return {
     get status() {
@@ -56,13 +60,13 @@ export function createDriver(level: LevelDef): Driver {
     model: () => ({
       // Changes whenever the player is being asked for something new, which is
       // what makes the goal announce itself.
-      goalToken: `${level.id}:${game.state.round}`,
-      stages: roundCount(level),
-      stagesCleared: game.state.status === 'won' ? roundCount(level) : game.state.round,
+      goalToken: level.id,
+      stages: siblings.length,
+      stagesCleared: placeInSection + (game.state.status === 'won' ? 1 : 0),
       targetBalance: targetBalance(),
       tray: game.state.tray,
       selectedTrayIndex: selected,
-      caption: describeObjective(objectiveFor(level, game.state.round)),
+      caption: level.hint ?? describeObjective(level.objective),
       won: game.state.status === 'won',
     }),
     drop(side) {

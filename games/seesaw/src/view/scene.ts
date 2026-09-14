@@ -88,6 +88,14 @@ export function createScene(theme: SeesawTheme): Scene {
   let danceElapsed = -1;
   /** Per-animal phase so a row of animals does not wobble in lockstep. */
   const phases = new Map<string, number>();
+  /**
+   * Seconds left of each animal's journey to its place. Animals travel in from
+   * the tray under their own power rather than blinking into existence.
+   */
+  const arrivals = new Map<string, number>();
+  const previouslyPlaced = new Set<string>();
+  /** The first frame of a level: whatever is on the plank was always there. */
+  let firstLook = true;
 
   const phaseFor = (uid: string): number => {
     let phase = phases.get(uid);
@@ -158,18 +166,25 @@ export function createScene(theme: SeesawTheme): Scene {
 
         const dance = danceFor(danceIndex);
         danceIndex += 1;
+        const travel = arrivals.get(animal.uid) ?? 0;
+        const arriving = travel <= 0 ? 1 : 1 - travel / TIMING.arriveSeconds;
+        // Travelling animals set off from the tray and fly, run or lumber up.
+        const from = { x: DESIGN.width / 2, y: SCENE.trayY };
+        const journey = arriving >= 1 ? 0 : 1 - arriving;
 
         result.push({
           animal,
           pose: {
-            x: local.x,
-            y: local.y,
+            x: local.x + (from.x - local.x) * journey,
+            y: local.y + (from.y - local.y) * journey,
             scale: 1.08,
             tiltRad: tiltAmount,
             // Dancers hold still apart from the hop; a wobble on top reads as noise.
             wobble: dance > 0 ? 0 : wobble,
             slide,
             dance,
+            arriving,
+            clock: time,
             expression: dance > 0 ? 'cheer' : expressionFor(model.snapshot.zone),
           },
         });
@@ -182,6 +197,25 @@ export function createScene(theme: SeesawTheme): Scene {
     update(dt, next) {
       model = next;
       time += dt;
+
+      // Anything newly on the plank sets off from the tray; anything gone stops
+      // being tracked. Animals a level starts with are already in place, so
+      // they do not travel: only what the player adds does.
+      const present = new Set(next.placed.map((animal) => animal.uid));
+      for (const uid of present) {
+        if (!previouslyPlaced.has(uid) && !firstLook) arrivals.set(uid, TIMING.arriveSeconds);
+      }
+      firstLook = false;
+      for (const uid of [...arrivals.keys()]) {
+        if (!present.has(uid)) arrivals.delete(uid);
+        else {
+          const left = (arrivals.get(uid) ?? 0) - dt;
+          if (left <= 0) arrivals.delete(uid);
+          else arrivals.set(uid, left);
+        }
+      }
+      previouslyPlaced.clear();
+      for (const uid of present) previouslyPlaced.add(uid);
 
       tilt.target = -next.snapshot.normalizedBalance * SCENE.maxTiltRad;
       needle.target = next.snapshot.normalizedBalance;
@@ -199,6 +233,8 @@ export function createScene(theme: SeesawTheme): Scene {
       if (next.goalToken !== announcedToken) {
         announcedToken = next.goalToken;
         announcing = TIMING.goalAnnounceSeconds;
+        arrivals.clear();
+        firstLook = true;
       } else if (announcing > 0) {
         announcing = Math.max(0, announcing - dt);
       }

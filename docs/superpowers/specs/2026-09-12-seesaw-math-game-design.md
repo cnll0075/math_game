@@ -460,3 +460,25 @@ The solver searches removals as well as placements, so every round of every
 level is proved solvable, and each level's mathematical intent is asserted
 directly: that level 9's rounds cannot be solved from one side, that level 11's
 always need a removal, that level 13's piles halve.
+
+
+**One question per level, and groups as objects** (2026-09-13). Playtesting
+found the rounds-per-level structure repetitive — the same level had to be
+beaten several times — and the multiplication section had been misread: offering
+several identical animals to drag one at a time is not the same as choosing
+between a group of three and a group of four.
+
+- **A level is one question.** There are 32, grouped into seven sections that
+  each introduce an idea and practise it. A section announces itself as it
+  begins, and the dots show progress through it.
+- **A tray entry can be a group**: `{ of: 'cat', count: 3 }` is picked up,
+  placed and taken back as one thing. Choosing between a two, a three and a four
+  is where multiplying starts.
+- **Subtraction is its own section**, and it is taught before it is needed: the
+  first question has an empty tray and one animal too many, so lifting is the
+  only thing to try. The suite checks that nothing before that section requires
+  a removal.
+- **Animals move in character.** One placed on the seesaw travels there under
+  its own power, with a gait per species: a chicken flaps in a high arc, a cat
+  runs low and fast, a dog trots, a bear lumbers. Animals a level starts with are
+  already in place and do not travel.

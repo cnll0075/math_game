@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { LEVELS, getLevel, levelsInSection, solutionsFor } from './levels.data.js';
+import { LEVELS, getLevel, levelsInSection, solutionsFor, starOf } from './levels.data.js';
 import { createGame } from './game.js';
 import { SECTION_TITLES, specCount, specOf, type LevelDef, type SectionId } from './level.js';
-import { weightOf, type AnimalId } from './animals.js';
+import { ANIMAL_IDS, weightOf, type AnimalId } from './animals.js';
 
 const total = (animals: readonly AnimalId[]) => animals.reduce((sum, animal) => sum + weightOf(animal), 0);
 
@@ -132,6 +132,37 @@ describe('what each section is for', () => {
     for (const solution of solutionsFor(both)) {
       const sides = new Set(solution.map((move) => (move.kind === 'place' ? move.side : 'remove')));
       expect(sides.size).toBeGreaterThan(1);
+    }
+  });
+});
+
+describe('the stories the levels tell', () => {
+  it('gives every question a line of its own', () => {
+    for (const level of LEVELS) {
+      expect(level.hint, level.id).toBeTruthy();
+      // Short enough to fit on the card, and to be read aloud in one breath.
+      expect(level.hint!.length, level.id).toBeLessThanOrEqual(34);
+    }
+  });
+
+  it('says what it means rather than naming the mechanic', () => {
+    for (const level of LEVELS) {
+      // "No Four" told a child nothing; a line should be about the animals.
+      expect(level.hint!, level.id).not.toMatch(/^(Tap|Drag|Press|Select)\b/);
+    }
+  });
+
+  it('names a friend for every question, to show in the row helped', () => {
+    for (const level of LEVELS) {
+      expect(ANIMAL_IDS, level.id).toContain(starOf(level));
+    }
+  });
+
+  it('gives every chapter a name a child would understand', () => {
+    for (const section of new Set(LEVELS.map((level) => level.section))) {
+      const title = SECTION_TITLES[section as SectionId];
+      expect(title.length).toBeGreaterThan(4);
+      expect(title).not.toMatch(/objective|level|mode/i);
     }
   });
 });

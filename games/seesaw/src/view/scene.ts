@@ -1,3 +1,4 @@
+import type { AnimalId } from '../logic/animals.js';
 import { describeSeesaw, type PlacedAnimal, type SeesawSnapshot, type Side } from '../logic/seesaw-state.js';
 import { SCENE, platformAnchor } from './geometry.js';
 import { DESIGN, fitToScreen, slotPositions, visibleBounds, type Bounds, type Point, type Size } from './layout.js';
@@ -24,6 +25,10 @@ export interface SceneModel {
   /** How many rounds this level has, and how many are done. */
   stages: number;
   stagesCleared: number;
+  /** Whose question each one in the chapter is. */
+  sectionFaces: readonly AnimalId[];
+  /** The chapter's name, on the question that opens it. */
+  chapter: string | null;
 }
 
 export interface AnimalPlacement {
@@ -61,6 +66,8 @@ const emptyModel = (): SceneModel => ({
   goalToken: '',
   stages: 1,
   stagesCleared: 0,
+  sectionFaces: [],
+  chapter: null,
 });
 
 /**
@@ -277,6 +284,8 @@ export function createScene(theme: SeesawTheme): Scene {
           won: model.won,
           stages: model.stages,
           stagesCleared: model.stagesCleared,
+          sectionFaces: model.sectionFaces,
+          chapter: model.chapter,
           announcing: announcing > 0 ? 1 - announcing / TIMING.goalAnnounceSeconds : null,
           stamp,
         },

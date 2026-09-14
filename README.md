@@ -80,15 +80,26 @@ each introduce an idea and then practise it a few times with different numbers.
 A section announces itself when it begins, and the dots under the gauge show how
 far through it the player is.
 
-| Section | Idea | Questions |
+| Chapter | Idea | Questions |
 |---|---|---|
-| Same and Same | equality; two small ones can equal a big one | 5 |
-| Make the Number | missing addend: how much more? | 5 |
-| Build It | four, which nothing weighs; and gaps that need **both** sides | 5 |
-| Groups | ready-made bundles: which group fits? | 5 |
-| Take One Off | subtraction, by lifting an animal | 5 |
-| Fair Shares | split a whole pile evenly | 3 |
-| Animal Park | one of each, met again | 4 |
+| Best Friends | equality; two small ones can equal a big one | 5 |
+| Who Else Can Come? | missing addend: how much more? | 5 |
+| Tricky Numbers | four, which nothing weighs; and gaps that need **both** sides | 5 |
+| Everybody Together | ready-made bundles: which group fits? | 5 |
+| Time to Go Home | subtraction, by lifting an animal | 5 |
+| Share and Share Alike | split a whole pile evenly | 3 |
+| A Day at the Park | one of each, met again | 4 |
+
+Chapters and questions are written as little stories rather than as labels:
+"Nobody weighs four!" rather than "No Four", "One chicken wants to go home"
+rather than "Tap an animal to take it off". The animals have names — Pip the
+chicken, Mango the cat, Scout the dog, Bramble the bear — for the questions that
+are about one of them.
+
+A chapter announces its name on its first question. Below the gauge, a row shows
+**the friends helped so far in this chapter**: the animal each question is about,
+greyed out until it is answered, then filled in and cheering. An earlier version
+showed abstract dots, which said nothing to a child and appeared to do nothing.
 
 **The tray is the level design.** What is *missing* from it is what makes a
 question interesting:

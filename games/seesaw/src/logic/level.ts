@@ -16,14 +16,15 @@ export const specCount = (spec: TraySpec): number => (typeof spec === 'string' ?
 /** The chapters of the game. A new one announces itself when it begins. */
 export type SectionId = 'same' | 'make' | 'build' | 'groups' | 'takeoff' | 'share' | 'mixed';
 
+/** Chapter names, written for a six-year-old rather than for a spreadsheet. */
 export const SECTION_TITLES: Record<SectionId, string> = {
-  same: 'Same and Same',
-  make: 'Make the Number',
-  build: 'Build It',
-  groups: 'Groups',
-  takeoff: 'Take One Off',
-  share: 'Fair Shares',
-  mixed: 'Animal Park',
+  same: 'Best Friends',
+  make: 'Who Else Can Come?',
+  build: 'Tricky Numbers',
+  groups: 'Everybody Together',
+  takeoff: 'Time to Go Home',
+  share: 'Share and Share Alike',
+  mixed: 'A Day at the Park',
 };
 
 /** One level is one question. */
@@ -45,8 +46,10 @@ export interface LevelDef {
    * different problem from making two sides match with some left over.
    */
   requireEmptyTray?: boolean;
-  /** One short line, shown with the level. */
+  /** The little story this question tells. */
   hint?: string;
+  /** Whose question this is, shown in the row of friends helped. */
+  star?: AnimalId;
 }
 
 export const balanceConfigFor = (level: LevelDef): BalanceConfig => ({

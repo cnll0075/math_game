@@ -1,6 +1,6 @@
 import { createGame, type Game, type GameEvent } from './logic/game.js';
-import { balanceConfigFor, type LevelDef } from './logic/level.js';
-import { levelsInSection } from './logic/levels.data.js';
+import { balanceConfigFor, SECTION_TITLES, type LevelDef } from './logic/level.js';
+import { levelsInSection, starOf } from './logic/levels.data.js';
 import { describeObjective } from './logic/objectives.js';
 import type { PlacedAnimal, SeesawSnapshot, Side } from './logic/seesaw-state.js';
 import type { SceneModel } from './view/scene.js';
@@ -43,6 +43,8 @@ export function createDriver(level: LevelDef): Driver {
   // Progress through the chapter, so a level does not feel like an island.
   const siblings = levelsInSection(level.section);
   const placeInSection = siblings.findIndex((entry) => entry.id === level.id);
+  /** Whose question each one is, for the row of friends helped. */
+  const faces = siblings.map(starOf);
 
   return {
     get status() {
@@ -63,6 +65,9 @@ export function createDriver(level: LevelDef): Driver {
       goalToken: level.id,
       stages: siblings.length,
       stagesCleared: placeInSection + (game.state.status === 'won' ? 1 : 0),
+      sectionFaces: faces,
+      // Only the first question of a chapter announces the chapter's name.
+      chapter: placeInSection === 0 ? SECTION_TITLES[level.section] : null,
       targetBalance: targetBalance(),
       tray: game.state.tray,
       selectedTrayIndex: selected,

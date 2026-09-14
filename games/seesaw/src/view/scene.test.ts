@@ -20,6 +20,8 @@ const modelFor = (placed: PlacedAnimal[], overrides: Partial<SceneModel> = {}): 
   goalToken: 'test:0',
   stages: 1,
   stagesCleared: 0,
+  sectionFaces: ['chicken'],
+  chapter: null,
   ...overrides,
 });
 

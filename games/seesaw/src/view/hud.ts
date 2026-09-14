@@ -1,3 +1,4 @@
+import type { AnimalId } from '../logic/animals.js';
 import type { TrayItem } from '../logic/game.js';
 import { DESIGN } from './layout.js';
 import { SCENE } from './geometry.js';
@@ -12,6 +13,10 @@ export interface HudModel {
   /** How many levels this chapter has, and how many are behind the player. */
   stages: number;
   stagesCleared: number;
+  /** Whose question each one in the chapter is. */
+  sectionFaces: readonly AnimalId[];
+  /** The chapter's name, on the question that opens it. */
+  chapter: string | null;
   /** 0..1 through the goal's arrival, or null when it has settled. */
   announcing: number | null;
   /** Counts down after a level is stamped off. */
@@ -33,7 +38,7 @@ const ease = (t: number): number => 1 - (1 - t) * (1 - t);
  * the scene, holds, then flies up to its place at the top. It fires again when
  * a level's next challenge begins, so a new ask always announces itself.
  */
-function drawGoal(ctx: CanvasRenderingContext2D, hud: HudModel, time: number): void {
+function drawGoal(ctx: CanvasRenderingContext2D, theme: SeesawTheme, hud: HudModel, time: number): void {
   const settleAt = 1 - TIMING.goalSettleFraction;
   const arriving = hud.announcing !== null;
   const through = hud.announcing ?? 1;
@@ -65,70 +70,97 @@ function drawGoal(ctx: CanvasRenderingContext2D, hud: HudModel, time: number): v
   ctx.scale(scale, scale);
 
   if (cardAlpha > 0.01) {
-    const width = 34 + hud.caption.length * 15;
+    const longest = Math.max(hud.caption.length, hud.chapter?.length ?? 0);
+    const width = 34 + longest * 15;
+    const height = hud.chapter && arriving ? 96 : 60;
     ctx.globalAlpha = cardAlpha * 0.9;
     ctx.fillStyle = 'rgba(255,255,255,0.92)';
     ctx.beginPath();
-    ctx.roundRect?.(-width / 2, -30, width, 60, 22);
-    if (!ctx.roundRect) ctx.rect(-width / 2, -30, width, 60);
+    ctx.roundRect?.(-width / 2, -height / 2, width, height, 24);
+    if (!ctx.roundRect) ctx.rect(-width / 2, -height / 2, width, height);
     ctx.fill();
     ctx.globalAlpha = 1;
   }
 
-  ctx.font = '600 30px system-ui, -apple-system, "Segoe UI", sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = 'rgba(29,43,50,0.86)';
-  ctx.fillText(hud.caption, 0, 0);
+  if (hud.chapter && arriving) {
+    // A new chapter gets its name, with the question underneath it.
+    ctx.font = '700 34px system-ui, -apple-system, "Segoe UI", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#d8842b';
+    ctx.fillText(hud.chapter, 0, -16);
+    ctx.font = '600 26px system-ui, -apple-system, "Segoe UI", sans-serif';
+    ctx.fillStyle = 'rgba(29,43,50,0.86)';
+    ctx.fillText(hud.caption, 0, 20);
+  } else {
+    ctx.font = '600 30px system-ui, -apple-system, "Segoe UI", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(29,43,50,0.86)';
+    ctx.fillText(hud.caption, 0, 0);
+  }
   ctx.restore();
 
-  // The dots keep their place while the goal flies past them: a row of markers
-  // that jumps about is harder to read than one that simply sits there.
-  // Below the gauge, not across it: every level has rounds now, so these are
-  // always on screen.
-  if (hud.stages > 1) drawStageDots(ctx, hud, ROUND_DOTS_Y, time);
+  if (hud.stages > 1) drawSectionProgress(ctx, theme, hud, ROUND_DOTS_Y, time);
 }
 
 /**
- * One dot per challenge, ticked off as they are cleared. Level 5 asks for three
- * things in a row, and without this it looks exactly like the levels that ask
- * for one.
+ * The friends helped so far in this chapter, and who is being helped now. A row
+ * of abstract dots said nothing to a child; a row of faces filling up with
+ * animals they have already helped says what it is.
  */
-function drawStageDots(ctx: CanvasRenderingContext2D, hud: HudModel, y: number, time: number): void {
-  const gap = 46;
+function drawSectionProgress(
+  ctx: CanvasRenderingContext2D,
+  theme: SeesawTheme,
+  hud: HudModel,
+  y: number,
+  time: number,
+): void {
+  const gap = 62;
   const start = DESIGN.width / 2 - ((hud.stages - 1) * gap) / 2;
 
   for (let index = 0; index < hud.stages; index++) {
-    const done = index < hud.stagesCleared;
+    const helped = index < hud.stagesCleared;
     const current = index === hud.stagesCleared;
-    // The dot just ticked off swells briefly, so the progress is felt.
-    const justStamped = hud.stamp > 0 && index === hud.stagesCleared - 1;
-    const radius = 13 + (justStamped ? Math.sin(hud.stamp * Math.PI * 1.2) * 7 : 0);
+    const justHelped = hud.stamp > 0 && index === hud.stagesCleared - 1;
+    const species = hud.sectionFaces[index] ?? 'chicken';
 
     ctx.save();
     ctx.translate(start + index * gap, y);
+
+    // A friend already helped sits in a bright ring; the one being helped now
+    // pulses; the ones still to come wait, greyed out.
+    const radius = 22 + (justHelped ? Math.sin(hud.stamp * Math.PI * 1.2) * 6 : 0);
     ctx.beginPath();
     ctx.arc(0, 0, radius, 0, Math.PI * 2);
-    ctx.fillStyle = done ? '#63c07a' : 'rgba(255,255,255,0.75)';
+    ctx.fillStyle = helped ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)';
     ctx.fill();
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = current ? '#ffc21f' : 'rgba(29,43,50,0.25)';
-    if (current) {
-      ctx.lineWidth = 3 + Math.sin(time * 5) * 1;
-    }
+    ctx.lineWidth = current ? 3.5 + Math.sin(time * 5) : 2.5;
+    ctx.strokeStyle = helped ? '#63c07a' : current ? '#ffc21f' : 'rgba(29,43,50,0.2)';
     ctx.stroke();
 
-    if (done) {
-      // A tick, drawn rather than typed.
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 3.5;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(-5.5, 0.5);
-      ctx.lineTo(-1.5, 4.5);
-      ctx.lineTo(6, -4.5);
-      ctx.stroke();
-    }
+    ctx.save();
+    // Clipped to its own circle, so a face is a portrait rather than an animal
+    // spilling out of a badge.
+    ctx.beginPath();
+    ctx.arc(0, 0, radius - 2, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.globalAlpha = helped ? 1 : current ? 0.85 : 0.35;
+    // The animal whose question it is, so the row reads as friends helped
+    // rather than as boxes ticked.
+    theme.animals.draw(ctx, species, {
+      x: 0,
+      y: 20,
+      scale: 0.38,
+      tiltRad: 0,
+      wobble: justHelped ? Math.sin(time * 14) * 0.5 : 0,
+      slide: 0,
+      dance: 0,
+      arriving: 1,
+      clock: time,
+      expression: helped ? 'cheer' : 'calm',
+    });
+    ctx.restore();
     ctx.restore();
   }
 }
@@ -229,7 +261,7 @@ function drawTrayItem(
 }
 
 export function drawHud(ctx: CanvasRenderingContext2D, theme: SeesawTheme, hud: HudModel, time: number): void {
-  drawGoal(ctx, hud, time);
+  drawGoal(ctx, theme, hud, time);
 
   // Tray shelf.
   const slots = traySlots(hud.tray);

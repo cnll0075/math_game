@@ -179,3 +179,16 @@ describe('the target marker', () => {
     expect(arrived.calls.length).toBeGreaterThan(away.calls.length);
   });
 });
+
+describe('animals at thumbnail size', () => {
+  it('drops the weight tag, which is unreadable that small', () => {
+    const theme = createVectorTheme();
+    const big = recordingContext();
+    const tiny = recordingContext();
+    const pose = { x: 0, y: 0, tiltRad: 0, wobble: 0, slide: 0, dance: 0, arriving: 1, clock: 0 } as const;
+    theme.animals.draw(big.ctx, 'cat', { ...pose, scale: 1, expression: 'calm' });
+    theme.animals.draw(tiny.ctx, 'cat', { ...pose, scale: 0.34, expression: 'calm' });
+    expect(big.texts).toContain('2');
+    expect(tiny.texts).toHaveLength(0);
+  });
+});

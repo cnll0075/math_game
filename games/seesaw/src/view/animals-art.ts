@@ -342,7 +342,9 @@ export const vectorAnimalArtist: AnimalArtist = {
     ctx.translate(0, -FOOT_OFFSET[species]);
     drawMotion(ctx, species, travelling ? 1 - landing : 0, pose.clock);
     PAINTERS[species](ctx, pose);
-    drawWeightBadge(ctx, species);
+    // The weight tag is unreadable below thumbnail size, and at that size it is
+    // just clutter on the animal's face.
+    if (pose.scale >= 0.45) drawWeightBadge(ctx, species);
     ctx.restore();
   },
 };

@@ -77,7 +77,7 @@ describe('playing a level', () => {
     const { session } = await mountGame('l5', 'all');
     solveLevel(session, 'l5');
     session.__test.step(400);
-    expect(session.__test.section()).toBe('Make the Number');
+    expect(session.__test.section()).toBe('Who Else Can Come?');
     expect(eventsOf(played)).toContain('stamp');
     session.unmount();
     vi.restoreAllMocks();

@@ -482,3 +482,16 @@ between a group of three and a group of four.
   its own power, with a gait per species: a chicken flaps in a high arc, a cat
   runs low and fast, a dog trots, a bear lumbers. Animals a level starts with are
   already in place and do not travel.
+
+
+**Told as stories** (2026-09-13). Chapter names and question lines were written
+as labels — "No Four", "Take One Off" — which describe the mechanic to an adult
+and say nothing to a five-year-old. Both now read as stories: "Tricky Numbers /
+Nobody weighs four!", "Time to Go Home / One chicken wants to go home". The
+animals have names for the questions that are about one of them.
+
+The progress row was abstract dots that appeared inert, because a level is one
+question and so the row only changed during the win. It is now the **friends
+helped in this chapter**: a portrait of the animal each question is about, grey
+until answered, then filled in and cheering. The same information, in a form a
+child can read.

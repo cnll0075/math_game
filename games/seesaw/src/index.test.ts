@@ -14,7 +14,7 @@ afterAll(() => restoreCanvas());
 /** Records what the game plays, without touching the audio bus. */
 const spyOnSounds = () => {
   const played: string[] = [];
-  vi.spyOn(sounds, 'createSynthSoundPack').mockReturnValue({
+  vi.spyOn(sounds, 'createSeesawSoundPack').mockReturnValue({
     preload: async () => {},
     play: (event: string) => void played.push(event),
   });

@@ -1,5 +1,5 @@
 import type { AudioBus, Settings } from '@bundle/core';
-import { SOUND_EVENTS, createSynthSoundPack } from '@bundle/seesaw';
+import { SOUND_EVENTS, createSeesawSoundPack } from '@bundle/seesaw';
 
 export interface SettingsPanelDeps {
   settings: Settings;
@@ -86,7 +86,7 @@ export function createSettingsPanel(deps: SettingsPanelDeps): HTMLElement {
 
 /** One button per sound event, for auditioning candidate sounds side by side. */
 export function buildSoundLab(audio: AudioBus): HTMLElement {
-  const pack = createSynthSoundPack(audio);
+  const pack = createSeesawSoundPack(audio);
   const lab = document.createElement('div');
   lab.dataset.panel = 'sound-lab';
   lab.innerHTML = '<h2>Sound lab</h2>';

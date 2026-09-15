@@ -159,6 +159,24 @@ question genuinely needs a removal and that nothing earlier does, that every
 Groups question offers at least two groups and is answered in one placement with
 no two groups weighing the same, and that every Fair Shares pile actually halves.
 
+## Sound
+
+The animals are recordings; everything else - the bell, the creak, the landing
+thud, the cheer - is still synthesised on the fly, so the bundle carries four
+short files rather than a sound library.
+
+Both go through the same `SoundPack` seam: a game asks for an event by name and
+never learns whether the answer was a recording or a synthesiser.
+`createSampleSoundPack` in `@bundle/core` plays the recordings and hands
+everything else to the synthesised pack underneath - which also covers the
+animals until the files have loaded, or if they never do, so the game is
+playable from the first frame on any connection.
+
+One wrinkle worth knowing: a browser will not start an audio context until the
+user asks for sound, and preloading happens long before the first tap. The pack
+decodes through an offline context, which can be built at any time, and the
+audio it produces plays through the real context later.
+
 ## Lettering
 
 Everything is written in Chalkboard SE, a rounded hand-drawn face that ships

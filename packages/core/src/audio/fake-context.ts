@@ -37,6 +37,8 @@ export interface FakeContext {
   createBiquadFilter(): unknown;
   createBuffer(channels: number, length: number, sampleRate: number): unknown;
   createBufferSource(): unknown;
+  /** Stands in for decoding a real file; the bytes are never looked at. */
+  decodeAudioData(bytes: ArrayBuffer): Promise<unknown>;
   resume(): Promise<void>;
   close(): Promise<void>;
   sampleRate: number;
@@ -138,11 +140,14 @@ export function fakeContext(): FakeContext {
       const node = {
         buffer: null as unknown,
         started: false,
+        /** Context time the sample was scheduled to begin. */
+        startedAt: 0,
         stopped: false,
         connect: (target: unknown) => target,
         disconnect() {},
-        start() {
+        start(at = 0) {
           node.started = true;
+          node.startedAt = at;
         },
         stop() {
           node.stopped = true;
@@ -151,6 +156,9 @@ export function fakeContext(): FakeContext {
       };
       context.createdBufferSources.push(node);
       return node;
+    },
+    async decodeAudioData(bytes: ArrayBuffer) {
+      return { duration: bytes.byteLength / 44100, sampleRate: 44100 };
     },
     async resume() {
       context.state = 'running';

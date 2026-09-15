@@ -14,7 +14,7 @@ afterAll(() => restoreCanvas());
 
 const recordSounds = () => {
   const played: Array<{ event: string; delay: number }> = [];
-  vi.spyOn(sounds, 'createSynthSoundPack').mockReturnValue({
+  vi.spyOn(sounds, 'createSeesawSoundPack').mockReturnValue({
     preload: async () => {},
     play: (event: string, params?: Record<string, number>) =>
       void played.push({ event, delay: params?.delay ?? 0 }),

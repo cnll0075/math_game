@@ -1,5 +1,10 @@
-import { noiseBurst, tone, type AudioBus, type SoundPack } from '@bundle/core';
-import { ANIMALS, ANIMAL_IDS } from '../logic/animals.js';
+import { createSampleSoundPack, noiseBurst, tone, type AudioBus, type SoundPack } from '@bundle/core';
+import { ANIMALS, ANIMAL_IDS, type AnimalId } from '../logic/animals.js';
+
+import chickenUrl from '../../assets/sounds/chicken.wav';
+import catUrl from '../../assets/sounds/cat.wav';
+import dogUrl from '../../assets/sounds/dog.wav';
+import bearUrl from '../../assets/sounds/bear.wav';
 
 /**
  * Every sound the game can make, by name. A later pack backed by recorded
@@ -131,4 +136,40 @@ export function createSynthSoundPack(bus: AudioBus): SoundPack {
       VOICES[event]?.(bus, Math.max(0, params?.delay ?? 0));
     },
   };
+}
+
+/** The recorded cry for each animal. */
+const CRIES: Record<AnimalId, string> = {
+  chicken: chickenUrl,
+  cat: catUrl,
+  dog: dogUrl,
+  bear: bearUrl,
+};
+
+/**
+ * Levels for the recordings, which arrive at whatever level they were recorded
+ * at. Measured rather than guessed: each one is set so the sounding part of the
+ * file - not the silence around it - lands at the same loudness, then the bear
+ * is left a little louder than the chicken because a bear should be.
+ */
+const CRY_GAIN: Record<AnimalId, number> = {
+  chicken: 0.42,
+  cat: 0.42,
+  dog: 0.34,
+  bear: 0.40,
+};
+
+/**
+ * What the game actually plays: the recorded animals, and the synthesised pack
+ * underneath for everything else - and for the animals too, until the files
+ * have loaded or if they never do.
+ */
+export function createSeesawSoundPack(bus: AudioBus): SoundPack {
+  const sources: Record<string, string> = {};
+  const gain: Record<string, number> = {};
+  for (const id of ANIMAL_IDS) {
+    sources[`voice:${id}`] = CRIES[id];
+    gain[`voice:${id}`] = CRY_GAIN[id];
+  }
+  return createSampleSoundPack(bus, { sources, gain, fallback: createSynthSoundPack(bus) });
 }

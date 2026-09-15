@@ -6,4 +6,5 @@ export { createContentManifest, type ContentManifest } from './entitlements.js';
 export { createAudioBus, type AudioBus } from './audio/audio-bus.js';
 export { tone, noiseBurst, type ToneOptions, type NoiseOptions } from './audio/synth.js';
 export type { SoundPack } from './audio/sound-pack.js';
+export { createSampleSoundPack, type SampleOptions } from './audio/samples.js';
 export type { GameHost, GameModule, GameSession, SettingsView } from './game-module.js';

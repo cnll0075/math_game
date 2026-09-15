@@ -41,3 +41,17 @@ is bigger than the painted one at every height, so it covers it completely.
 The same park with two rabbits and a cat riding in the trays. Nothing is cut
 from it: it is the reference for how big the animals should be drawn and how
 deep in the basket they should sit.
+
+
+## The animal recordings
+
+`assets/sounds/chicken.wav`, `cat.wav`, `dog.wav`, `bear.wav` are the supplied
+recordings, renamed and otherwise untouched - 16-bit mono at 44.1kHz, between
+0.6 and 1.2 seconds each. Nothing is cut from them, so there is no script here
+for them.
+
+They play through `createSampleSoundPack` in `@bundle/core`, with the
+synthesised pack underneath for every other sound - and for the animals too,
+until the files have loaded or if they never do. Their levels are set in
+`src/audio/seesaw-sounds.ts`, measured so the sounding part of each file lands
+at the same loudness rather than eyeballed.

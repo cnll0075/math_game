@@ -4,7 +4,7 @@ import { LEVELS, getLevel, sectionOf } from './logic/levels.data.js';
 import type { LevelDef } from './logic/level.js';
 import type { AnimalId } from './logic/animals.js';
 import type { Side, Zone } from './logic/seesaw-state.js';
-import { createSynthSoundPack } from './audio/seesaw-sounds.js';
+import { createSeesawSoundPack } from './audio/seesaw-sounds.js';
 import { createScene, type SceneModel } from './view/scene.js';
 import { createSpriteTheme } from './view/sprite-theme.js';
 import { createInput, type InputIntent } from './view/input.js';
@@ -53,7 +53,7 @@ export const seesawGame: SeesawModule = {
 
   async mount(container, host, options = {}): Promise<SeesawSession> {
     const theme = createSpriteTheme();
-    const sounds = createSynthSoundPack(host.audio);
+    const sounds = createSeesawSoundPack(host.audio);
     await Promise.all([theme.preload(), sounds.preload()]);
 
     const canvas = document.createElement('canvas');
@@ -255,5 +255,5 @@ export const seesawGame: SeesawModule = {
 
 export default seesawGame;
 export { LEVELS, getLevel, solutionsFor } from './logic/levels.data.js';
-export { createSynthSoundPack, SOUND_EVENTS } from './audio/seesaw-sounds.js';
+export { createSeesawSoundPack, createSynthSoundPack, SOUND_EVENTS } from './audio/seesaw-sounds.js';
 export type { LevelDef } from './logic/level.js';

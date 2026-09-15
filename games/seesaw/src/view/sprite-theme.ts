@@ -1,8 +1,10 @@
 import { ANIMAL_IDS, type AnimalId } from '../logic/animals.js';
 import { drawWeightBadge, vectorAnimalArtist, withPose } from './animals-art.js';
-import { createVectorTheme } from './vector-theme.js';
+import { createVectorTheme, drawFlowers } from './vector-theme.js';
+import { SCENE } from './geometry.js';
 import type { AnimalArtist, AnimalPose, SeesawTheme } from './theme.js';
 
+import backdropUrl from '../../assets/backdrop.png';
 import chickenUrl from '../../assets/chicken.png';
 import catUrl from '../../assets/cat.png';
 import dogUrl from '../../assets/dog.png';
@@ -141,16 +143,62 @@ export function createSpriteAnimalArtist(): AnimalArtist & { preload(): Promise<
   };
 }
 
-/** The park, with painted animals in it. */
+/** The painted park: a photograph of a playground with our seesaw standing in it. */
 export function createSpriteTheme(): SeesawTheme {
   const base = createVectorTheme();
   const animals = createSpriteAnimalArtist();
+  let backdrop: HTMLImageElement | null = null;
 
   return {
     ...base,
     animals,
+
+    drawBackground(ctx, view) {
+      if (!backdrop) {
+        base.drawBackground(ctx, view);
+        return;
+      }
+      const { bounds } = view;
+      const width = bounds.right - bounds.left;
+      // The park stands on the same ground line the seesaw stands on.
+      const height = (backdrop.height / backdrop.width) * width;
+      const top = SCENE.groundY - height;
+
+      // Sky above and grass below are the painting's own edge rows, stretched:
+      // sampling a colour and filling with it left a visible seam, because the
+      // sky is a gradient and the grass is not flat.
+      const edge = 2;
+      if (top > bounds.top) {
+        ctx.drawImage(
+          backdrop, 0, 0, backdrop.width, edge,
+          bounds.left, bounds.top, width, top - bounds.top + 1,
+        );
+      }
+      // Grass below comes from one column of the painting's bottom edge, not
+      // from the whole row: the row crosses the bench and the slide, and
+      // stretching those downward smeared them into streaks.
+      const grassColumn = Math.round(backdrop.width / 2);
+      ctx.drawImage(
+        backdrop, grassColumn, backdrop.height - edge, 1, edge,
+        bounds.left, SCENE.groundY - 1, width, bounds.bottom - SCENE.groundY + 1,
+      );
+
+      ctx.drawImage(backdrop, bounds.left, top, width, height);
+
+      drawFlowers(ctx);
+    },
+
     async preload() {
-      await Promise.all([base.preload(), animals.preload()]);
+      await Promise.all([
+        base.preload(),
+        animals.preload(),
+        afterAtMost(
+          loadImage(backdropUrl).then((image) => {
+            backdrop = image;
+          }),
+          PATIENCE_MS,
+        ),
+      ]);
     },
   };
 }

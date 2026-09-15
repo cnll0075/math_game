@@ -13,6 +13,11 @@ const SKY_BOTTOM = '#e8f6fb';
 const GRASS = '#8fce72';
 const GRASS_DARK = '#6fb257';
 const WOOD = '#c98d4f';
+// Taken from the playground the backdrop is painted from, so the seesaw we draw
+// looks like it came with the park.
+const FULCRUM = '#1781d6';
+const FULCRUM_SHADE = '#1274c8';
+const BOLT = '#feca15';
 const WOOD_DARK = '#a06c37';
 const INK = '#3a2f2a';
 
@@ -91,7 +96,7 @@ const drawFence = (ctx: CanvasRenderingContext2D, y: number, bounds: Bounds): vo
   ctx.fillRect(bounds.left, y - 32, bounds.right - bounds.left, 8);
 };
 
-const drawFlowers = (ctx: CanvasRenderingContext2D): void => {
+export const drawFlowers = (ctx: CanvasRenderingContext2D): void => {
   const spots = [
     [96, 690],
     [196, 730],
@@ -178,13 +183,28 @@ export function createVectorTheme(): SeesawTheme {
     },
 
     drawSeesaw(ctx, view) {
-      // Fulcrum.
-      ctx.fillStyle = WOOD_DARK;
+      // Fulcrum, in the painted playground's own blue plastic with its yellow
+      // bolt, so the seesaw belongs to the park it stands in.
+      ctx.fillStyle = FULCRUM;
       ctx.beginPath();
       ctx.moveTo(SCENE.fulcrumX - SCENE.fulcrumHalfWidth, SCENE.groundY);
       ctx.lineTo(SCENE.fulcrumX + SCENE.fulcrumHalfWidth, SCENE.groundY);
       ctx.lineTo(SCENE.fulcrumX, SCENE.fulcrumY - 6);
       ctx.closePath();
+      ctx.fill();
+
+      // A darker face down one side, so it reads as moulded rather than flat.
+      ctx.fillStyle = FULCRUM_SHADE;
+      ctx.beginPath();
+      ctx.moveTo(SCENE.fulcrumX, SCENE.groundY);
+      ctx.lineTo(SCENE.fulcrumX + SCENE.fulcrumHalfWidth, SCENE.groundY);
+      ctx.lineTo(SCENE.fulcrumX, SCENE.fulcrumY - 6);
+      ctx.closePath();
+      ctx.fill();
+
+      // The foot it stands on.
+      ctx.fillStyle = FULCRUM_SHADE;
+      roundRect(ctx, SCENE.fulcrumX - SCENE.fulcrumHalfWidth - 8, SCENE.groundY - 14, SCENE.fulcrumHalfWidth * 2 + 16, 20, 8);
       ctx.fill();
 
       // Plank.
@@ -199,10 +219,14 @@ export function createVectorTheme(): SeesawTheme {
       ctx.fill();
       ctx.restore();
 
-      ctx.fillStyle = '#6d4c33';
+      // The bolt the plank turns on.
+      ctx.fillStyle = BOLT;
       ctx.beginPath();
-      ctx.arc(SCENE.fulcrumX, SCENE.fulcrumY, 11, 0, Math.PI * 2);
+      ctx.arc(SCENE.fulcrumX, SCENE.fulcrumY, 15, 0, Math.PI * 2);
       ctx.fill();
+      ctx.strokeStyle = 'rgba(180, 130, 10, 0.55)';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
 
       drawPlatform(ctx, 'left', view);
       drawPlatform(ctx, 'right', view);

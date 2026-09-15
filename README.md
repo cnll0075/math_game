@@ -159,6 +159,16 @@ question genuinely needs a removal and that nothing earlier does, that every
 Groups question offers at least two groups and is answered in one placement with
 no two groups weighing the same, and that every Fair Shares pile actually halves.
 
+## The artwork
+
+The park behind the seesaw is a painting, cut from
+`games/seesaw/assets/source/playground.png`. That image has a watermark across
+its middle, over its own painted plank and fulcrum, where nothing in the game
+could hide it; everything above the seesaw's handles is clean, and that band is
+what ships. The game draws its own seesaw in front of it — coloured to match the
+painted one — and continues the sky upward and the grass downward from the
+band's own edge pixels, so the picture has no seams.
+
 ## The animals' artwork
 
 The four animals are painted PNGs, cut from a character sheet in

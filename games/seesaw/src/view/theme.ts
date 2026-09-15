@@ -52,6 +52,8 @@ export interface SeesawView {
   flagSide: Side | null;
   /** 0..1 celebration intensity, during a perfect balance or a finished level. */
   celebrate: number;
+  /** 0..1 how far past safely tilted the seesaw is. */
+  danger: number;
   /** Marker for a tilt objective, in the same units as plankAngle; null if unused. */
   targetAngle: number | null;
   /**
@@ -76,5 +78,7 @@ export interface SeesawTheme {
   drawFlag(ctx: CanvasRenderingContext2D, view: SeesawView): void;
   /** Celebration dressing over the whole scene; draws nothing when idle. */
   drawCelebration(ctx: CanvasRenderingContext2D, view: SeesawView): void;
+  /** A warning over the whole scene when the plank is badly over; nothing when safe. */
+  drawDanger(ctx: CanvasRenderingContext2D, view: SeesawView): void;
   animals: AnimalArtist;
 }

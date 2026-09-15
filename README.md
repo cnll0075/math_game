@@ -162,6 +162,12 @@ the hop of the finishing dance, the weight tag — because all of that lives in
 the pose rather than in the drawing. Animals face in towards the middle, so the
 two sides look at each other.
 
+**When the plank goes badly over**, a red glow pulses in from the edges and a
+flag rises on the low side. It means "you have made this worse", not "this is a
+hard question": a level that *begins* lopsided is the puzzle, so the starting
+gap is the mark, and the warning only appears past it. Nothing is lost and
+nothing ends — it fades the moment the seesaw comes back.
+
 Two things the painted art cannot do that the drawn art could:
 
 - **Pull a face.** There is one expression per animal, so alarm is shown as a

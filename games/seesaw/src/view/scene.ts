@@ -43,7 +43,15 @@ export interface Scene {
   readonly plankAngle: number;
   readonly danceProgress: number;
   readonly announcing: boolean;
+  readonly danger: number;
 }
+
+/**
+ * Weight difference at which the warning starts, and how much further until it
+ * is at full strength. Past three the plank is beyond the gauge's yellow band.
+ */
+const DANGER_FROM = 3;
+const DANGER_FULL = 3;
 
 const expressionFor = (zone: SeesawSnapshot['zone'], mayBeAlarmed = true): Expression =>
   zone === 'green' ? 'calm' : zone === 'yellow' || !mayBeAlarmed ? 'surprised' : 'alarmed';
@@ -71,6 +79,8 @@ export function createScene(theme: SeesawTheme): Scene {
   const tilt = createSpring(0);
   const needle = createSpring(0);
   const flag = createSpring(0);
+  /** How far past safely tilted, smoothed so the warning fades rather than blinks. */
+  const danger = createSpring(0);
 
   let model = emptyModel();
   let time = 0;
@@ -92,6 +102,8 @@ export function createScene(theme: SeesawTheme): Scene {
   const previouslyPlaced = new Set<string>();
   /** The first frame of a level: whatever is on the plank was always there. */
   let firstLook = true;
+  /** How lopsided the question started out, which is not itself a problem. */
+  let startingGap = 0;
 
   const phaseFor = (uid: string): number => {
     let phase = phases.get(uid);
@@ -131,6 +143,7 @@ export function createScene(theme: SeesawTheme): Scene {
     flagHeight: flag.value,
     flagSide: model.snapshot.heavySide,
     celebrate: Math.max(celebrate, danceIntensity()),
+    danger: danger.value,
     targetAngle: model.targetBalance === null ? null : -model.targetBalance * SCENE.maxTiltRad,
     bounds,
     time,
@@ -225,10 +238,17 @@ export function createScene(theme: SeesawTheme): Scene {
       tilt.target = -next.snapshot.normalizedBalance * SCENE.maxTiltRad;
       needle.target = next.snapshot.normalizedBalance;
       flag.target = next.snapshot.zone === 'red' ? 1 : 0;
+      // The warning means "you have made this worse", not "this is a hard
+      // question": a level that begins badly tilted is the puzzle, so the
+      // starting gap is the mark to beat rather than something to warn about.
+      const gap = Math.abs(next.snapshot.balanceDifference);
+      const over = gap - Math.max(startingGap, DANGER_FROM);
+      danger.target = Math.min(1, Math.max(0, over / DANGER_FULL));
 
       tilt.step(dt);
       needle.step(dt);
       flag.step(dt);
+      danger.step(dt);
 
       if (next.dancing) danceElapsed = danceElapsed < 0 ? 0 : danceElapsed + dt;
       else danceElapsed = -1;
@@ -240,6 +260,8 @@ export function createScene(theme: SeesawTheme): Scene {
         announcing = TIMING.goalAnnounceSeconds;
         arrivals.clear();
         firstLook = true;
+        startingGap = Math.abs(next.snapshot.balanceDifference);
+        danger.snap(0);
       } else if (announcing > 0) {
         announcing = Math.max(0, announcing - dt);
       }
@@ -268,6 +290,7 @@ export function createScene(theme: SeesawTheme): Scene {
       theme.drawTarget(ctx, view);
       theme.drawFlag(ctx, view);
       theme.drawGauge(ctx, view);
+      theme.drawDanger(ctx, view);
       theme.drawCelebration(ctx, view);
       drawHud(
         ctx,
@@ -302,6 +325,11 @@ export function createScene(theme: SeesawTheme): Scene {
 
     get plankAngle() {
       return tilt.value + celebrationBob();
+    },
+
+    /** 0..1 how badly the plank is over, for tests and for the warning. */
+    get danger() {
+      return danger.value;
     },
 
     /** Whether a goal is being announced right now. */

@@ -547,3 +547,21 @@ needed:
 - Loading waits 250ms and then starts regardless, with the drawn animals
   standing in until the pictures arrive. `createVectorTheme()` stays a complete
   working set, so a missing file degrades rather than breaks.
+
+
+**Bigger animals, both sides, and a warning** (2026-09-14):
+
+- The painted animals are drawn about a quarter larger, with a little more room
+  between them on a crowded platform.
+- **The answer no longer always goes on the right.** Eight questions were
+  mirrored so their animals start on the right, because a run of levels whose
+  answer is always the same side teaches "drop on the right" — and then the
+  both-sides question punishes what was taught. A test keeps both sides in use
+  across the opening chapters.
+- The lines that described a trick now invite the child into it: "The heavy side
+  can have a friend" became "Hmm... how would you do this?".
+- **A danger warning returns**, without the arcade's failure state: past the
+  starting gap the screen edges glow red and pulse, and a flag rises on the low
+  side. Tying it to the gap the question *began* with matters — most levels open
+  badly tilted by design, and a red screen on arrival would tell a child off for
+  a puzzle they have not yet touched.

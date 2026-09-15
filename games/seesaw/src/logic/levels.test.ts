@@ -218,3 +218,28 @@ describe('what the two sides look like', () => {
     }
   });
 });
+
+describe('which side the answer goes on', () => {
+  /** Which sides the shortest answer puts animals on. */
+  const answerSides = (level: LevelDef) => {
+    const shortest = solutionsFor(level).sort((a, b) => a.length - b.length)[0] ?? [];
+    return new Set(shortest.filter((move) => move.kind === 'place').map((move) => move.side));
+  };
+
+  it('does not train the child that animals always go on the right', () => {
+    // Every early question having its animals on the left teaches "drop on the
+    // right", and then the both-sides question punishes what was taught.
+    const early = LEVELS.slice(0, 20);
+    const goesLeft = early.filter((level) => answerSides(level).has('left')).length;
+    const goesRight = early.filter((level) => answerSides(level).has('right')).length;
+    expect(goesLeft).toBeGreaterThanOrEqual(5);
+    expect(goesRight).toBeGreaterThanOrEqual(5);
+  });
+
+  it('puts the animals on both sides across the opening chapters', () => {
+    const startsOnLeft = LEVELS.filter((level) => level.initial.left.length > 0).length;
+    const startsOnRight = LEVELS.filter((level) => level.initial.right.length > 0).length;
+    expect(startsOnLeft).toBeGreaterThanOrEqual(8);
+    expect(startsOnRight).toBeGreaterThanOrEqual(8);
+  });
+});

@@ -21,10 +21,10 @@ const SOURCES: Record<AnimalId, string> = {
  * chickens' worth of animal.
  */
 const HEIGHTS: Record<AnimalId, number> = {
-  chicken: 46,
-  cat: 58,
-  dog: 74,
-  bear: 84,
+  chicken: 58,
+  cat: 73,
+  dog: 93,
+  bear: 106,
 };
 
 /**

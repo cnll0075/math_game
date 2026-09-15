@@ -276,3 +276,45 @@ describe('how alarm is shown', () => {
     expect(scene.placements().every((placement) => placement.pose.expression === 'calm')).toBe(true);
   });
 });
+
+describe('warning that the seesaw is badly over', () => {
+  const tipped = () => modelFor([animal('bear', 'left'), animal('bear', 'left', 1)], { goalToken: 'x' });
+
+  it('says nothing about a question that simply starts lopsided', () => {
+    // A level beginning five apart is the puzzle, not a mistake, and a red
+    // screen on arrival would tell a child off for nothing.
+    const scene = createScene(createVectorTheme());
+    const lopsided = modelFor([animal('bear', 'left')], { goalToken: 'start' });
+    for (let i = 0; i < 200; i++) scene.update(1 / 60, lopsided);
+    expect(scene.danger).toBeLessThan(0.05);
+  });
+
+  it('warns once the player has made it worse than it began', () => {
+    const scene = createScene(createVectorTheme());
+    const start = modelFor([animal('bear', 'left')], { goalToken: 'start' });
+    for (let i = 0; i < 60; i++) scene.update(1 / 60, start);
+    const worse = modelFor([animal('bear', 'left'), animal('bear', 'left', 1)], { goalToken: 'start' });
+    for (let i = 0; i < 200; i++) scene.update(1 / 60, worse);
+    expect(scene.danger).toBeGreaterThan(0.9);
+  });
+
+  it('fades once the seesaw is put right, rather than staying on', () => {
+    const scene = createScene(createVectorTheme());
+    const start = modelFor([animal('bear', 'left')], { goalToken: 'start' });
+    for (let i = 0; i < 60; i++) scene.update(1 / 60, start);
+    const worse = modelFor([animal('bear', 'left'), animal('bear', 'left', 1)], { goalToken: 'start' });
+    for (let i = 0; i < 200; i++) scene.update(1 / 60, worse);
+    const fixed = modelFor([animal('cat', 'left'), animal('cat', 'right')], { goalToken: 'start' });
+    for (let i = 0; i < 200; i++) scene.update(1 / 60, fixed);
+    expect(scene.danger).toBeLessThan(0.05);
+  });
+
+  it('forgets the last question when a new one arrives', () => {
+    const scene = createScene(createVectorTheme());
+    const start = modelFor([animal('cat', 'left')], { goalToken: 'first' });
+    for (let i = 0; i < 60; i++) scene.update(1 / 60, start);
+    for (let i = 0; i < 120; i++) scene.update(1 / 60, tipped());
+    // The new question begins ten apart, and says nothing about it.
+    expect(scene.danger).toBeLessThan(0.05);
+  });
+});

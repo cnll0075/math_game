@@ -60,7 +60,7 @@ export function fitToScreen(screen: Size, design: Size = DESIGN): ViewTransform 
 }
 
 /** Widest gap we bother with; beyond this the animals look scattered. */
-const MAX_SPACING = 78;
+const MAX_SPACING = 88;
 
 /**
  * Evenly spaced x offsets, centred on the platform. Animals stay readable as

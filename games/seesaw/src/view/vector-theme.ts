@@ -344,6 +344,35 @@ export function createVectorTheme(): SeesawTheme {
       ctx.restore();
     },
 
+    drawDanger(ctx, view) {
+      if (view.danger <= 0.01) return;
+      // A red glow pulsing in from the edges. Nothing is lost and nothing ends:
+      // it says "this is very tilted" in a way that needs no reading, and it
+      // fades the moment the seesaw comes back.
+      const { bounds } = view;
+      const width = bounds.right - bounds.left;
+      const height = bounds.bottom - bounds.top;
+      const centreX = (bounds.left + bounds.right) / 2;
+      const centreY = (bounds.top + bounds.bottom) / 2;
+      const radius = Math.hypot(width, height) / 2;
+      const pulse = 0.68 + Math.sin(view.time * 6) * 0.32;
+      const strength = view.danger * pulse;
+
+      ctx.save();
+      const glow = ctx.createRadialGradient(centreX, centreY, radius * 0.3, centreX, centreY, radius);
+      glow.addColorStop(0, 'rgba(228, 105, 95, 0)');
+      glow.addColorStop(0.65, `rgba(219, 76, 66, ${(0.3 * strength).toFixed(3)})`);
+      glow.addColorStop(1, `rgba(190, 40, 34, ${(0.85 * strength).toFixed(3)})`);
+      ctx.fillStyle = glow;
+      ctx.fillRect(bounds.left, bounds.top, width, height);
+
+      // A band around the very edge, so the warning reads even on a bright sky.
+      ctx.strokeStyle = `rgba(214, 62, 52, ${(0.9 * strength).toFixed(3)})`;
+      ctx.lineWidth = 26;
+      ctx.strokeRect(bounds.left + 13, bounds.top + 13, width - 26, height - 26);
+      ctx.restore();
+    },
+
     drawCelebration(ctx, view) {
       if (view.celebrate <= 0.01) return;
       // Petals drift down across the whole scene. Positions come from the clock

@@ -45,13 +45,23 @@ deep in the basket they should sit.
 
 ## The animal recordings
 
-`assets/sounds/chicken.wav`, `cat.wav`, `dog.wav`, `bear.wav` are the supplied
-recordings, renamed and otherwise untouched - 16-bit mono at 44.1kHz, between
-0.6 and 1.2 seconds each. Nothing is cut from them, so there is no script here
-for them.
+`sounds/source/` holds the supplied stock clips under the names they arrived
+with, because those names carry who made them and which clip they are - worth
+keeping for the licence check before this ships.
+
+`scripts/cut-cries.py` turns them into the four the game plays. They arrive as
+stock clips rather than game cues: the cat is nearly twelve seconds of a cat
+repeating itself and the chicken is seven of clucking, while the dog and the
+bear are single sounds already. Each one is cut to a single cry, trimmed to
+where the sound really starts - silence at the head of a cue is a delay the
+child feels - faded at both edges so the cut cannot click, levelled against the
+other three, and written as mono AAC at about 10KB apiece.
+
+The windows the script cuts are chosen and recorded in it. The cat's loudest
+meow is clipped in the original, so a quieter, cleaner one is taken instead.
 
 They play through `createSampleSoundPack` in `@bundle/core`, with the
 synthesised pack underneath for every other sound - and for the animals too,
-until the files have loaded or if they never do. Their levels are set in
-`src/audio/seesaw-sounds.ts`, measured so the sounding part of each file lands
-at the same loudness rather than eyeballed.
+until the files have loaded or if they never do. Because the files are levelled
+against each other, the game needs one gain for all four rather than four
+numbers kept in step by hand.

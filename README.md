@@ -161,9 +161,10 @@ no two groups weighing the same, and that every Fair Shares pile actually halves
 
 ## Sound
 
-The animals are recordings; everything else - the bell, the creak, the landing
-thud, the cheer - is still synthesised on the fly, so the bundle carries four
-short files rather than a sound library.
+The animals are recordings, cut from stock clips by `scripts/cut-cries.py` and
+shipped as mono AAC at about 10KB each. Everything else - the bell, the creak,
+the landing thud, the cheer - is still synthesised on the fly, so the whole
+bundle carries about 45KB of audio rather than a sound library.
 
 Both go through the same `SoundPack` seam: a game asks for an event by name and
 never learns whether the answer was a recording or a synthesiser.

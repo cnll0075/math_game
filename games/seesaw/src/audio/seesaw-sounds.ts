@@ -1,10 +1,10 @@
 import { createSampleSoundPack, noiseBurst, tone, type AudioBus, type SoundPack } from '@bundle/core';
 import { ANIMALS, ANIMAL_IDS, type AnimalId } from '../logic/animals.js';
 
-import chickenUrl from '../../assets/sounds/chicken.wav';
-import catUrl from '../../assets/sounds/cat.wav';
-import dogUrl from '../../assets/sounds/dog.wav';
-import bearUrl from '../../assets/sounds/bear.wav';
+import chickenUrl from '../../assets/sounds/chicken.m4a';
+import catUrl from '../../assets/sounds/cat.m4a';
+import dogUrl from '../../assets/sounds/dog.m4a';
+import bearUrl from '../../assets/sounds/bear.m4a';
 
 /**
  * Every sound the game can make, by name. A later pack backed by recorded
@@ -147,17 +147,11 @@ const CRIES: Record<AnimalId, string> = {
 };
 
 /**
- * Levels for the recordings, which arrive at whatever level they were recorded
- * at. Measured rather than guessed: each one is set so the sounding part of the
- * file - not the silence around it - lands at the same loudness, then the bear
- * is left a little louder than the chicken because a bear should be.
+ * How loud the animals are against the bell and the creak. One number covers
+ * all four because `scripts/cut-cries.py` levels the files themselves, rather
+ * than leaving four guesses here to be kept in step by hand.
  */
-const CRY_GAIN: Record<AnimalId, number> = {
-  chicken: 0.42,
-  cat: 0.42,
-  dog: 0.34,
-  bear: 0.40,
-};
+const CRY_GAIN = 0.85;
 
 /**
  * What the game actually plays: the recorded animals, and the synthesised pack
@@ -169,7 +163,7 @@ export function createSeesawSoundPack(bus: AudioBus): SoundPack {
   const gain: Record<string, number> = {};
   for (const id of ANIMAL_IDS) {
     sources[`voice:${id}`] = CRIES[id];
-    gain[`voice:${id}`] = CRY_GAIN[id];
+    gain[`voice:${id}`] = CRY_GAIN;
   }
   return createSampleSoundPack(bus, { sources, gain, fallback: createSynthSoundPack(bus) });
 }

@@ -159,6 +159,19 @@ question genuinely needs a removal and that nothing earlier does, that every
 Groups question offers at least two groups and is answered in one placement with
 no two groups weighing the same, and that every Fair Shares pile actually halves.
 
+## Lettering
+
+Everything is written in Chalkboard SE, a rounded hand-drawn face that ships
+with iOS and macOS, so the game reads as drawn rather than typed without a font
+file to download or fetch. The stack lives in
+`games/seesaw/src/view/type.ts` and, for the launcher, in the `--hand` custom
+property in `apps/shell/src/shell.css`; the two are kept in step.
+
+Weights are written as coloured numbers rather than counters in a circle, and
+each weight keeps its colour everywhere it appears - on the plank, in the tray,
+in a pen - so a child who cannot yet read the numeral can still tell one amount
+of animal from another.
+
 ## The artwork
 
 Everything on screen is cut from two paintings in

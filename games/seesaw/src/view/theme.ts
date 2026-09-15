@@ -54,6 +54,8 @@ export interface SeesawView {
   zone: Zone;
   /** 0..1 celebration intensity, during a perfect balance or a finished level. */
   celebrate: number;
+  /** 0..1 how far the flag that marks a level plank has popped up. */
+  levelled: number;
   /** 0..1 how far past safely tilted the seesaw is. */
   danger: number;
   /** Marker for a tilt objective, in the same units as plankAngle; null if unused. */
@@ -80,6 +82,11 @@ export interface SeesawTheme {
    * draw nothing here.
    */
   drawSeesawFront(ctx: CanvasRenderingContext2D, view: SeesawView): void;
+  /**
+   * The flag that says the plank is level. Drawn over the seesaw, at the point
+   * the whole game turns on, because "flat" is hard to see and easy to doubt.
+   */
+  drawLevelFlag(ctx: CanvasRenderingContext2D, view: SeesawView): void;
   /** The target marker, drawn over the animals so it is never hidden. */
   drawTarget(ctx: CanvasRenderingContext2D, view: SeesawView): void;
   drawGauge(ctx: CanvasRenderingContext2D, view: SeesawView): void;

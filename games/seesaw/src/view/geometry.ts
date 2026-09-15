@@ -35,6 +35,8 @@ export const PARK = {
   trayWidth: 297,
   /** How far the tray's near wall rises above the plank. */
   trayWall: 68,
+  /** How far the top of the post stands above the bolt. */
+  postTop: 51,
   /** How far the tray hangs below the plank, which is what limits the tilt. */
   trayDrop: 40,
   /**
@@ -76,6 +78,8 @@ export const SCENE = {
   basketWall: 54,
   /** The top of the painted tray's back rim, measured from the plank. */
   basketRim: 103 * PARK_SCALE,
+  /** The top of the post, where the flag for a level plank is planted. */
+  postTopY: 648 - (PARK.groundY - PARK.pivotY + PARK.postStretch + PARK.postTop) * PARK_SCALE,
   /** The width a row of animals has to fit inside the painted basket. */
   basketInner: PARK.trayWidth * PARK_SCALE - 40,
   /** The top of the painted tray's near wall, measured from the plank. */

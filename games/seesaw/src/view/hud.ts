@@ -1,5 +1,6 @@
 import type { TrayItem } from '../logic/game.js';
 import { DESIGN } from './layout.js';
+import { hand } from './type.js';
 import { SCENE } from './geometry.js';
 import { TIMING } from './timing.js';
 import type { SeesawTheme } from './theme.js';
@@ -13,6 +14,29 @@ export interface HudModel {
   chapter: string | null;
   /** 0..1 through the goal's arrival, or null when it has settled. */
   announcing: number | null;
+}
+
+/** The colour the questions are written in: warm, and not quite black. */
+const TITLE_INK = '#4a3527';
+
+/**
+ * A title, written rather than printed: a white rim under the letters so they
+ * hold up over the sky, the bushes or the plank, whichever the card is over.
+ */
+function writeTitle(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  y: number,
+  size: number,
+  colour: string,
+): void {
+  ctx.font = hand(700, size);
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = 6;
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.92)';
+  ctx.strokeText(text, 0, y);
+  ctx.fillStyle = colour;
+  ctx.fillText(text, 0, y);
 }
 
 /** Where the goal sits once it has settled. */
@@ -74,20 +98,14 @@ function drawGoal(ctx: CanvasRenderingContext2D, theme: SeesawTheme, hud: HudMod
 
   if (hud.chapter && arriving) {
     // A new chapter gets its name, with the question underneath it.
-    ctx.font = '700 34px system-ui, -apple-system, "Segoe UI", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#d8842b';
-    ctx.fillText(hud.chapter, 0, -16);
-    ctx.font = '600 26px system-ui, -apple-system, "Segoe UI", sans-serif';
-    ctx.fillStyle = 'rgba(29,43,50,0.86)';
-    ctx.fillText(hud.caption, 0, 20);
+    writeTitle(ctx, hud.chapter, -18, 36, '#f08a1d');
+    writeTitle(ctx, hud.caption, 22, 27, TITLE_INK);
   } else {
-    ctx.font = '600 30px system-ui, -apple-system, "Segoe UI", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = 'rgba(29,43,50,0.86)';
-    ctx.fillText(hud.caption, 0, 0);
+    writeTitle(ctx, hud.caption, 0, 31, TITLE_INK);
   }
   ctx.restore();
 

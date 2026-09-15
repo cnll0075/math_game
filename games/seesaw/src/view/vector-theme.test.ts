@@ -11,6 +11,7 @@ const view = (overrides: Partial<SeesawView> = {}): SeesawView => ({
   needle: 0.3,
   zone: 'yellow',
   celebrate: 0,
+  levelled: 0,
   danger: 0,
   targetAngle: -0.1,
   bounds: { left: 0, top: 0, right: DESIGN.width, bottom: DESIGN.height },
@@ -21,6 +22,21 @@ const view = (overrides: Partial<SeesawView> = {}): SeesawView => ({
 describe('vector theme', () => {
   it('preloads without needing assets', async () => {
     await expect(createVectorTheme().preload()).resolves.toBeUndefined();
+  });
+
+  it('flies no flag while the plank is not level', () => {
+    const theme = createVectorTheme();
+    const { ctx, calls } = recordingContext();
+    theme.drawLevelFlag(ctx, view({ levelled: 0 }));
+    expect(calls).toHaveLength(0);
+  });
+
+  it('flies a flag once the plank is level, and leaves the context balanced', () => {
+    const theme = createVectorTheme();
+    const { ctx, calls } = recordingContext();
+    theme.drawLevelFlag(ctx, view({ levelled: 1 }));
+    expect(calls.length).toBeGreaterThan(0);
+    expect(depthOf(ctx)).toBe(0);
   });
 
   it('draws no near wall, because the drawn baskets have none', () => {

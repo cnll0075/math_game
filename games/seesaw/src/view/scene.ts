@@ -81,6 +81,7 @@ export function createScene(theme: SeesawTheme): Scene {
   const needle = createSpring(0);
   /** How far past safely tilted, smoothed so the warning fades rather than blinks. */
   const danger = createSpring(0);
+  const levelled = createSpring(0);
 
   let model = emptyModel();
   let time = 0;
@@ -142,6 +143,7 @@ export function createScene(theme: SeesawTheme): Scene {
     zone: model.snapshot.zone,
     celebrate: Math.max(celebrate, danceIntensity()),
     danger: danger.value,
+    levelled: levelled.value,
     targetAngle: model.targetBalance === null ? null : -model.targetBalance * SCENE.maxTiltRad,
     bounds,
     time,
@@ -164,8 +166,13 @@ export function createScene(theme: SeesawTheme): Scene {
       // Only the animal at the very end of the side that is down looks alarmed.
       // The painted animals cannot pull a face, so alarm is a mark above them,
       // and one mark says "trouble" where four say "noise".
+      //
+      // Read off the danger meter rather than off the zone, so it means the same
+      // thing the red glow means: you have made this worse. A question that
+      // begins steeply tilted is the puzzle, and a warning over it before the
+      // child has touched anything reads as a mistake they have not made.
       const worried =
-        model.snapshot.zone === 'red' && model.snapshot.heavySide === side ? animals.length - 1 : -1;
+        danger.value > 0.35 && model.snapshot.heavySide === side ? animals.length - 1 : -1;
 
       animals.forEach((animal, index) => {
         const offset = row.offsets[index] ?? 0;
@@ -251,7 +258,9 @@ export function createScene(theme: SeesawTheme): Scene {
 
       tilt.step(dt);
       needle.step(dt);
+      levelled.target = next.snapshot.isPerfectlyBalanced ? 1 : 0;
       danger.step(dt);
+      levelled.step(dt);
 
       if (next.dancing) danceElapsed = danceElapsed < 0 ? 0 : danceElapsed + dt;
       else danceElapsed = -1;
@@ -294,6 +303,7 @@ export function createScene(theme: SeesawTheme): Scene {
       const onThePlank = placementsFor();
       for (const { animal, pose } of onThePlank) theme.animals.draw(ctx, animal.species, pose);
       theme.drawSeesawFront(ctx, view);
+      theme.drawLevelFlag(ctx, view);
       for (const { animal, pose } of onThePlank) theme.animals.drawTag(ctx, animal.species, pose);
       theme.drawTarget(ctx, view);
       theme.drawGauge(ctx, view);

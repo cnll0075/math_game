@@ -18,6 +18,9 @@ const WOOD = '#c98d4f';
 const FULCRUM = '#ab6225';
 const FULCRUM_SHADE = '#8d4e1b';
 const BOLT = '#fbb028';
+/** How high the level-plank flag flies above the post, and how far it reaches. */
+const FLAG_RISE = 62;
+const FLAG_SPAN = 46;
 const WOOD_DARK = '#a06c37';
 const INK = '#3a2f2a';
 
@@ -185,6 +188,53 @@ export function createVectorTheme(): SeesawTheme {
     // The drawn baskets have no near wall to put in front of the animals.
     drawSeesawFront() {},
 
+    drawLevelFlag(ctx, view) {
+      if (view.levelled <= 0.01) return;
+      const pop = Math.min(1, view.levelled);
+      // A little overshoot on the way up, so it springs out rather than grows.
+      const rise = FLAG_RISE * (1 + Math.sin(pop * Math.PI) * 0.12) * pop;
+      const flutter = Math.sin(view.time * 7) * 0.12 * pop;
+
+      ctx.save();
+      ctx.translate(SCENE.fulcrumX, SCENE.postTopY);
+
+      ctx.strokeStyle = '#7a5433';
+      ctx.lineWidth = 5;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(0, 6);
+      ctx.lineTo(0, -rise);
+      ctx.stroke();
+
+      // A pennant the colour of the one over the park gate, so the seesaw looks
+      // like it is flying the park's own flag.
+      ctx.save();
+      ctx.translate(0, -rise);
+      ctx.rotate(flutter);
+      ctx.fillStyle = '#fbc02d';
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(FLAG_SPAN * pop, 13);
+      ctx.lineTo(0, 26);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(180, 130, 20, 0.5)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
+
+      // Two sparks either side, on the beat, so the moment reads as an arrival.
+      ctx.fillStyle = '#ffe066';
+      for (const side of [-1, 1] as const) {
+        const twinkle = 0.5 + Math.sin(view.time * 8 + side) * 0.5;
+        ctx.globalAlpha = pop * (0.35 + twinkle * 0.65);
+        ctx.beginPath();
+        ctx.arc(side * 26, -rise + 16 - twinkle * 8, 4 * pop, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    },
+
     drawSeesaw(ctx, view) {
       // Fulcrum, in the painted playground's own blue plastic with its yellow
       // bolt, so the seesaw belongs to the park it stands in.
@@ -330,11 +380,15 @@ export function createVectorTheme(): SeesawTheme {
       const needleX = x + width / 2 - (view.needle * width) / 2;
       const bead = height / 2 - 1;
       ctx.fillStyle = '#ffffff';
-      ctx.strokeStyle = INK;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = 'rgba(255,255,255,0.85)';
       ctx.beginPath();
       ctx.arc(needleX, y + height / 2, bead, 0, Math.PI * 2);
+      ctx.shadowColor = 'rgba(24, 38, 24, 0.35)';
+      ctx.shadowBlur = 5;
       ctx.fill();
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
       ctx.stroke();
     },
 

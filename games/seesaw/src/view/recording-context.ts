@@ -38,7 +38,11 @@ export function recordingContext(): RecordingContext {
         calls.push(property);
         if (property === 'save') depth += 1;
         if (property === 'restore') depth -= 1;
-        if (property === 'fillText' || property === 'strokeText') texts.push(String(args[0] ?? ''));
+        // Only what was filled. Lettering is written more than once - a rim
+        // under it, then the letters - and counting the passes would make a
+        // test about how many numbers are on screen a test about how they are
+        // drawn.
+        if (property === 'fillText') texts.push(String(args[0] ?? ''));
         if (property === 'translate') translations.push({ x: Number(args[0]), y: Number(args[1]) });
         if (RETURNS_OBJECT.has(property)) return { addColorStop: () => {} };
         if (property === 'measureText') return { width: String(args[0] ?? '').length * 7 };

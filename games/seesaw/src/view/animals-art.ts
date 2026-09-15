@@ -1,5 +1,6 @@
 import { ANIMALS, type AnimalId } from '../logic/animals.js';
 import type { AnimalArtist, AnimalPose, Expression } from './theme.js';
+import { hand } from './type.js';
 
 /**
  * Prototype animal art, drawn from primitives so the game needs no image
@@ -210,6 +211,22 @@ export const BADGE_MIN_SCALE = 0.62;
  * so it tips and hops with the animal and reads as part of it rather than as
  * an overlay.
  */
+/** How big a weight is written, before a crowded animal's relief scaling. */
+const BADGE_SIZE = 34;
+
+/**
+ * A colour per weight, held to everywhere a number appears. The animals each
+ * weigh a fixed amount, so this is a colour per animal as well, and a child who
+ * cannot yet read the numeral still sees that two cats and a blue three are
+ * different amounts of animal.
+ */
+const WEIGHT_COLOUR: Record<number, string> = {
+  1: '#f2a516',
+  2: '#f2702a',
+  3: '#3d8ee0',
+  5: '#9b5de5',
+};
+
 export const drawWeightBadge = (
   ctx: CanvasRenderingContext2D,
   species: AnimalId,
@@ -220,25 +237,38 @@ export const drawWeightBadge = (
   const weight = ANIMALS[species].weight;
   // Counter the animal's own shrinking, so the number stays legible in a group.
   const relief = Math.max(1, BADGE_MIN_SCALE / drawnAt);
+  const label = String(weight);
 
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(relief, relief);
-  ctx.translate(-x, -y);
-
-  ctx.beginPath();
-  ctx.arc(x, y, BADGE_RADIUS, 0, Math.PI * 2);
-  ctx.fillStyle = '#ffffff';
-  ctx.fill();
-  ctx.lineWidth = 2.5;
-  ctx.strokeStyle = INK;
-  ctx.stroke();
-
-  ctx.fillStyle = INK;
-  ctx.font = '700 17px system-ui, -apple-system, "Segoe UI", sans-serif';
+  // A shade off square, the way a number gets written by hand.
+  ctx.rotate(-0.07);
+  ctx.font = hand(700, BADGE_SIZE);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(String(weight), x, y + 1);
+  ctx.lineJoin = 'round';
+
+  // Three passes outward in: a dark edge to sit it on the park, a white rim to
+  // hold it off whatever is behind, and the number itself in its own colour.
+  // Each weight keeps its colour wherever it appears, so a child can find the
+  // threes without reading them.
+  ctx.shadowColor = 'rgba(24, 38, 24, 0.38)';
+  ctx.shadowBlur = 7;
+  ctx.shadowOffsetY = 3;
+  ctx.lineWidth = 11;
+  ctx.strokeStyle = 'rgba(34, 46, 38, 0.55)';
+  ctx.strokeText(label, 0, 0);
+
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 0;
+  ctx.lineWidth = 7;
+  ctx.strokeStyle = '#ffffff';
+  ctx.strokeText(label, 0, 0);
+
+  ctx.fillStyle = WEIGHT_COLOUR[weight] ?? '#f2702a';
+  ctx.fillText(label, 0, 0);
   ctx.restore();
 };
 

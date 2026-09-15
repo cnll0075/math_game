@@ -1,6 +1,12 @@
 :root {
   --ink: #1d2b32;
   --paper: #f7f4ec;
+  /*
+   * The same hand the games are lettered in. Chalkboard SE ships with iOS and
+   * macOS, so the whole bundle reads as drawn rather than typed without a font
+   * file to download. Kept in step with view/type.ts in the seesaw game.
+   */
+  --hand: 'Chalkboard SE', 'Marker Felt', 'Comic Sans MS', system-ui, sans-serif;
   color-scheme: light;
 }
 
@@ -14,7 +20,7 @@ body,
   height: 100%;
   margin: 0;
   background: var(--ink);
-  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-family: var(--hand);
   color: var(--ink);
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
@@ -29,6 +35,7 @@ body,
 
 .launcher__title {
   margin: 0 0 4px;
+  letter-spacing: 0.4px;
   font-size: clamp(26px, 4vw, 40px);
   color: var(--paper);
 }

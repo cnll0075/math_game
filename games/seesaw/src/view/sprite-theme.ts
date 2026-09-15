@@ -2,6 +2,7 @@ import { ANIMAL_IDS, type AnimalId } from '../logic/animals.js';
 import { ANIMAL_ART, drawWeightBadge, vectorAnimalArtist, withPose } from './animals-art.js';
 import { createVectorTheme } from './vector-theme.js';
 import { PARK, PARK_SCALE, SCENE } from './geometry.js';
+import { hand } from './type.js';
 import type { AnimalArtist, AnimalPose, SeesawTheme } from './theme.js';
 
 import parkUrl from '../../assets/park.jpg';
@@ -73,7 +74,7 @@ function drawMood(ctx: CanvasRenderingContext2D, pose: AnimalPose, top: number):
   if (!ctx.roundRect) ctx.rect(-7, -18, 14, 22);
   ctx.fill();
   ctx.fillStyle = '#ffffff';
-  ctx.font = '700 15px system-ui, -apple-system, sans-serif';
+  ctx.font = hand(700, 16);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText('!', 0, -7);

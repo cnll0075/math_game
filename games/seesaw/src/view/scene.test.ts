@@ -262,11 +262,22 @@ describe('how alarm is shown', () => {
 
   it('alarms only the animal at the end of the side that is down', () => {
     const scene = createScene(createVectorTheme());
+    // Start level, then tip it over: alarm is for what the child did.
+    const calm = modelFor([animal('chicken', 'left'), animal('chicken', 'right', 1)]);
+    for (let i = 0; i < 60; i++) scene.update(1 / 60, calm);
     for (let i = 0; i < 200; i++) scene.update(1 / 60, tipped());
     const alarmed = scene.placements().filter((placement) => placement.pose.expression === 'alarmed');
     // One mark says trouble; one per animal says noise.
     expect(alarmed).toHaveLength(1);
     expect(alarmed[0]!.animal.side).toBe('left');
+  });
+
+  it('alarms nobody on a question that begins steeply tilted', () => {
+    // The tilt is the puzzle. A warning before the child has touched anything
+    // reads as a mistake they have not made.
+    const scene = createScene(createVectorTheme());
+    for (let i = 0; i < 200; i++) scene.update(1 / 60, tipped());
+    expect(scene.placements().every((placement) => placement.pose.expression !== 'alarmed')).toBe(true);
   });
 
   it('alarms nobody while the seesaw is safe', () => {

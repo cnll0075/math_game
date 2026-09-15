@@ -37,6 +37,9 @@ export interface SeesawSession extends GameSession {
 
 const contentIdFor = (levelId: string): string => `seesaw:${levelId}`;
 
+/** The distinct members of a list, in the order they first appear. */
+const distinct = <T>(items: readonly T[]): T[] => [...new Set(items)];
+
 const firstUnlockedLevel = (host: GameHost): LevelDef => {
   const unlocked = LEVELS.find((level) => host.content.isUnlocked(contentIdFor(level.id)));
   return unlocked ?? LEVELS[0]!;
@@ -92,16 +95,17 @@ export const seesawGame: SeesawModule = {
     });
 
     const handleEvents = (events: readonly SessionEvent[]): void => {
+      // Landing is a thud and a creak, not another cry. The animal already
+      // spoke when it was picked up, and a group of four chosen as one thing
+      // used to land as four meows, four thuds and four creaks at once.
+      if (events.some((event) => event.type === 'placed')) {
+        sounds.play('land');
+        sounds.play('creak');
+      }
+      if (events.some((event) => event.type === 'takenBack')) sounds.play('creak');
+
       for (const event of events) {
         switch (event.type) {
-          case 'placed':
-            sounds.play(`voice:${event.animal.species}`);
-            sounds.play('land');
-            sounds.play('creak');
-            break;
-          case 'takenBack':
-            sounds.play('creak');
-            break;
           case 'perfectBalance':
             // Held until the plank stops moving: land, creak, settle, DING.
             pendingDing = true;
@@ -119,9 +123,10 @@ export const seesawGame: SeesawModule = {
         finishedFor = 0;
         sounds.play('success');
         sounds.play('cheer', { delay: 0.12 });
-        // One chirp per dancer, in the same wave the hops run in.
-        driver.placed().forEach((animal, index) => {
-          sounds.play(`voice:${animal.species}`, { delay: 0.2 + index * TIMING.danceStaggerSeconds });
+        // One chirp per kind of animal on the plank, in the same wave the hops
+        // run in: a chorus rather than a roll call.
+        distinct(driver.placed().map((animal) => animal.species)).forEach((species, index) => {
+          sounds.play(`voice:${species}`, { delay: 0.2 + index * TIMING.danceStaggerSeconds });
         });
       }
     };

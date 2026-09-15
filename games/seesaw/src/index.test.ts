@@ -101,6 +101,44 @@ describe('seesaw game module', () => {
     vi.restoreAllMocks();
   });
 
+  it('a group of animals lands as one animal, not as a pile-up', async () => {
+    // l16's tray offers ready-made groups. Four cats arriving at once used to
+    // be four meows, four thuds and four creaks on top of each other.
+    const played = spyOnSounds();
+    const { session } = await mountGame({ startLevel: 'l16' });
+    session.__test.place(2, 'right');
+    expect(played.filter((event) => event === 'land')).toHaveLength(1);
+    expect(played.filter((event) => event === 'creak')).toHaveLength(1);
+    session.unmount();
+    vi.restoreAllMocks();
+  });
+
+  it('speaks when an animal is touched, and lets it land quietly', async () => {
+    // Picking one up says which animal it is, for a child who cannot read the
+    // number. Landing has a thud and a creak already; a second cry on top of
+    // them was the same animal saying the same thing twice in a second.
+    const played = spyOnSounds();
+    const { session } = await mountGame({ startLevel: 'l16' });
+    session.__test.place(2, 'right');
+    expect(played.filter((event) => event === 'voice:cat')).toHaveLength(1);
+    session.unmount();
+    vi.restoreAllMocks();
+  });
+
+  it('cheers once per kind of animal on the plank, not once per animal', async () => {
+    const played = spyOnSounds();
+    const { session } = await mountGame({ startLevel: 'l16' });
+    // Two dogs already sitting there, and a group of three cats answers it.
+    session.__test.place(1, 'right');
+    session.__test.step(200);
+    // One cat and one dog in the chorus, not three cats and two dogs.
+    expect(played.filter((event) => event === 'voice:cat')).toHaveLength(2);
+    expect(played.filter((event) => event === 'voice:dog')).toHaveLength(1);
+    expect(played).toContain('success');
+    session.unmount();
+    vi.restoreAllMocks();
+  });
+
   it('warns when the seesaw enters the red zone', async () => {
     const played = spyOnSounds();
     // This one starts level, so piling one side up is a real transition into

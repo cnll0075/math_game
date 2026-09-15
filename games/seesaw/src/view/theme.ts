@@ -35,6 +35,11 @@ export interface AnimalPose {
 
 export interface AnimalArtist {
   draw(ctx: CanvasRenderingContext2D, species: AnimalId, pose: AnimalPose): void;
+  /**
+   * The weight tag alone. Drawn in a second pass over a row of animals so a
+   * number is never hidden behind the animal in front of it.
+   */
+  drawTag(ctx: CanvasRenderingContext2D, species: AnimalId, pose: AnimalPose): void;
 }
 
 export interface SeesawView {

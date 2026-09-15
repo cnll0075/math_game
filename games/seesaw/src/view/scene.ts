@@ -286,7 +286,11 @@ export function createScene(theme: SeesawTheme): Scene {
       // on screen saying that a side tap is what seats it.
       if (model.selectedTrayIndex !== null) drawSideTargets(ctx, view.plankAngle, time);
       theme.drawSeesaw(ctx, view);
-      for (const { animal, pose } of placementsFor()) theme.animals.draw(ctx, animal.species, pose);
+      // Animals first, then every tag: a number hidden behind the animal in
+      // front of it would have a child guessing at a weight.
+      const onThePlank = placementsFor();
+      for (const { animal, pose } of onThePlank) theme.animals.draw(ctx, animal.species, pose);
+      for (const { animal, pose } of onThePlank) theme.animals.drawTag(ctx, animal.species, pose);
       theme.drawTarget(ctx, view);
       theme.drawFlag(ctx, view);
       theme.drawGauge(ctx, view);

@@ -36,8 +36,13 @@ export function createDriver(level: LevelDef): Driver {
   let selected: number | null = null;
 
   const targetBalance = (): number | null => {
-    if (level.objective.kind !== 'tilt') return null;
-    return level.objective.target / balanceConfigFor(level).maxTiltDifference;
+    if (level.objective.kind === 'tilt') {
+      return level.objective.target / balanceConfigFor(level).maxTiltDifference;
+    }
+    // The opening questions show a ghost of the plank lying flat. A real seesaw
+    // has no reason to be level, so the game has to say which way is "right",
+    // and showing it beats explaining it.
+    return level.showTarget ? 0 : null;
   };
 
   // Progress through the chapter, so a level does not feel like an island.

@@ -15,18 +15,21 @@ import type { Side } from './seesaw-state.js';
 export const LEVELS: readonly LevelDef[] = [
   // --- Same and Same: what "level" means, and that two small ones can equal
   // one bigger one.
-  { id: 'l1', section: 'same', objective: { kind: 'balance' }, hint: 'The chicken wants a friend',
+  // Only the very first question has the same animal on both sides. It is the
+  // one place where matching like with like is the lesson; everywhere after, a
+  // matching pair would let a child answer by spotting it.
+  { id: 'l1', section: 'same', objective: { kind: 'balance' }, hint: 'Both sides the same makes it flat',
+    showTarget: true,
     initial: { left: ['chicken'], right: [] }, tray: ['chicken'] },
-  { id: 'l2', section: 'same', objective: { kind: 'balance' }, hint: 'Two chickens want two friends',
-    initial: { left: [], right: ['chicken', 'chicken'] }, tray: ['chicken', 'chicken'] },
+  { id: 'l2', section: 'same', objective: { kind: 'balance' }, hint: 'One cat is worth two chickens',
+    showTarget: true,
+    initial: { left: [], right: ['chicken', 'chicken'] }, tray: ['cat', 'chicken'] },
   { id: 'l3', section: 'same', objective: { kind: 'balance' }, hint: 'How many chickens match the cat?',
     initial: { left: ['cat'], right: [] }, tray: ['chicken', 'chicken', 'chicken'] },
   { id: 'l4', section: 'same', objective: { kind: 'balance' }, hint: 'How many chickens match the dog?',
     initial: { left: [], right: ['dog'] }, tray: ['chicken', 'chicken', 'chicken', 'chicken'] },
-  { id: 'l5', section: 'same', objective: { kind: 'balance' }, hint: 'A cat and a chicken can match it',
+  { id: 'l5', section: 'same', objective: { kind: 'balance' }, hint: 'A cat and a chicken together',
     initial: { left: ['dog'], right: [] }, tray: ['cat', 'chicken', 'chicken'] },
-
-  // --- Make the Number: something is already there, work out the rest.
   { id: 'l6', section: 'make', objective: { kind: 'balance' }, hint: 'The cat needs one more friend',
     initial: { left: ['dog'], right: ['cat'] }, tray: ['chicken', 'cat'] },
   { id: 'l7', section: 'make', objective: { kind: 'balance' }, hint: 'Who else can sit with the dog?',
@@ -40,9 +43,9 @@ export const LEVELS: readonly LevelDef[] = [
 
   // --- Build It: the numbers nothing weighs, and the gaps that need both sides.
   { id: 'l11', section: 'build', objective: { kind: 'balance' }, hint: 'Nobody weighs four!',
-    initial: { left: ['dog', 'chicken'], right: [] }, tray: ['dog', 'chicken', 'cat'] },
+    initial: { left: ['cat', 'cat'], right: [] }, tray: ['dog', 'chicken', 'cat'] },
   { id: 'l12', section: 'build', objective: { kind: 'balance' }, hint: 'The dog is too big this time',
-    initial: { left: [], right: ['cat', 'cat'] }, tray: ['cat', 'cat', 'dog'] },
+    initial: { left: [], right: ['dog', 'chicken'] }, tray: ['cat', 'cat', 'dog'] },
   { id: 'l13', section: 'build', objective: { kind: 'balance' }, hint: 'Four more to go',
     initial: { left: ['bear', 'dog'], right: ['cat', 'cat'] }, tray: ['cat', 'cat', 'dog'] },
   // The gap is one and there is no chicken: the only way through is adding to
@@ -60,8 +63,10 @@ export const LEVELS: readonly LevelDef[] = [
   { id: 'l17', section: 'groups', objective: { kind: 'balance' }, hint: 'Which group of cats matches?',
     initial: { left: [], right: ['bear', 'dog'] },
     tray: [{ of: 'cat', count: 2 }, { of: 'cat', count: 3 }, { of: 'cat', count: 4 }] },
+  // Cats on the plank, dogs in the pens: the answer cannot be found by counting
+  // the same animal back again.
   { id: 'l18', section: 'groups', objective: { kind: 'balance' }, hint: 'Which group of dogs matches?',
-    initial: { left: ['dog', 'dog', 'dog'], right: [] },
+    initial: { left: ['cat', 'cat', 'cat'], right: [] },
     tray: [{ of: 'dog', count: 2 }, { of: 'dog', count: 3 }, { of: 'dog', count: 4 }] },
   { id: 'l19', section: 'groups', objective: { kind: 'balance' }, hint: 'Which group of chickens matches?',
     initial: { left: [], right: ['cat', 'cat'] },

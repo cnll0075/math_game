@@ -82,7 +82,7 @@ far through it the player is.
 
 | Chapter | Idea | Questions |
 |---|---|---|
-| Best Friends | equality; two small ones can equal a big one | 5 |
+| Make It Flat | what "level" means; two small ones can equal a big one | 5 |
 | Who Else Can Come? | missing addend: how much more? | 5 |
 | Tricky Numbers | four, which nothing weighs; and gaps that need **both** sides | 5 |
 | Everybody Together | ready-made bundles: which group fits? | 5 |
@@ -106,6 +106,15 @@ none hides behind another, and each still wears its weight — nobody should hav
 to remember what a cat weighs. The tag stops shrinking once the animal is small,
 so it stays readable inside a pen. No group holds more than four, which is as
 many as reads at a glance.
+
+**A real seesaw has no reason to be level**, so the first two questions show a
+ghost of the plank lying flat with a star at its end. The goal is shown rather
+than explained, which is the only way to explain anything to a pre-reader.
+
+**Nothing is ever lost.** An animal lifted off the seesaw waits in the tray and
+can go back on either side. Taking the wrong one off must never end a question:
+a child who cannot undo a mistake is stuck, and being stuck is the one thing the
+game must never do.
 
 **The two sides never share an animal**, once past the opening chapter. A bear
 opposite a bear can be cancelled by spotting a pair, which is matching rather

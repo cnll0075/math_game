@@ -21,10 +21,10 @@ const SOURCES: Record<AnimalId, string> = {
  * chickens' worth of animal.
  */
 const HEIGHTS: Record<AnimalId, number> = {
-  chicken: 58,
-  cat: 73,
-  dog: 93,
-  bear: 106,
+  chicken: 70,
+  cat: 88,
+  dog: 112,
+  bear: 126,
 };
 
 /**
@@ -122,7 +122,19 @@ export function createSpriteAnimalArtist(): AnimalArtist & { preload(): Promise<
         ctx.drawImage(image, -width / 2, -height, width, height);
         ctx.restore();
         drawMood(ctx, pose, -height);
-        // The tag is drawn outside the flip, so its number never reads mirrored.
+      });
+    },
+
+    drawTag(ctx, species, pose) {
+      const image = images.get(species);
+      if (!image) {
+        vectorAnimalArtist.drawTag(ctx, species, pose);
+        return;
+      }
+      const height = HEIGHTS[species];
+      const width = (image.width / image.height) * height;
+      // Outside the flip, so the number never reads mirrored.
+      withPose(ctx, species, pose, () => {
         drawWeightBadge(ctx, species, pose.scale, { x: width * 0.32, y: -height * 0.18 });
       });
     },

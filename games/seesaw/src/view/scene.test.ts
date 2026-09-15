@@ -318,3 +318,18 @@ describe('warning that the seesaw is badly over', () => {
     expect(scene.danger).toBeLessThan(0.05);
   });
 });
+
+describe('weights on a crowded platform', () => {
+  it('draws every animal before any of their numbers', () => {
+    // Two bears sitting together overlap. If each number were drawn with its
+    // own animal, the one behind would be hidden and its weight a guess.
+    const scene = createScene(createVectorTheme());
+    const crowd = modelFor([animal('bear', 'left'), animal('bear', 'left', 1), animal('bear', 'left', 2)]);
+    for (let i = 0; i < 200; i++) scene.update(1 / 60, crowd);
+
+    const { ctx, texts } = recordingContext();
+    scene.render(ctx, { width: 1024, height: 768 });
+    // Three bears, three fives.
+    expect(texts.filter((text) => text === '5')).toHaveLength(3);
+  });
+});

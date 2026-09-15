@@ -180,22 +180,25 @@ function drawTrayItem(
   }
 
   // Back rows first, so the front of the huddle overlaps them.
-  for (const offset of [...offsets].sort((a, b) => a.y - b.y)) {
-    theme.animals.draw(ctx, item.species, {
-      x: slot.x + offset.x,
-      y: slot.y + offset.y + (item.count > 2 ? -2 : 18),
-      scale: (selected ? 0.68 : 0.6) * offset.scale * (item.count > 1 ? 1.5 : 1),
-      tiltRad: 0,
-      wobble: selected ? Math.sin(time * 7 + offset.x) * 0.3 : 0,
-      slide: 0,
-      dance: 0,
-      arriving: 1,
-      clock: time,
-      // In the tray they face the middle of the screen, as they will on the plank.
-      facing: slot.x > DESIGN.width / 2 ? -1 : 1,
-      expression: 'calm',
-    });
-  }
+  const memberPose = (offset: { x: number; y: number; scale: number }) => ({
+    x: slot.x + offset.x,
+    y: slot.y + offset.y + (item.count > 2 ? -2 : 18),
+    scale: (selected ? 0.68 : 0.6) * offset.scale * (item.count > 1 ? 1.5 : 1),
+    tiltRad: 0,
+    wobble: selected ? Math.sin(time * 7 + offset.x) * 0.3 : 0,
+    slide: 0,
+    dance: 0,
+    arriving: 1,
+    clock: time,
+    // In the tray they face the middle of the screen, as they will on the plank.
+    facing: (slot.x > DESIGN.width / 2 ? -1 : 1) as 1 | -1,
+    expression: 'calm' as const,
+  });
+
+  // Back rows first, then every tag, as on the plank.
+  const ordered = [...offsets].sort((a, b) => a.y - b.y);
+  for (const offset of ordered) theme.animals.draw(ctx, item.species, memberPose(offset));
+  for (const offset of ordered) theme.animals.drawTag(ctx, item.species, memberPose(offset));
 }
 
 export function drawHud(ctx: CanvasRenderingContext2D, theme: SeesawTheme, hud: HudModel, time: number): void {

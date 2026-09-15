@@ -243,3 +243,37 @@ describe('which side the answer goes on', () => {
     expect(startsOnRight).toBeGreaterThanOrEqual(8);
   });
 });
+
+describe('matching pairs', () => {
+  it('only lets the very first question be answered by copying the other side', () => {
+    // The worry is a question a child can finish by building a copy of the pile
+    // opposite, without touching a number. That means identical piles reached by
+    // placing on one side only. Level 14 also ends up symmetric, but it gets
+    // there by adding to BOTH sides — which is the arithmetic it teaches, not a
+    // way around it.
+    for (const level of LEVELS.slice(1)) {
+      const answers = solutionsFor(level);
+      const shortest = Math.min(...answers.map((answer) => answer.length));
+      // Only the answers a child would actually find. A five-move strip-and-
+      // rebuild that happens to end symmetric is not the tempting path when the
+      // real answer is one tap.
+      for (const solution of answers.filter((answer) => answer.length === shortest)) {
+        const sidesUsed = new Set(solution.filter((move) => move.kind === 'place').map((move) => move.side));
+        if (sidesUsed.size !== 1) continue;
+
+        const game = createGame(level);
+        for (const move of solution) {
+          if (move.kind === 'place') game.place(move.trayIndex, move.side);
+          else game.takeBack(move.uid);
+        }
+        const pile = (which: 'left' | 'right') =>
+          game.state.placed
+            .filter((animal) => animal.side === which)
+            .map((animal) => animal.species)
+            .sort()
+            .join(',');
+        expect(pile('left'), `${level.id} can be answered by copying`).not.toBe(pile('right'));
+      }
+    }
+  });
+});

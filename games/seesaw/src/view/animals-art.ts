@@ -407,7 +407,13 @@ export const vectorAnimalArtist: AnimalArtist = {
     ctx.translate(0, -FOOT_OFFSET[species]);
     drawMotion(ctx, species, travelling ? 1 - landing : 0, pose.clock);
     PAINTERS[species](ctx, pose);
-    drawWeightBadge(ctx, species, pose.scale);
     ctx.restore();
+  },
+
+  drawTag(ctx, species, pose) {
+    withPose(ctx, species, pose, () => {
+      ctx.translate(0, -FOOT_OFFSET[species]);
+      drawWeightBadge(ctx, species, pose.scale);
+    });
   },
 };

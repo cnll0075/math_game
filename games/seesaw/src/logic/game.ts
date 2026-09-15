@@ -74,6 +74,8 @@ export function createGame(level: LevelDef): Game {
   let placed: PlacedAnimal[] = buildInitial(level);
   let tray: TrayItem[] = buildTray(level);
   let status: GameState['status'] = 'playing';
+  /** Numbers the animals lifted off, so each gets its own place in the tray. */
+  let freed = 0;
 
   let previousSnapshot = describeSeesaw(placed, config);
 
@@ -137,7 +139,18 @@ export function createGame(level: LevelDef): Game {
       // A group goes back as a group: it was picked up as one thing.
       const leaving = placed.filter((entry) => entry.source === animal.source);
       placed = placed.filter((entry) => entry.source !== animal.source);
-      tray = tray.map((entry) => (entry.uid === animal.source ? { ...entry, used: false } : entry));
+
+      if (animal.uid.startsWith(INITIAL_PREFIX)) {
+        // An animal lifted off the seesaw waits in the tray rather than
+        // vanishing. Taking the wrong one off must never be the end of the
+        // question: everything that comes off can go back on, either side.
+        tray = [
+          ...tray,
+          ...leaving.map((entry) => ({ uid: `freed-${freed++}`, species: entry.species, count: 1, used: false })),
+        ];
+      } else {
+        tray = tray.map((entry) => (entry.uid === animal.source ? { ...entry, used: false } : entry));
+      }
 
       return [...leaving.map((entry) => ({ type: 'takenBack' as const, animal: entry })), ...settle()];
     },
@@ -145,6 +158,7 @@ export function createGame(level: LevelDef): Game {
     reset() {
       placed = buildInitial(level);
       tray = buildTray(level);
+      freed = 0;
       status = 'playing';
       previousSnapshot = snapshot();
       return [{ type: 'reset' }];

@@ -175,3 +175,42 @@ describe('sharing the whole pile', () => {
     expect(game.state.status).toBe('won');
   });
 });
+
+describe('taking an animal off the seesaw', () => {
+  const removable = (): LevelDef => ({
+    id: 'bed',
+    section: 'takeoff',
+    objective: { kind: 'balance' },
+    allowRemoval: true,
+    initial: { left: ['bear', 'cat', 'chicken'], right: ['dog', 'dog'] },
+    tray: [],
+  });
+
+  it('puts it in the tray rather than making it vanish', () => {
+    const game = createGame(removable());
+    game.takeBack('init-left-0');
+    expect(game.state.tray.map((item) => item.species)).toEqual(['bear']);
+    expect(game.state.tray[0]!.used).toBe(false);
+  });
+
+  it('lets a wrong answer be undone, so a question is never a dead end', () => {
+    const game = createGame(removable());
+    // Lifting the bear is wrong: 3 against 6.
+    game.takeBack('init-left-0');
+    expect(game.state.status).toBe('playing');
+
+    // It can go straight back where it was, and the right one taken off instead.
+    game.place(0, 'left');
+    expect(game.snapshot().leftWeight).toBe(8);
+    game.takeBack('init-left-1');
+    expect(game.state.status).toBe('won');
+  });
+
+  it('lets a lifted animal go back on either side', () => {
+    const game = createGame(removable());
+    game.takeBack('init-left-2');
+    game.place(0, 'right');
+    // The chicken moved across rather than leaving the game.
+    expect(game.snapshot().rightWeight).toBe(7);
+  });
+});

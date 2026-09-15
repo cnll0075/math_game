@@ -18,7 +18,7 @@ export type SectionId = 'same' | 'make' | 'build' | 'groups' | 'takeoff' | 'shar
 
 /** Chapter names, written for a six-year-old rather than for a spreadsheet. */
 export const SECTION_TITLES: Record<SectionId, string> = {
-  same: 'Best Friends',
+  same: 'Make It Flat',
   make: 'Who Else Can Come?',
   build: 'Tricky Numbers',
   groups: 'Everybody Together',
@@ -48,6 +48,11 @@ export interface LevelDef {
   requireEmptyTray?: boolean;
   /** The little story this question tells. */
   hint?: string;
+  /**
+   * Shows a ghost of the plank where it should end up. The opening questions
+   * use it to say what "level" means without a word of explanation.
+   */
+  showTarget?: boolean;
 }
 
 export const balanceConfigFor = (level: LevelDef): BalanceConfig => ({

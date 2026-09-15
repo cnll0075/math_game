@@ -565,3 +565,19 @@ needed:
   side. Tying it to the gap the question *began* with matters — most levels open
   badly tilted by design, and a red screen on arrival would tell a child off for
   a puzzle they have not yet touched.
+
+
+**Four fixes from playing it** (2026-09-14):
+
+- **A wrong removal was a dead end.** Lifting the wrong animal off deleted it,
+  leaving a question that could not be finished. Anything taken off now waits in
+  the tray and can go back on either side. A child who cannot undo a mistake is
+  stuck, and being stuck is the one thing the game must never do.
+- **Only the first question may be answered by copying the other side.** A test
+  now checks the shortest answers of every level for it, which caught three that
+  could be finished by mirroring a pile rather than by adding.
+- **"Level" is now shown, not assumed.** A real seesaw has no reason to be flat,
+  so the first two questions display a ghost of the plank lying flat with a star
+  at its end, and the opening chapter is called Make It Flat.
+- The animals are larger again, and every weight tag is drawn in a second pass
+  over the whole row, so a number is never hidden behind the animal in front.

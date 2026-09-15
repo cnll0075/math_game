@@ -84,7 +84,7 @@ describe('vector theme', () => {
     const theme = createVectorTheme();
     for (const species of ANIMAL_IDS) {
       const { ctx, texts } = recordingContext();
-      theme.animals.draw(ctx, species, {
+      theme.animals.drawTag(ctx, species, {
         x: 0,
         y: 0,
         scale: 1,
@@ -202,7 +202,7 @@ describe('animals drawn small', () => {
     const pose = { x: 0, y: 0, tiltRad: 0, wobble: 0, slide: 0, dance: 0, arriving: 1, clock: 0, facing: 1 } as const;
     for (const scale of [1, 0.6, 0.4, 0.25]) {
       const { ctx, texts } = recordingContext();
-      theme.animals.draw(ctx, 'cat', { ...pose, scale, expression: 'calm' });
+      theme.animals.drawTag(ctx, 'cat', { ...pose, scale, expression: 'calm' });
       expect(texts, `scale ${scale}`).toContain('2');
     }
   });
@@ -211,7 +211,7 @@ describe('animals drawn small', () => {
     const theme = createVectorTheme();
     const pose = { x: 0, y: 0, tiltRad: 0, wobble: 0, slide: 0, dance: 0, arriving: 1, clock: 0, facing: 1 } as const;
     const small = recordingContext();
-    theme.animals.draw(small.ctx, 'cat', { ...pose, scale: 0.3, expression: 'calm' });
+    theme.animals.drawTag(small.ctx, 'cat', { ...pose, scale: 0.3, expression: 'calm' });
     // The tag is drawn under its own relief scaling rather than the animal's.
     expect(small.calls.filter((call) => call === 'scale').length).toBeGreaterThan(2);
   });

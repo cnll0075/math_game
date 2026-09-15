@@ -52,9 +52,6 @@ export interface SeesawView {
   /** -1..1 smoothed needle position for the gauge. */
   needle: number;
   zone: Zone;
-  /** 0..1 how far the danger flag has risen. */
-  flagHeight: number;
-  flagSide: Side | null;
   /** 0..1 celebration intensity, during a perfect balance or a finished level. */
   celebrate: number;
   /** 0..1 how far past safely tilted the seesaw is. */
@@ -86,7 +83,6 @@ export interface SeesawTheme {
   /** The target marker, drawn over the animals so it is never hidden. */
   drawTarget(ctx: CanvasRenderingContext2D, view: SeesawView): void;
   drawGauge(ctx: CanvasRenderingContext2D, view: SeesawView): void;
-  drawFlag(ctx: CanvasRenderingContext2D, view: SeesawView): void;
   /** Celebration dressing over the whole scene; draws nothing when idle. */
   drawCelebration(ctx: CanvasRenderingContext2D, view: SeesawView): void;
   /** A warning over the whole scene when the plank is badly over; nothing when safe. */

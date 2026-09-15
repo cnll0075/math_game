@@ -72,8 +72,15 @@ SKY_HEADROOM = 300
 # the gradient turns an unnaturally strong blue.
 SKY_RISE = 200
 # The band where the new sky meets the painting. Sky columns match already, so
-# this is what dissolves the tree at the top edge instead of cutting it flat.
-SKY_BLEND = 26
+# this only matters under the foliage.
+SKY_BLEND = 10
+# The painting's top edge cuts the tree's crown off flat. Rather than fade the
+# cut out - which only made it look like fog - the crown is grown back into the
+# new sky out of the tree's own leaves: this is how tall it grows, as a share of
+# how wide the tree is where it was cut.
+CROWN_RISE = 0.42
+# How lobed the crown's outline is, and how many lobes it has.
+CROWN_LOBE, CROWN_LOBES = 0.13, 3
 
 
 def warm_mask(a):
@@ -234,6 +241,50 @@ def save(canvas, name):
     print(f'{name}: {canvas.shape[1]}x{canvas.shape[0]}')
 
 
+def foliage_runs(park):
+    """Stretches of the painting's top edge that are leaves rather than sky."""
+    row = park[0]
+    sky = (row[:, 2] > row[:, 0] + 40) & (row[:, 2] > 180)
+    return [run for run in runs(~sky) if run[1] - run[0] > 40]
+
+
+def grow_crown(park, head, x0, x1, headroom):
+    """Finish a tree the painting's frame cut off, using the tree's own leaves.
+
+    The canopy just below the cut is repeated upward and then trimmed to a
+    lobed dome, so the crown is real foliage in the right light rather than a
+    smooth shape pasted over the sky.
+    """
+    width = x1 - x0 + 1
+    rise = min(int(width * CROWN_RISE), headroom - 20)
+    if rise < 24:
+        return
+
+    # A tree running off the side of the painting is cut by the frame, not by
+    # its own outline, so its crown stays at full height where the frame is.
+    at_left, at_right = x0 == 0, x1 == park.shape[1] - 1
+    for x in range(x0, x1 + 1):
+        t = (x - x0) / max(1, width - 1)
+        if at_left and at_right:
+            shape = 1.0
+        elif at_left:
+            shape = np.cos(t * np.pi / 2) ** 0.55
+        elif at_right:
+            shape = np.cos((1 - t) * np.pi / 2) ** 0.55
+        else:
+            shape = np.sin(t * np.pi) ** 0.55
+        lobes = 1 - CROWN_LOBE + CROWN_LOBE * np.cos(2 * np.pi * CROWN_LOBES * t)
+        top = int(rise * shape * lobes)
+        for above in range(1, top + 1):
+            # The leaves that were just under the cut, carried up.
+            head[headroom - above, x] = park[above, x]
+        if top > 4:
+            # A touch of shade along the outline, as the painting has on every
+            # other edge of foliage.
+            for above in range(top - 2, top + 1):
+                head[headroom - above, x] *= 0.86
+
+
 def add_sky(park):
     """Paint sky above the painting, in the painting's own colours."""
     sky = park[:80, :, 2] > park[:80, :, 0] + 40
@@ -252,11 +303,13 @@ def add_sky(park):
         above = SKY_HEADROOM - j
         head[j] = top - slope * min(above, SKY_RISE)
         if above <= SKY_BLEND:
-            # Fade into the painting's own top row. Where that row is sky the
-            # blend is invisible; where it is the tree, the canopy softens into
-            # the sky rather than ending on a ruled line.
+            # Ease onto the painting's own top row, so no seam shows where the
+            # two skies meet.
             t = 1 - above / SKY_BLEND
             head[j] = head[j] * (1 - t) + park[0] * t
+
+    for x0, x1 in foliage_runs(park):
+        grow_crown(park, head, x0, x1, SKY_HEADROOM)
 
     return np.concatenate([head, park])
 

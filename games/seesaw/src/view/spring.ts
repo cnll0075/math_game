@@ -19,7 +19,7 @@ const MAX_STEP = 1 / 60;
 
 /**
  * A critically damped spring: reaches the target quickly, never bounces past
- * it. Used for the plank angle, gauge needle, and flag height, all of which
+ * it. Used for the plank angle, the gauge needle and the danger glow, all of which
  * should look smooth without ever influencing the game's mathematical state.
  */
 export function createSpring(initial: number, options: SpringOptions = {}): Spring {

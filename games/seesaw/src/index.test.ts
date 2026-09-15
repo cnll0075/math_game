@@ -110,7 +110,7 @@ describe('seesaw game module', () => {
     session.__test.place(1, 'left');
     expect(session.__test.zone()).toBe('red');
     expect(played).toContain('danger');
-    expect(session.__test.flagRaised()).toBe(true);
+    expect(session.__test.inDanger()).toBe(true);
     session.unmount();
     vi.restoreAllMocks();
   });

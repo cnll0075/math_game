@@ -22,7 +22,10 @@ The park, with its own seesaw standing level and empty in the middle of it.
   a screen always has bare space above it, and its top edge is tree and cloud
   rather than sky - stretching that edge up to fill the space smeared both into
   vertical streaks. The new sky carries on the gradient the painting's own sky
-  has, and the tree dissolves into it instead of ending on a ruled line.
+  has. The frame cuts the tree's crown off flat, so the crown is grown back
+  into that new sky out of the tree's own leaves - the canopy just under the cut,
+  repeated upward and trimmed to a lobed dome - which puts real foliage in the
+  right light there rather than a shape pasted over the sky.
 - `plank-back.png` - the plank, both trays, and each tray's back rim.
 - `plank-front.png` - each tray's near wall, drawn after the animals so they
   ride inside the basket instead of standing on top of it.

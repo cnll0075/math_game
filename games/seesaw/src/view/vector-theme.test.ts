@@ -10,8 +10,6 @@ const view = (overrides: Partial<SeesawView> = {}): SeesawView => ({
   plankAngle: 0.1,
   needle: 0.3,
   zone: 'yellow',
-  flagHeight: 1,
-  flagSide: 'left',
   celebrate: 0,
   danger: 0,
   targetAngle: -0.1,
@@ -25,9 +23,16 @@ describe('vector theme', () => {
     await expect(createVectorTheme().preload()).resolves.toBeUndefined();
   });
 
+  it('draws no near wall, because the drawn baskets have none', () => {
+    const theme = createVectorTheme();
+    const { ctx, calls } = recordingContext();
+    theme.drawSeesawFront(ctx, view());
+    expect(calls).toHaveLength(0);
+  });
+
   it('draws every scene element with balanced save/restore', () => {
     const theme = createVectorTheme();
-    const parts = ['drawBackground', 'drawSeesaw', 'drawTarget', 'drawGauge', 'drawFlag'] as const;
+    const parts = ['drawBackground', 'drawSeesaw', 'drawTarget', 'drawGauge'] as const;
     for (const part of parts) {
       const { ctx, calls } = recordingContext();
       expect(() => theme[part](ctx, view()), part).not.toThrow();
@@ -145,12 +150,6 @@ describe('vector theme', () => {
     expect(depthOf(party.ctx)).toBe(0);
   });
 
-  it('hides the flag when it has not risen', () => {
-    const theme = createVectorTheme();
-    const { ctx, calls } = recordingContext();
-    theme.drawFlag(ctx, view({ flagHeight: 0, flagSide: null }));
-    expect(calls).toHaveLength(0);
-  });
 
   it('omits the target marker when a level has no tilt objective', () => {
     const theme = createVectorTheme();

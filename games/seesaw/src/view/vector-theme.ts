@@ -325,55 +325,17 @@ export function createVectorTheme(): SeesawTheme {
       ctx.stroke();
 
       // Needle: positive normalized balance means the left is heavier, so the
-      // needle leans left.
+      // needle leans left. A bead that fills the bar's height exactly, so it
+      // reads as running along the bar rather than sitting on top of it.
       const needleX = x + width / 2 - (view.needle * width) / 2;
+      const bead = height / 2 - 1;
       ctx.fillStyle = '#ffffff';
       ctx.strokeStyle = INK;
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(needleX, y - 8);
-      ctx.lineTo(needleX + 9, y + height / 2);
-      ctx.lineTo(needleX, y + height + 8);
-      ctx.lineTo(needleX - 9, y + height / 2);
-      ctx.closePath();
+      ctx.arc(needleX, y + height / 2, bead, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
-    },
-
-    drawFlag(ctx, view) {
-      if (view.flagHeight <= 0.01 || !view.flagSide) return;
-      const anchor = platformAnchor(view.flagSide, view.plankAngle);
-      // Planted at the outer end of the heavy basket rather than its middle,
-      // where the animals standing in the basket would hide it.
-      const outward = view.flagSide === 'left' ? -1 : 1;
-      const height = 100 * view.flagHeight;
-
-      ctx.save();
-      ctx.translate(anchor.x, anchor.y);
-      ctx.rotate(view.plankAngle);
-      // Clear of the basket's rim, not its floor: planted any lower and the
-      // near wall swallows the pole and leaves the flag floating.
-      ctx.translate(outward * (SCENE.platformWidth / 2 + 4), -SCENE.basketRim);
-
-      ctx.strokeStyle = '#6d4c33';
-      ctx.lineWidth = 5;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(0, -height);
-      ctx.stroke();
-
-      // The pennant flies inward, over the seesaw. The heavy basket is the one
-      // swung out to the edge of the screen, and a pennant flying outward from
-      // there is half off it.
-      ctx.fillStyle = '#e4695f';
-      ctx.beginPath();
-      ctx.moveTo(0, -height);
-      ctx.lineTo(-outward * 50 * view.flagHeight, -height + 15);
-      ctx.lineTo(0, -height + 30);
-      ctx.closePath();
-      ctx.fill();
-      ctx.restore();
     },
 
     drawDanger(ctx, view) {

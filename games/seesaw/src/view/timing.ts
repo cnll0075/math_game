@@ -14,8 +14,6 @@ export const TIMING = {
   danceSeconds: 2.2,
   /** Gap between one animal starting its hop and the next. */
   danceStaggerSeconds: 0.14,
-  /** Danger flag raising and lowering. */
-  flagRaiseSeconds: 0.3,
   /** How long the perfect-balance sparkle lingers. */
   celebrateSeconds: 1.1,
   /** Beat after the dance before the next level opens. */

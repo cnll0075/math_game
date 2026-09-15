@@ -27,7 +27,7 @@ export interface SeesawSnapshot {
   rightWeight: number;
   /**
    * Animal weights plus any external force, in weight units. This is the one
-   * number the tilt, gauge, zone, flag and danger meter all read.
+   * number the tilt, gauge, zone and danger glow all read.
    */
   balanceDifference: number;
   /** The animals alone, ignoring wind. */

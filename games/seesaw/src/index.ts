@@ -24,7 +24,7 @@ export interface SeesawTestHooks {
   step(frames?: number): void;
   status(): 'playing' | 'won';
   zone(): Zone;
-  flagRaised(): boolean;
+  inDanger(): boolean;
   level(): string;
   section(): string;
   danceProgress(): number;
@@ -243,7 +243,7 @@ export const seesawGame: SeesawModule = {
         },
         status: () => driver.status,
         zone: () => driver.snapshot().zone,
-        flagRaised: () => driver.snapshot().zone === 'red',
+        inDanger: () => driver.snapshot().zone === 'red',
         level: () => level.id,
         section: () => sectionOf(level),
         danceProgress: () => scene.danceProgress,

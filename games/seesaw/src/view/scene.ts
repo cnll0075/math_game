@@ -73,13 +73,12 @@ const emptyModel = (): SceneModel => ({
 
 /**
  * The presentation half. It reads the balance state and turns it into motion;
- * it never writes back. Springs smooth the plank, the needle, and the flag, so
+ * it never writes back. Springs smooth the plank, the needle and the danger glow, so
  * the visuals can lag the mathematics without ever contradicting it.
  */
 export function createScene(theme: SeesawTheme): Scene {
   const tilt = createSpring(0);
   const needle = createSpring(0);
-  const flag = createSpring(0);
   /** How far past safely tilted, smoothed so the warning fades rather than blinks. */
   const danger = createSpring(0);
 
@@ -141,8 +140,6 @@ export function createScene(theme: SeesawTheme): Scene {
     plankAngle: tilt.value + celebrationBob(),
     needle: needle.value,
     zone: model.snapshot.zone,
-    flagHeight: flag.value,
-    flagSide: model.snapshot.heavySide,
     celebrate: Math.max(celebrate, danceIntensity()),
     danger: danger.value,
     targetAngle: model.targetBalance === null ? null : -model.targetBalance * SCENE.maxTiltRad,
@@ -245,7 +242,6 @@ export function createScene(theme: SeesawTheme): Scene {
 
       tilt.target = -next.snapshot.normalizedBalance * SCENE.maxTiltRad;
       needle.target = next.snapshot.normalizedBalance;
-      flag.target = next.snapshot.zone === 'red' ? 1 : 0;
       // The warning means "you have made this worse", not "this is a hard
       // question": a level that begins badly tilted is the puzzle, so the
       // starting gap is the mark to beat rather than something to warn about.
@@ -255,7 +251,6 @@ export function createScene(theme: SeesawTheme): Scene {
 
       tilt.step(dt);
       needle.step(dt);
-      flag.step(dt);
       danger.step(dt);
 
       if (next.dancing) danceElapsed = danceElapsed < 0 ? 0 : danceElapsed + dt;
@@ -301,7 +296,6 @@ export function createScene(theme: SeesawTheme): Scene {
       theme.drawSeesawFront(ctx, view);
       for (const { animal, pose } of onThePlank) theme.animals.drawTag(ctx, animal.species, pose);
       theme.drawTarget(ctx, view);
-      theme.drawFlag(ctx, view);
       theme.drawGauge(ctx, view);
       theme.drawDanger(ctx, view);
       theme.drawCelebration(ctx, view);

@@ -145,6 +145,7 @@ export function createScene(theme: SeesawTheme): Scene {
     danger: danger.value,
     levelled: levelled.value,
     targetAngle: model.targetBalance === null ? null : -model.targetBalance * SCENE.maxTiltRad,
+    totals: { left: model.snapshot.leftWeight, right: model.snapshot.rightWeight },
     bounds,
     time,
   });
@@ -304,6 +305,7 @@ export function createScene(theme: SeesawTheme): Scene {
       for (const { animal, pose } of onThePlank) theme.animals.draw(ctx, animal.species, pose);
       theme.drawSeesawFront(ctx, view);
       theme.drawLevelFlag(ctx, view);
+      theme.drawTotals(ctx, view);
       for (const { animal, pose } of onThePlank) theme.animals.drawTag(ctx, animal.species, pose);
       theme.drawTarget(ctx, view);
       theme.drawGauge(ctx, view);

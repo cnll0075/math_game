@@ -14,6 +14,7 @@ const view = (overrides: Partial<SeesawView> = {}): SeesawView => ({
   levelled: 0,
   danger: 0,
   targetAngle: -0.1,
+  totals: { left: 0, right: 0 },
   bounds: { left: 0, top: 0, right: DESIGN.width, bottom: DESIGN.height },
   time: 1.5,
   ...overrides,
@@ -187,27 +188,52 @@ describe('vector theme', () => {
   });
 });
 
-describe('the target marker', () => {
-  it('sits at the end of the ghost plank, not floating above it', () => {
+describe('the goal marker', () => {
+  it('shows the flag a level plank flies, where the real one will fly', () => {
     const theme = createVectorTheme();
-    const targetAngle = -0.18;
     const { ctx, translations } = recordingContext();
-
-    theme.drawTarget(ctx, view({ targetAngle, plankAngle: 0.2 }));
-    const ghostEnd = platformAnchor('right', targetAngle);
-    const star = translations[0]!;
-    // Within a plank thickness of the ghost's end: they are one object.
-    expect(Math.hypot(star.x - ghostEnd.x, star.y - ghostEnd.y)).toBeLessThan(SCENE.plankThickness);
+    theme.drawTarget(ctx, view({ targetAngle: 0, plankAngle: 0.2 }));
+    const planted = translations[0]!;
+    expect(planted.x).toBeCloseTo(SCENE.fulcrumX);
+    expect(planted.y).toBeCloseTo(SCENE.postTopY);
   });
 
-  it('celebrates once the plank reaches it', () => {
+  it('stands down once the plank is level, leaving the real flag to fly', () => {
     const theme = createVectorTheme();
     const away = recordingContext();
     const arrived = recordingContext();
-    theme.drawTarget(away.ctx, view({ targetAngle: -0.18, plankAngle: 0.2 }));
-    theme.drawTarget(arrived.ctx, view({ targetAngle: -0.18, plankAngle: -0.18 }));
-    // The reached star gains a halo, so arriving is unmistakable.
-    expect(arrived.calls.length).toBeGreaterThan(away.calls.length);
+    theme.drawTarget(away.ctx, view({ targetAngle: 0, plankAngle: 0.2 }));
+    theme.drawTarget(arrived.ctx, view({ targetAngle: 0, plankAngle: 0 }));
+    expect(away.calls.length).toBeGreaterThan(0);
+    expect(arrived.calls).toHaveLength(0);
+  });
+});
+
+describe('the arm totals', () => {
+  const totals = { left: 3, right: 5 };
+
+  it('writes what each arm is carrying', () => {
+    const theme = createVectorTheme();
+    const { ctx, texts } = recordingContext();
+    theme.drawTotals(ctx, view({ totals, plankAngle: 0.1 }));
+    expect(texts).toContain('3');
+    expect(texts).toContain('5');
+  });
+
+  it('hangs one under each arm, on the arm it belongs to', () => {
+    const theme = createVectorTheme();
+    const { ctx, translations } = recordingContext();
+    theme.drawTotals(ctx, view({ totals, plankAngle: 0 }));
+    const xs = translations.map((at) => at.x).filter((x) => x !== 0);
+    expect(Math.min(...xs)).toBeLessThan(SCENE.fulcrumX);
+    expect(Math.max(...xs)).toBeGreaterThan(SCENE.fulcrumX);
+  });
+
+  it('leaves the context balanced', () => {
+    const theme = createVectorTheme();
+    const { ctx } = recordingContext();
+    theme.drawTotals(ctx, view({ totals }));
+    expect(depthOf(ctx)).toBe(0);
   });
 });
 

@@ -60,6 +60,8 @@ export interface SeesawView {
   danger: number;
   /** Marker for a tilt objective, in the same units as plankAngle; null if unused. */
   targetAngle: number | null;
+  /** What each arm is carrying. */
+  totals: { left: number; right: number };
   /**
    * The whole canvas in design coordinates. Scenery paints across this so no
    * letterbox bars show; gameplay stays inside the design rect.
@@ -87,6 +89,13 @@ export interface SeesawTheme {
    * the whole game turns on, because "flat" is hard to see and easy to doubt.
    */
   drawLevelFlag(ctx: CanvasRenderingContext2D, view: SeesawView): void;
+  /**
+   * Each arm's running total, hung under it. Nothing else on screen says that
+   * the number on an animal is how heavy it is rather than a name or a count,
+   * and a total that changes as animals arrive - and matches when the plank
+   * goes flat - says it without being read.
+   */
+  drawTotals(ctx: CanvasRenderingContext2D, view: SeesawView): void;
   /** The target marker, drawn over the animals so it is never hidden. */
   drawTarget(ctx: CanvasRenderingContext2D, view: SeesawView): void;
   drawGauge(ctx: CanvasRenderingContext2D, view: SeesawView): void;

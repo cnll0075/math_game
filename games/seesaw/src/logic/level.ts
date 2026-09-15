@@ -49,8 +49,9 @@ export interface LevelDef {
   /** The little story this question tells. */
   hint?: string;
   /**
-   * Shows a ghost of the plank where it should end up. The opening questions
-   * use it to say what "level" means without a word of explanation.
+   * Shows a ghost of the plank where it should end up, flying a ghost of the
+   * flag a level plank earns. The opening questions use it to say what "level"
+   * means, and what it is worth, without a word of explanation.
    */
   showTarget?: boolean;
 }

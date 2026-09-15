@@ -172,6 +172,13 @@ each weight keeps its colour everywhere it appears - on the plank, in the tray,
 in a pen - so a child who cannot yet read the numeral can still tell one amount
 of animal from another.
 
+Each arm hangs its running total under it. Nothing else on screen says that the
+number on an animal is how heavy it is rather than a name or a count; a total
+that changes as animals arrive, and matches when the plank goes flat, says it
+without being read. The two opening questions add a ghost of the flag a level
+plank flies, in the place the real one pops up, so the goal is the thing the
+child will earn rather than a symbol to interpret.
+
 ## The artwork
 
 Everything on screen is cut from two paintings in

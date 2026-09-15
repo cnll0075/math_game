@@ -1,5 +1,6 @@
 import { DESIGN, type Bounds } from './layout.js';
 import { SCENE, platformAnchor } from './geometry.js';
+import { hand } from './type.js';
 import { vectorAnimalArtist } from './animals-art.js';
 import type { SeesawTheme, SeesawView } from './theme.js';
 
@@ -21,6 +22,48 @@ const BOLT = '#fbb028';
 /** How high the level-plank flag flies above the post, and how far it reaches. */
 const FLAG_RISE = 62;
 const FLAG_SPAN = 46;
+/** How far out along an arm its total hangs, and how far below the plank. */
+const TOTAL_ALONG = 0.52;
+const TOTAL_DROP = 62;
+
+/**
+ * The flag a level plank flies. Drawn solid when it has been earned and faint
+ * when it is still the goal, because the surest way to say what a child is
+ * aiming at is to show them the thing they will get.
+ */
+function paintFlag(ctx: CanvasRenderingContext2D, time: number, pop: number, alpha: number): void {
+  // A little overshoot on the way up, so it springs out rather than grows.
+  const rise = FLAG_RISE * (1 + Math.sin(pop * Math.PI) * 0.12) * pop;
+  const flutter = Math.sin(time * 7) * 0.12 * pop;
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(SCENE.fulcrumX, SCENE.postTopY);
+
+  ctx.strokeStyle = '#7a5433';
+  ctx.lineWidth = 5;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(0, 6);
+  ctx.lineTo(0, -rise);
+  ctx.stroke();
+
+  // A pennant the colour of the one over the park gate, so the seesaw looks
+  // like it is flying the park's own flag.
+  ctx.translate(0, -rise);
+  ctx.rotate(flutter);
+  ctx.fillStyle = '#fbc02d';
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(FLAG_SPAN * pop, 13);
+  ctx.lineTo(0, 26);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(180, 130, 20, 0.5)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.restore();
+}
 const WOOD_DARK = '#a06c37';
 const INK = '#3a2f2a';
 
@@ -191,48 +234,63 @@ export function createVectorTheme(): SeesawTheme {
     drawLevelFlag(ctx, view) {
       if (view.levelled <= 0.01) return;
       const pop = Math.min(1, view.levelled);
-      // A little overshoot on the way up, so it springs out rather than grows.
-      const rise = FLAG_RISE * (1 + Math.sin(pop * Math.PI) * 0.12) * pop;
-      const flutter = Math.sin(view.time * 7) * 0.12 * pop;
-
-      ctx.save();
-      ctx.translate(SCENE.fulcrumX, SCENE.postTopY);
-
-      ctx.strokeStyle = '#7a5433';
-      ctx.lineWidth = 5;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(0, 6);
-      ctx.lineTo(0, -rise);
-      ctx.stroke();
-
-      // A pennant the colour of the one over the park gate, so the seesaw looks
-      // like it is flying the park's own flag.
-      ctx.save();
-      ctx.translate(0, -rise);
-      ctx.rotate(flutter);
-      ctx.fillStyle = '#fbc02d';
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(FLAG_SPAN * pop, 13);
-      ctx.lineTo(0, 26);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(180, 130, 20, 0.5)';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.restore();
+      paintFlag(ctx, view.time, pop, 1);
 
       // Two sparks either side, on the beat, so the moment reads as an arrival.
+      ctx.save();
+      ctx.translate(SCENE.fulcrumX, SCENE.postTopY);
       ctx.fillStyle = '#ffe066';
       for (const side of [-1, 1] as const) {
         const twinkle = 0.5 + Math.sin(view.time * 8 + side) * 0.5;
         ctx.globalAlpha = pop * (0.35 + twinkle * 0.65);
         ctx.beginPath();
-        ctx.arc(side * 26, -rise + 16 - twinkle * 8, 4 * pop, 0, Math.PI * 2);
+        ctx.arc(side * 26, -FLAG_RISE + 16 - twinkle * 8, 4 * pop, 0, Math.PI * 2);
         ctx.fill();
       }
       ctx.restore();
+    },
+
+    drawTotals(ctx, view) {
+      const matched = view.totals.left === view.totals.right;
+      const beat = matched ? 1 + Math.sin(view.time * 6) * 0.06 : 1;
+
+      for (const side of ['left', 'right'] as const) {
+        const direction = side === 'left' ? -1 : 1;
+        // Halfway out along the arm: clear of the post, clear of the basket,
+        // and clear of the ground however far the plank leans.
+        const reach = direction * SCENE.plankHalfLength * TOTAL_ALONG;
+        ctx.save();
+        ctx.translate(
+          SCENE.fulcrumX + reach * Math.cos(view.plankAngle),
+          SCENE.fulcrumY + reach * Math.sin(view.plankAngle),
+        );
+        ctx.rotate(view.plankAngle);
+
+        // Hung from the plank on a short cord, so it reads as belonging to this
+        // arm rather than floating beside it.
+        ctx.strokeStyle = 'rgba(122, 84, 51, 0.8)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(0, TOTAL_DROP - 20);
+        ctx.stroke();
+
+        ctx.translate(0, TOTAL_DROP);
+        ctx.scale(beat, beat);
+        ctx.fillStyle = matched ? '#e9f7e4' : '#fdf6e6';
+        ctx.strokeStyle = matched ? '#4fa96a' : 'rgba(122, 84, 51, 0.7)';
+        ctx.lineWidth = 3;
+        roundRect(ctx, -29, -23, 58, 46, 14);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = matched ? '#34774a' : '#7a5433';
+        ctx.font = hand(700, 30);
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(view.totals[side]), 0, 1);
+        ctx.restore();
+      }
     },
 
     drawSeesaw(ctx, view) {
@@ -311,40 +369,13 @@ export function createVectorTheme(): SeesawTheme {
 
     drawTarget(ctx, view) {
       if (view.targetAngle === null) return;
-      // Planted at the end of the ghost plank, so bringing the plank to the
-      // star is literally the goal rather than a second thing to interpret.
-      const anchor = platformAnchor('right', view.targetAngle);
+      // A ghost of the flag a level plank flies, in the place the real one pops
+      // up. A star at the end of the plank was a second thing to work out; this
+      // is the goal itself, shown faintly until it is earned.
       const reached = Math.abs(view.plankAngle - view.targetAngle) < 0.015;
-      const beat = reached ? 1 + Math.sin(view.time * 7) * 0.12 : 1;
-
-      ctx.save();
-      ctx.translate(anchor.x, anchor.y - SCENE.platformHeight / 2);
-      ctx.rotate(reached ? 0 : Math.sin(view.time * 1.4) * 0.12);
-      ctx.scale(beat, beat);
-
-      if (reached) {
-        ctx.fillStyle = 'rgba(255, 210, 63, 0.4)';
-        ctx.beginPath();
-        ctx.arc(0, 0, 40, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      ctx.fillStyle = reached ? '#ffe071' : '#ffd23f';
-      ctx.strokeStyle = '#e0a500';
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      for (let i = 0; i < 10; i++) {
-        const radius = i % 2 === 0 ? 24 : 10;
-        const angle = (i / 10) * Math.PI * 2 - Math.PI / 2;
-        const px = Math.cos(angle) * radius;
-        const py = Math.sin(angle) * radius;
-        if (i === 0) ctx.moveTo(px, py);
-        else ctx.lineTo(px, py);
-      }
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-      ctx.restore();
+      if (reached) return;
+      const breathe = 0.26 + Math.sin(view.time * 2.2) * 0.12;
+      paintFlag(ctx, view.time, 1, breathe);
     },
 
     drawGauge(ctx, view) {

@@ -125,16 +125,17 @@ describe('seesaw game module', () => {
     vi.restoreAllMocks();
   });
 
-  it('cheers once per kind of animal on the plank, not once per animal', async () => {
+  it('finishes on a fanfare, with the animals silent', async () => {
     const played = spyOnSounds();
     const { session } = await mountGame({ startLevel: 'l16' });
     // Two dogs already sitting there, and a group of three cats answers it.
     session.__test.place(1, 'right');
+    const beforeWinning = played.length;
     session.__test.step(200);
-    // One cat and one dog in the chorus, not three cats and two dogs.
-    expect(played.filter((event) => event === 'voice:cat')).toHaveLength(2);
-    expect(played.filter((event) => event === 'voice:dog')).toHaveLength(1);
     expect(played).toContain('success');
+    expect(played).toContain('cheer');
+    // The only cry was the one for touching the cats, before the level was won.
+    expect(played.slice(beforeWinning).filter((event) => event.startsWith('voice:'))).toEqual([]);
     session.unmount();
     vi.restoreAllMocks();
   });

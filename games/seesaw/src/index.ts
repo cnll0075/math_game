@@ -37,9 +37,6 @@ export interface SeesawSession extends GameSession {
 
 const contentIdFor = (levelId: string): string => `seesaw:${levelId}`;
 
-/** The distinct members of a list, in the order they first appear. */
-const distinct = <T>(items: readonly T[]): T[] => [...new Set(items)];
-
 const firstUnlockedLevel = (host: GameHost): LevelDef => {
   const unlocked = LEVELS.find((level) => host.content.isUnlocked(contentIdFor(level.id)));
   return unlocked ?? LEVELS[0]!;
@@ -122,12 +119,9 @@ export const seesawGame: SeesawModule = {
       if (events.some((event) => event.type === 'levelCleared')) {
         finishedFor = 0;
         sounds.play('success');
+        // Nothing but the fanfare. The animals speak when they are touched,
+        // and a row of them all speaking at the finish buried it.
         sounds.play('cheer', { delay: 0.12 });
-        // One chirp per kind of animal on the plank, in the same wave the hops
-        // run in: a chorus rather than a roll call.
-        distinct(driver.placed().map((animal) => animal.species)).forEach((species, index) => {
-          sounds.play(`voice:${species}`, { delay: 0.2 + index * TIMING.danceStaggerSeconds });
-        });
       }
     };
 

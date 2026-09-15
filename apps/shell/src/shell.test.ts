@@ -26,6 +26,14 @@ const testDeps = (unlocked: 'all' | readonly string[] = 'all') => ({
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
+/** Waits for the game to appear: mounting waits briefly on its artwork. */
+const untilCanvas = async (root: HTMLElement) => {
+  for (let attempt = 0; attempt < 60; attempt++) {
+    if (root.querySelector('canvas')) return;
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+};
+
 describe('shell launcher', () => {
   let root: HTMLElement;
 
@@ -49,7 +57,7 @@ describe('shell launcher', () => {
     const shell = createShell(root, testDeps());
     shell.showLauncher();
     root.querySelector<HTMLButtonElement>('[data-game-tile="seesaw"]')!.click();
-    await flush();
+    await untilCanvas(root);
     expect(root.querySelector('canvas')).not.toBeNull();
     shell.destroy();
   });

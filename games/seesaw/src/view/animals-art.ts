@@ -210,8 +210,13 @@ export const BADGE_MIN_SCALE = 0.62;
  * so it tips and hops with the animal and reads as part of it rather than as
  * an overlay.
  */
-const drawWeightBadge = (ctx: CanvasRenderingContext2D, species: AnimalId, drawnAt: number): void => {
-  const { x, y } = BADGE_POS[species];
+export const drawWeightBadge = (
+  ctx: CanvasRenderingContext2D,
+  species: AnimalId,
+  drawnAt: number,
+  at: { x: number; y: number } = BADGE_POS[species],
+): void => {
+  const { x, y } = at;
   const weight = ANIMALS[species].weight;
   // Counter the animal's own shrinking, so the number stays legible in a group.
   const relief = Math.max(1, BADGE_MIN_SCALE / drawnAt);
@@ -321,6 +326,51 @@ const drawMotion = (ctx: CanvasRenderingContext2D, species: AnimalId, effort: nu
   }
   ctx.restore();
 };
+
+/**
+ * The motion every animal shares, whatever it is drawn with: the hop of a
+ * dance, the arc of an arrival, the lean, the squash on landing, the breathing.
+ * Runs the given drawing inside that transform.
+ */
+export function withPose(
+  ctx: CanvasRenderingContext2D,
+  species: AnimalId,
+  pose: AnimalPose,
+  draw: (travelling: number) => void,
+): void {
+  const gait = GAITS[species];
+
+  // One hop arc per unit of dance: up, over, down, landing back on the plank.
+  const hop = pose.dance > 0 ? Math.abs(Math.sin(pose.dance * Math.PI * 3)) * HOP_HEIGHT : 0;
+  const spin = pose.dance > 0 ? Math.sin(pose.dance * Math.PI * 6) * 0.22 : 0;
+
+  // Travelling: a long arc with the species' own bobbing on top of it, and a
+  // squash at the end as the weight lands.
+  const travelling = pose.arriving > 0 && pose.arriving < 1;
+  const arc = travelling ? Math.sin(pose.arriving * Math.PI) * gait.arc : 0;
+  const bob = travelling ? Math.sin(pose.arriving * Math.PI * gait.bobs) * 5 : 0;
+  const lean = travelling ? Math.sin(pose.arriving * Math.PI) * gait.lean * pose.facing : 0;
+  const landing = pose.arriving > 0.82 && pose.arriving < 1 ? (pose.arriving - 0.82) / 0.18 : 0;
+
+  // Idling: breathing, always, so nothing on the plank looks like furniture.
+  const breath = Math.sin(pose.clock * 1.8 + pose.x * 0.03) * 0.012;
+
+  const squash =
+    (pose.dance > 0 ? 1 + (hop / HOP_HEIGHT) * 0.08 : 1) *
+    (1 - Math.sin(landing * Math.PI) * gait.land) *
+    (1 - breath);
+
+  ctx.save();
+  ctx.translate(pose.x + pose.slide, pose.y - hop - arc - bob);
+  ctx.rotate(pose.tiltRad + pose.wobble * 0.08 + spin + lean);
+  ctx.scale(pose.scale, pose.scale);
+  ctx.scale(
+    (1 + Math.abs(pose.wobble) * 0.04) / squash,
+    (1 - Math.abs(pose.wobble) * 0.04) * squash,
+  );
+  draw(travelling ? 1 - landing : 0);
+  ctx.restore();
+}
 
 export const vectorAnimalArtist: AnimalArtist = {
   draw(ctx, species, pose) {

@@ -28,6 +28,8 @@ export interface AnimalPose {
   arriving: number;
   /** Seconds since the scene began, for idle movement that never stops. */
   clock: number;
+  /** 1 faces right, -1 faces left. Animals look towards the middle. */
+  facing: 1 | -1;
   expression: Expression;
 }
 

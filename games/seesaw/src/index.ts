@@ -6,7 +6,7 @@ import type { AnimalId } from './logic/animals.js';
 import type { Side, Zone } from './logic/seesaw-state.js';
 import { createSynthSoundPack } from './audio/seesaw-sounds.js';
 import { createScene, type SceneModel } from './view/scene.js';
-import { createVectorTheme } from './view/vector-theme.js';
+import { createSpriteTheme } from './view/sprite-theme.js';
 import { createInput, type InputIntent } from './view/input.js';
 import { TIMING } from './view/timing.js';
 import { DESIGN } from './view/layout.js';
@@ -52,7 +52,7 @@ export const seesawGame: SeesawModule = {
   title: 'Seesaw Park',
 
   async mount(container, host, options = {}): Promise<SeesawSession> {
-    const theme = createVectorTheme();
+    const theme = createSpriteTheme();
     const sounds = createSynthSoundPack(host.audio);
     await Promise.all([theme.preload(), sounds.preload()]);
 

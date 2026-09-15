@@ -528,3 +528,22 @@ child can read.
   whole pile shared where one of the pieces is a group. A test checks both that
   no question shape appears twice and that the final chapter's answers use more
   than one idea.
+
+
+**Painted animals** (2026-09-14). Artwork arrived as a character sheet and
+replaced the drawn animals, which is what the theme seam existed for. The four
+side views were cut from it — the row without a watermark, and the right view
+for a seesaw seen from the side — keyed to transparency and scaled by one shared
+factor so their relative sizes stay true.
+
+Nothing about how an animal behaves changed: gaits, wobble, the dance, the
+weight tag and the arrival all live in the pose, so `createSpriteTheme()` only
+supplies a different way of drawing at the end of it. Two accommodations were
+needed:
+
+- The painted animals have one expression each, so alarm moved from the face to
+  a mark above the animal, shown only on the one at the end of the side that is
+  down.
+- Loading waits 250ms and then starts regardless, with the drawn animals
+  standing in until the pictures arrive. `createVectorTheme()` stays a complete
+  working set, so a missing file degrades rather than breaks.

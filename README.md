@@ -150,6 +150,28 @@ question genuinely needs a removal and that nothing earlier does, that every
 Groups question offers at least two groups and is answered in one placement with
 no two groups weighing the same, and that every Fair Shares pile actually halves.
 
+## The animals' artwork
+
+The four animals are painted PNGs, cut from a character sheet in
+`games/seesaw/assets/source/`. `scripts/extract-animals.py` does the cutting;
+the sheet itself never ships, only the four cut files.
+
+`createSpriteTheme()` draws them. Everything about how an animal behaves is
+unchanged by the swap — the gaits it travels in, the wobble on a tilted plank,
+the hop of the finishing dance, the weight tag — because all of that lives in
+the pose rather than in the drawing. Animals face in towards the middle, so the
+two sides look at each other.
+
+Two things the painted art cannot do that the drawn art could:
+
+- **Pull a face.** There is one expression per animal, so alarm is shown as a
+  mark above the animal rather than in its eyes, and only the animal at the end
+  of the side that is down gets one. Four marks is noise; one says trouble.
+- **Arrive instantly.** Loading waits 250ms at most and then starts anyway, with
+  the drawn animals standing in until the pictures land. A missing or slow file
+  can never hold up a child, and `createVectorTheme()` remains a complete,
+  working set of animals.
+
 ## Swapping the art
 
 All drawing goes through `SeesawTheme` (`games/seesaw/src/view/theme.ts`).

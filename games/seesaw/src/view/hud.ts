@@ -191,6 +191,8 @@ function drawTrayItem(
       dance: 0,
       arriving: 1,
       clock: time,
+      // In the tray they face the middle of the screen, as they will on the plank.
+      facing: slot.x > DESIGN.width / 2 ? -1 : 1,
       expression: 'calm',
     });
   }

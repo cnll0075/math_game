@@ -45,8 +45,8 @@ export interface Scene {
   readonly announcing: boolean;
 }
 
-const expressionFor = (zone: SeesawSnapshot['zone']): Expression =>
-  zone === 'green' ? 'calm' : zone === 'yellow' ? 'surprised' : 'alarmed';
+const expressionFor = (zone: SeesawSnapshot['zone'], mayBeAlarmed = true): Expression =>
+  zone === 'green' ? 'calm' : zone === 'yellow' || !mayBeAlarmed ? 'surprised' : 'alarmed';
 
 const emptyModel = (): SceneModel => ({
   snapshot: describeSeesaw([]),
@@ -146,6 +146,12 @@ export function createScene(theme: SeesawTheme): Scene {
       const anchor = platformAnchor(side, tiltAmount);
       const slots = slotPositions(animals.length, SCENE.platformWidth);
 
+      // Only the animal at the very end of the side that is down looks alarmed.
+      // The painted animals cannot pull a face, so alarm is a mark above them,
+      // and one mark says "trouble" where four say "noise".
+      const worried =
+        model.snapshot.zone === 'red' && model.snapshot.heavySide === side ? animals.length - 1 : -1;
+
       animals.forEach((animal, index) => {
         const offset = slots[index] ?? 0;
         const phase = phaseFor(animal.uid);
@@ -181,7 +187,10 @@ export function createScene(theme: SeesawTheme): Scene {
             dance,
             arriving,
             clock: time,
-            expression: dance > 0 ? 'cheer' : expressionFor(model.snapshot.zone),
+            // Animals look in towards the middle, so the two sides face off.
+            facing: side === 'left' ? 1 : -1,
+            expression:
+              dance > 0 ? 'cheer' : index === worried ? 'alarmed' : expressionFor(model.snapshot.zone, false),
           },
         });
       });

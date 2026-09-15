@@ -255,3 +255,24 @@ describe('announcing the goal', () => {
   });
 });
 
+
+describe('how alarm is shown', () => {
+  const tipped = () =>
+    modelFor([animal('bear', 'left'), animal('bear', 'left', 1), animal('chicken', 'right')]);
+
+  it('alarms only the animal at the end of the side that is down', () => {
+    const scene = createScene(createVectorTheme());
+    for (let i = 0; i < 200; i++) scene.update(1 / 60, tipped());
+    const alarmed = scene.placements().filter((placement) => placement.pose.expression === 'alarmed');
+    // One mark says trouble; one per animal says noise.
+    expect(alarmed).toHaveLength(1);
+    expect(alarmed[0]!.animal.side).toBe('left');
+  });
+
+  it('alarms nobody while the seesaw is safe', () => {
+    const scene = createScene(createVectorTheme());
+    const level = modelFor([animal('cat', 'left'), animal('cat', 'right')]);
+    for (let i = 0; i < 200; i++) scene.update(1 / 60, level);
+    expect(scene.placements().every((placement) => placement.pose.expression === 'calm')).toBe(true);
+  });
+});

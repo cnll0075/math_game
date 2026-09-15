@@ -49,6 +49,7 @@ describe('vector theme', () => {
         dance: 0,
         arriving: 1,
         clock: 0,
+        facing: 1,
         expression: 'surprised',
       });
       expect(calls.length, species).toBeGreaterThan(0);
@@ -70,6 +71,7 @@ describe('vector theme', () => {
         dance: 0,
         arriving: 1,
         clock: 0,
+        facing: 1,
         expression,
       });
       expect(calls.length, expression).toBeGreaterThan(0);
@@ -91,6 +93,7 @@ describe('vector theme', () => {
         dance: 0,
         arriving: 1,
         clock: 0,
+        facing: 1,
         expression: 'calm',
       });
       expect(texts, species).toContain(String(ANIMALS[species].weight));
@@ -111,6 +114,7 @@ describe('vector theme', () => {
         dance,
         arriving: 1,
         clock: 0,
+        facing: 1,
         expression: 'cheer',
       });
       expect(calls.length, String(dance)).toBeGreaterThan(0);
@@ -183,7 +187,7 @@ describe('the target marker', () => {
 describe('animals drawn small', () => {
   it('still wears its weight, so nobody has to remember what a cat weighs', () => {
     const theme = createVectorTheme();
-    const pose = { x: 0, y: 0, tiltRad: 0, wobble: 0, slide: 0, dance: 0, arriving: 1, clock: 0 } as const;
+    const pose = { x: 0, y: 0, tiltRad: 0, wobble: 0, slide: 0, dance: 0, arriving: 1, clock: 0, facing: 1 } as const;
     for (const scale of [1, 0.6, 0.4, 0.25]) {
       const { ctx, texts } = recordingContext();
       theme.animals.draw(ctx, 'cat', { ...pose, scale, expression: 'calm' });
@@ -193,7 +197,7 @@ describe('animals drawn small', () => {
 
   it('stops the tag shrinking once the animal is small', () => {
     const theme = createVectorTheme();
-    const pose = { x: 0, y: 0, tiltRad: 0, wobble: 0, slide: 0, dance: 0, arriving: 1, clock: 0 } as const;
+    const pose = { x: 0, y: 0, tiltRad: 0, wobble: 0, slide: 0, dance: 0, arriving: 1, clock: 0, facing: 1 } as const;
     const small = recordingContext();
     theme.animals.draw(small.ctx, 'cat', { ...pose, scale: 0.3, expression: 'calm' });
     // The tag is drawn under its own relief scaling rather than the animal's.

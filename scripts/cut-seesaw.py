@@ -62,6 +62,19 @@ STRETCH_FROM, STRETCH_TO, STRETCH_BY = 470, 600, 120
 # How far below the base the cut reaches, to keep the grass tufts and the shadow.
 BASE_SKIRT = 62
 
+# The painting is far wider than it is tall, so on a screen there is always bare
+# space above it. Stretching its top edge upward to fill that space smeared the
+# tree and the clouds into vertical streaks, so real sky is painted in instead,
+# carrying on the gradient the sky already has. PARK.skyHeadroom in
+# src/view/geometry.ts must match SKY_HEADROOM.
+SKY_HEADROOM = 300
+# How far the sky keeps deepening before it levels off. Carried all the way up,
+# the gradient turns an unnaturally strong blue.
+SKY_RISE = 200
+# The band where the new sky meets the painting. Sky columns match already, so
+# this is what dissolves the tree at the top edge instead of cutting it flat.
+SKY_BLEND = 26
+
 
 def warm_mask(a):
     """Painted wood: orange-brown, warmer than the grass and the sky."""
@@ -221,6 +234,33 @@ def save(canvas, name):
     print(f'{name}: {canvas.shape[1]}x{canvas.shape[0]}')
 
 
+def add_sky(park):
+    """Paint sky above the painting, in the painting's own colours."""
+    sky = park[:80, :, 2] > park[:80, :, 0] + 40
+    columns = sky[0] & (park[0, :, 2] > 180)
+    if not columns.any():
+        return park
+
+    # The sky's own gradient, row by row, taken across everything that is sky.
+    rows = np.array([park[y][columns].mean(axis=0) for y in range(80)])
+    ys = np.arange(80)
+    slope = np.polyfit(ys, rows, 1)[0]
+    top = rows[0]
+
+    head = np.empty((SKY_HEADROOM, park.shape[1], 3))
+    for j in range(SKY_HEADROOM):
+        above = SKY_HEADROOM - j
+        head[j] = top - slope * min(above, SKY_RISE)
+        if above <= SKY_BLEND:
+            # Fade into the painting's own top row. Where that row is sky the
+            # blend is invisible; where it is the tree, the canopy softens into
+            # the sky rather than ending on a ruled line.
+            t = 1 - above / SKY_BLEND
+            head[j] = head[j] * (1 - t) + park[0] * t
+
+    return np.concatenate([head, park])
+
+
 def main():
     im = Image.open(SOURCE).convert('RGB')
     a = np.asarray(im).astype(float)
@@ -287,7 +327,7 @@ def main():
     periodic_clone(park, gone, *TRAY_TOP_ROWS, dirty)
     periodic_clone(park, gone, *TRAY_BOTTOM_ROWS, dirty)
     tile_fill(park, gone, *BAND_ROWS, dirty)
-    out = Image.fromarray(np.clip(park, 0, 255).astype('uint8'))
+    out = Image.fromarray(np.clip(add_sky(park), 0, 255).astype('uint8'))
     out.save(f'{OUT}/park.jpg', quality=92, subsampling=0)
     print(f'park: {out.width}x{out.height}')
 

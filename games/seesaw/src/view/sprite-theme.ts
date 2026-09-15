@@ -179,15 +179,14 @@ export function createSpriteTheme(): SeesawTheme {
       }
       const { bounds } = view;
       const width = PARK.width * PARK_SCALE;
-      const height = PARK.height * PARK_SCALE;
+      const height = (PARK.height + PARK.skyHeadroom) * PARK_SCALE;
       const left = SCENE.fulcrumX - PARK.pivotX * PARK_SCALE;
       // The painting stands on the same ground line the seesaw stands on.
-      const top = SCENE.groundY - PARK.groundY * PARK_SCALE;
+      const top = SCENE.groundY - (PARK.groundY + PARK.skyHeadroom) * PARK_SCALE;
 
-      // Sky above and grass below are the painting's own edge pixels, stretched:
-      // sampling a colour and filling with it left a visible seam, because the
-      // sky is a gradient and the grass is not flat. The top edge is stretched
-      // whole, so the tree carries on upward as tree and the sky as sky.
+      // The backdrop is cut with sky above the painting, so it reaches past the
+      // top of any screen this runs on. Taller still than that, and its topmost
+      // row carries on upward - which is safe now that the row is plain sky.
       const edge = 2;
       if (top > bounds.top) {
         ctx.drawImage(park, 0, 0, park.width, edge, left, bounds.top, width, top - bounds.top + 1);

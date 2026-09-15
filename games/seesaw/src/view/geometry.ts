@@ -8,6 +8,14 @@ import { DESIGN } from './layout.js';
 export const PARK = {
   width: 1991,
   height: 789,
+  /**
+   * Rows of sky the cut backdrop adds above the painting. The painting is far
+   * wider than it is tall, so there is always bare space above it on a screen,
+   * and its top edge is tree and cloud rather than sky: stretching that edge to
+   * fill the space smeared both into streaks. Must match SKY_HEADROOM in
+   * `scripts/cut-seesaw.py`.
+   */
+  skyHeadroom: 300,
   /** The bolt the plank turns on. */
   pivotX: 996,
   pivotY: 468,

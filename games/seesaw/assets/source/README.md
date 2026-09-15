@@ -17,7 +17,12 @@ The park, with its own seesaw standing level and empty in the middle of it.
 
 - `park.jpg` - the park with the plank and both trays lifted out, and the hole
   they left repaired. The fence is rebuilt by repeating whole fence-lengths of
-  the real fence, which is why the pickets stay upright and evenly spaced.
+  the real fence, which is why the pickets stay upright and evenly spaced. Sky
+  is painted in above the painting as well: it is far wider than it is tall, so
+  a screen always has bare space above it, and its top edge is tree and cloud
+  rather than sky - stretching that edge up to fill the space smeared both into
+  vertical streaks. The new sky carries on the gradient the painting's own sky
+  has, and the tree dissolves into it instead of ending on a ruled line.
 - `plank-back.png` - the plank, both trays, and each tray's back rim.
 - `plank-front.png` - each tray's near wall, drawn after the animals so they
   ride inside the basket instead of standing on top of it.

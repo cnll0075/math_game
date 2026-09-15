@@ -21,7 +21,7 @@ export const LEVELS: readonly LevelDef[] = [
   { id: 'l1', section: 'same', objective: { kind: 'balance' }, hint: 'Both sides the same makes it flat',
     showTarget: true,
     initial: { left: ['chicken'], right: [] }, tray: ['chicken'] },
-  { id: 'l2', section: 'same', objective: { kind: 'balance' }, hint: 'One cat is worth two chickens',
+  { id: 'l2', section: 'same', objective: { kind: 'balance' }, hint: 'A cat weighs two chickens',
     showTarget: true,
     initial: { left: [], right: ['chicken', 'chicken'] }, tray: ['cat', 'chicken'] },
   { id: 'l3', section: 'same', objective: { kind: 'balance' }, hint: 'How many chickens match the cat?',

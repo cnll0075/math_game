@@ -70,7 +70,11 @@ export function createInput(
     for (const slot of scene.traySlots()) {
       // Generous vertically: the animals stand below their slot centre, and a
       // child aiming at an animal should hit it.
-      const near = Math.hypot(point.x - slot.x, (point.y - slot.y - 12) * 0.8) <= slot.radius + 8;
+      // A pen is a wide box, not a circle: measured as a circle, its corners
+      // were dead and the animals standing in them could not be picked up.
+      const near =
+        Math.abs(point.x - slot.x) <= slot.radius + 8 &&
+        Math.abs(point.y - slot.y - 12) <= slot.reach + 8;
       if (near) return slot.index;
     }
     return null;

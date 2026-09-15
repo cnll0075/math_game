@@ -98,13 +98,43 @@ export interface TraySlot {
   item: TrayItem;
   x: number;
   y: number;
+  /** Half the width of the slot's pen: how far a tap may stray sideways. */
   radius: number;
+  /** Half its height. A pen for a huddle is much wider than it is tall. */
+  reach: number;
 }
 
-const TRAY_SPACING = 96;
+/**
+ * The box one animal in a pen stands in, art and all. Every other tray
+ * measurement is built from it, so the pens and the gaps between them follow
+ * the animals if the animals ever change size again.
+ */
+const GROUP_CELL = { width: 78, height: 68 };
+/** Room left around a huddle inside its pen. */
+const PEN_MARGIN = 18;
+/** How big a penned animal is drawn: the tallest of them fills one cell. */
+const GROUP_ART = 0.44;
+
+const TRAY_SPACING = 122;
 /** Groups need a pen each, so they stand further apart than single animals. */
-const GROUP_SPACING = 178;
-export const TRAY_SLOT_RADIUS = 42;
+const GROUP_SPACING = 262;
+export const TRAY_SLOT_RADIUS = 54;
+
+/** How many cells across and down a huddle of this size stands in. */
+function groupGrid(count: number): { cols: number; rows: number } {
+  if (count <= 1) return { cols: 1, rows: 1 };
+  const cols = count <= 3 ? count : 2;
+  return { cols, rows: Math.ceil(count / cols) };
+}
+
+/** The pen a huddle needs, in design units. */
+export function penSize(count: number): { width: number; height: number } {
+  const { cols, rows } = groupGrid(count);
+  return {
+    width: cols * GROUP_CELL.width + PEN_MARGIN * 2,
+    height: rows * GROUP_CELL.height + PEN_MARGIN * 2,
+  };
+}
 
 export function traySlots(tray: readonly TrayItem[]): TraySlot[] {
   const available = tray.map((item, index) => ({ item, index })).filter(({ item }) => !item.used);
@@ -115,7 +145,8 @@ export function traySlots(tray: readonly TrayItem[]): TraySlot[] {
     item,
     x: start + position * spacing,
     y: SCENE.trayY,
-    radius: item.count > 1 ? TRAY_SLOT_RADIUS + 32 : TRAY_SLOT_RADIUS,
+    radius: item.count > 1 ? penSize(item.count).width / 2 : TRAY_SLOT_RADIUS,
+    reach: item.count > 1 ? penSize(item.count).height / 2 : TRAY_SLOT_RADIUS,
   }));
 }
 
@@ -127,21 +158,17 @@ export function traySlots(tray: readonly TrayItem[]): TraySlot[] {
 export function groupOffsets(count: number): Array<{ x: number; y: number; scale: number }> {
   if (count <= 1) return [{ x: 0, y: 0, scale: 1 }];
 
-  const perRow = count <= 3 ? count : 2;
-  const rows = Math.ceil(count / perRow);
-  const acrossGap = count <= 2 ? 50 : 46;
-  const downGap = 44;
-  const scale = count <= 2 ? 0.56 : count === 3 ? 0.5 : 0.46;
+  const { cols, rows } = groupGrid(count);
 
   return Array.from({ length: count }, (_, index) => {
-    const row = Math.floor(index / perRow);
-    const inRow = index % perRow;
-    const rowCount = Math.min(perRow, count - row * perRow);
+    const row = Math.floor(index / cols);
+    const inRow = index % cols;
+    const rowCount = Math.min(cols, count - row * cols);
     return {
-      x: (inRow - (rowCount - 1) / 2) * acrossGap,
+      x: (inRow - (rowCount - 1) / 2) * GROUP_CELL.width,
       // Back rows sit higher, and far enough up to clear the row in front.
-      y: (row - (rows - 1) / 2) * -downGap,
-      scale,
+      y: (row - (rows - 1) / 2) * -GROUP_CELL.height,
+      scale: GROUP_ART,
     };
   });
 }
@@ -168,10 +195,9 @@ function drawTrayItem(
     ctx.strokeStyle = selected ? 'rgba(224,165,0,0.9)' : 'rgba(29,43,50,0.22)';
     ctx.lineWidth = 3;
     ctx.beginPath();
-    const width = slot.radius * 2 + 10;
-    const height = TRAY_SLOT_RADIUS * 2 + (item.count > 2 ? 56 : 12);
+    const { width, height } = penSize(item.count);
     // A tall pen has to sit higher, or its bottom runs off the screen.
-    const lift = item.count > 2 ? 26 : 6;
+    const lift = item.count > 2 ? 30 : 6;
     ctx.roundRect?.(slot.x - width / 2, slot.y - height / 2 - lift, width, height, 22);
     if (!ctx.roundRect) ctx.rect(slot.x - width / 2, slot.y - height / 2 - lift, width, height);
     ctx.fill();
@@ -209,8 +235,8 @@ export function drawHud(ctx: CanvasRenderingContext2D, theme: SeesawTheme, hud: 
   if (slots.length > 0) {
     ctx.save();
     ctx.fillStyle = 'rgba(255,255,255,0.42)';
-    const left = slots[0]!.x - TRAY_SLOT_RADIUS - 16;
-    const width = slots.at(-1)!.x + TRAY_SLOT_RADIUS + 16 - left;
+    const left = slots[0]!.x - slots[0]!.radius - 16;
+    const width = slots.at(-1)!.x + slots.at(-1)!.radius + 16 - left;
     // Kept short enough to clear the fulcrum's base, so the seesaw does not
     // look like it is standing on the tray.
     const top = SCENE.trayY - 44;

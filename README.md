@@ -161,13 +161,25 @@ no two groups weighing the same, and that every Fair Shares pile actually halves
 
 ## The artwork
 
-The park behind the seesaw is a painting, cut from
-`games/seesaw/assets/source/playground.png`. That image has a watermark across
-its middle, over its own painted plank and fulcrum, where nothing in the game
-could hide it; everything above the seesaw's handles is clean, and that band is
-what ships. The game draws its own seesaw in front of it — coloured to match the
-painted one — and continues the sky upward and the grass downward from the
-band's own edge pixels, so the picture has no seams.
+Everything on screen is cut from two paintings in
+`games/seesaw/assets/source/`, by `scripts/cut-seesaw.py` and
+`scripts/extract-animals.py`. Neither painting is edited by hand, so a better
+one can replace it and be recut with one command.
+
+The park painting has its own seesaw in it, standing level. The game needs one
+that tilts, so the plank and its two trays are lifted out as sprites and the
+hole they leave is repaired; the post stays where it is, because the painting
+has it in front of the plank and a taller cut of it covers the plank's middle
+where the two meet. Each tray is cut in two - back rim and near wall - and the
+animals are drawn between them, which is what makes them ride in the basket
+rather than balance on its rim.
+
+One number decides the size of everything: `PARK_SCALE` in
+`games/seesaw/src/view/geometry.ts`, set by the furthest corner of the longer
+tray having to stay on screen. Every other measurement in the scene is derived
+from the painting through it, and `view/layout.test.ts` walks the real geometry
+against the real artwork so a nudge to one number cannot quietly push a basket,
+or a bear, off the edge.
 
 ## The animals' artwork
 

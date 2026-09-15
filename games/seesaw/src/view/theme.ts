@@ -77,6 +77,12 @@ export interface SeesawTheme {
   preload(): Promise<void>;
   drawBackground(ctx: CanvasRenderingContext2D, view: SeesawView): void;
   drawSeesaw(ctx: CanvasRenderingContext2D, view: SeesawView): void;
+  /**
+   * The near wall of each tray, drawn after the animals so they stand INSIDE
+   * the basket instead of on top of it. Themes whose baskets have no near wall
+   * draw nothing here.
+   */
+  drawSeesawFront(ctx: CanvasRenderingContext2D, view: SeesawView): void;
   /** The target marker, drawn over the animals so it is never hidden. */
   drawTarget(ctx: CanvasRenderingContext2D, view: SeesawView): void;
   drawGauge(ctx: CanvasRenderingContext2D, view: SeesawView): void;

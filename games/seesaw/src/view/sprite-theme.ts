@@ -1,10 +1,13 @@
 import { ANIMAL_IDS, type AnimalId } from '../logic/animals.js';
-import { drawWeightBadge, vectorAnimalArtist, withPose } from './animals-art.js';
-import { createVectorTheme, drawFlowers } from './vector-theme.js';
-import { SCENE } from './geometry.js';
+import { ANIMAL_ART, drawWeightBadge, vectorAnimalArtist, withPose } from './animals-art.js';
+import { createVectorTheme } from './vector-theme.js';
+import { PARK, PARK_SCALE, SCENE } from './geometry.js';
 import type { AnimalArtist, AnimalPose, SeesawTheme } from './theme.js';
 
-import backdropUrl from '../../assets/backdrop.png';
+import parkUrl from '../../assets/park.jpg';
+import plankBackUrl from '../../assets/plank-back.png';
+import plankFrontUrl from '../../assets/plank-front.png';
+import fulcrumUrl from '../../assets/fulcrum.png';
 import chickenUrl from '../../assets/chicken.png';
 import catUrl from '../../assets/cat.png';
 import dogUrl from '../../assets/dog.png';
@@ -17,17 +20,6 @@ const SOURCES: Record<AnimalId, string> = {
   bear: bearUrl,
 };
 
-/**
- * How tall each animal stands, in design units, at a pose scale of one. Taken
- * from the artwork's own proportions, so the bear still looks like five
- * chickens' worth of animal.
- */
-const HEIGHTS: Record<AnimalId, number> = {
-  chicken: 70,
-  cat: 88,
-  dog: 112,
-  bear: 126,
-};
 
 /**
  * How long the game waits for the pictures before starting without them. It
@@ -116,7 +108,7 @@ export function createSpriteAnimalArtist(): AnimalArtist & { preload(): Promise<
       }
 
       withPose(ctx, species, pose, () => {
-        const height = HEIGHTS[species];
+        const height = ANIMAL_ART[species].height;
         const width = (image.width / image.height) * height;
         ctx.save();
         // Animals look towards the middle of the seesaw.
@@ -133,69 +125,121 @@ export function createSpriteAnimalArtist(): AnimalArtist & { preload(): Promise<
         vectorAnimalArtist.drawTag(ctx, species, pose);
         return;
       }
-      const height = HEIGHTS[species];
+      const height = ANIMAL_ART[species].height;
       const width = (image.width / image.height) * height;
-      // Outside the flip, so the number never reads mirrored.
+      // Outside the flip, so the number never reads mirrored; and high enough
+      // on the animal to clear the basket wall it is riding behind.
       withPose(ctx, species, pose, () => {
-        drawWeightBadge(ctx, species, pose.scale, { x: width * 0.32, y: -height * 0.18 });
+        drawWeightBadge(ctx, species, pose.scale, { x: width * 0.34, y: -height * 0.52 });
       });
     },
   };
 }
 
-/** The painted park: a photograph of a playground with our seesaw standing in it. */
+/**
+ * Everything cut out of the painting is on one canvas with the bolt at the same
+ * spot, so all three pieces share a single transform and none of them can slip
+ * out of line with the others.
+ */
+function drawSprite(
+  ctx: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  angle: number | null,
+): void {
+  const { sprite } = PARK;
+  ctx.save();
+  ctx.translate(SCENE.fulcrumX, SCENE.fulcrumY);
+  if (angle !== null) ctx.rotate(angle);
+  ctx.drawImage(
+    image,
+    -sprite.pivotX * PARK_SCALE,
+    -sprite.pivotY * PARK_SCALE,
+    sprite.width * PARK_SCALE,
+    sprite.height * PARK_SCALE,
+  );
+  ctx.restore();
+}
+
+/** The painted park, with its own seesaw lifted out so ours can tilt. */
 export function createSpriteTheme(): SeesawTheme {
   const base = createVectorTheme();
   const animals = createSpriteAnimalArtist();
-  let backdrop: HTMLImageElement | null = null;
+  const parts = new Map<string, HTMLImageElement>();
+  const part = (name: string): HTMLImageElement | null => parts.get(name) ?? null;
 
   return {
     ...base,
     animals,
 
     drawBackground(ctx, view) {
-      if (!backdrop) {
+      const park = part('park');
+      if (!park) {
         base.drawBackground(ctx, view);
         return;
       }
       const { bounds } = view;
-      const width = bounds.right - bounds.left;
-      // The park stands on the same ground line the seesaw stands on.
-      const height = (backdrop.height / backdrop.width) * width;
-      const top = SCENE.groundY - height;
+      const width = PARK.width * PARK_SCALE;
+      const height = PARK.height * PARK_SCALE;
+      const left = SCENE.fulcrumX - PARK.pivotX * PARK_SCALE;
+      // The painting stands on the same ground line the seesaw stands on.
+      const top = SCENE.groundY - PARK.groundY * PARK_SCALE;
 
-      // Sky above and grass below are the painting's own edge rows, stretched:
+      // Sky above and grass below are the painting's own edge pixels, stretched:
       // sampling a colour and filling with it left a visible seam, because the
-      // sky is a gradient and the grass is not flat.
+      // sky is a gradient and the grass is not flat. The top edge is stretched
+      // whole, so the tree carries on upward as tree and the sky as sky.
       const edge = 2;
       if (top > bounds.top) {
+        ctx.drawImage(park, 0, 0, park.width, edge, left, bounds.top, width, top - bounds.top + 1);
+      }
+      if (top + height < bounds.bottom) {
+        // Grass below comes from one column of the bottom edge, not the whole
+        // row: the row crosses rocks and flowers, and stretching those downward
+        // smeared them into streaks.
+        const column = Math.round(park.width * 0.42);
         ctx.drawImage(
-          backdrop, 0, 0, backdrop.width, edge,
-          bounds.left, bounds.top, width, top - bounds.top + 1,
+          park, column, park.height - edge, 1, edge,
+          bounds.left, top + height - 1, bounds.right - bounds.left, bounds.bottom - top - height + 1,
         );
       }
-      // Grass below comes from one column of the painting's bottom edge, not
-      // from the whole row: the row crosses the bench and the slide, and
-      // stretching those downward smeared them into streaks.
-      const grassColumn = Math.round(backdrop.width / 2);
-      ctx.drawImage(
-        backdrop, grassColumn, backdrop.height - edge, 1, edge,
-        bounds.left, SCENE.groundY - 1, width, bounds.bottom - SCENE.groundY + 1,
-      );
+      ctx.drawImage(park, left, top, width, height);
+    },
 
-      ctx.drawImage(backdrop, bounds.left, top, width, height);
+    drawSeesaw(ctx, view) {
+      const plank = part('plank-back');
+      const fulcrum = part('fulcrum');
+      if (!plank || !fulcrum) {
+        base.drawSeesaw(ctx, view);
+        return;
+      }
+      drawSprite(ctx, plank, view.plankAngle);
+      // The post is painted in front of the plank, which is what hides the
+      // middle of the board and the seam where it turns.
+      drawSprite(ctx, fulcrum, null);
+    },
 
-      drawFlowers(ctx);
+    drawSeesawFront(ctx, view) {
+      const front = part('plank-front');
+      if (front) drawSprite(ctx, front, view.plankAngle);
     },
 
     async preload() {
+      const pieces: [string, string][] = [
+        ['park', parkUrl],
+        ['plank-back', plankBackUrl],
+        ['plank-front', plankFrontUrl],
+        ['fulcrum', fulcrumUrl],
+      ];
       await Promise.all([
         base.preload(),
         animals.preload(),
         afterAtMost(
-          loadImage(backdropUrl).then((image) => {
-            backdrop = image;
-          }),
+          Promise.all(
+            pieces.map(async ([name, url]) => {
+              const image = await loadImage(url);
+              if (image) parts.set(name, image);
+            }),
+          ),
           PATIENCE_MS,
         ),
       ]);

@@ -1,6 +1,7 @@
 import { describeSeesaw, type PlacedAnimal, type SeesawSnapshot, type Side } from '../logic/seesaw-state.js';
 import { SCENE, platformAnchor } from './geometry.js';
-import { DESIGN, fitToScreen, slotPositions, visibleBounds, type Bounds, type Point, type Size } from './layout.js';
+import { ANIMAL_ART } from './animals-art.js';
+import { DESIGN, fitToScreen, layOutRow, visibleBounds, type Bounds, type Point, type Size } from './layout.js';
 import { createSpring } from './spring.js';
 import { TIMING } from './timing.js';
 import { drawHud, drawSideTargets, traySlots, type TraySlot } from './hud.js';
@@ -157,7 +158,11 @@ export function createScene(theme: SeesawTheme): Scene {
     for (const side of ['left', 'right'] as Side[]) {
       const animals = model.placed.filter((animal) => animal.side === side);
       const anchor = platformAnchor(side, tiltAmount);
-      const slots = slotPositions(animals.length, SCENE.platformWidth);
+      const row = layOutRow(
+        animals.map((animal) => ANIMAL_ART[animal.species].height * ANIMAL_ART[animal.species].aspect),
+        SCENE.basketInner,
+        1.08,
+      );
 
       // Only the animal at the very end of the side that is down looks alarmed.
       // The painted animals cannot pull a face, so alarm is a mark above them,
@@ -166,17 +171,20 @@ export function createScene(theme: SeesawTheme): Scene {
         model.snapshot.zone === 'red' && model.snapshot.heavySide === side ? animals.length - 1 : -1;
 
       animals.forEach((animal, index) => {
-        const offset = slots[index] ?? 0;
+        const offset = row.offsets[index] ?? 0;
         const phase = phaseFor(animal.uid);
         const agitation = Math.abs(model.snapshot.normalizedBalance);
         const wobble = Math.sin(time * 5 + phase) * agitation;
         // Animals slide downhill, further the steeper the plank.
         const slide = Math.sin(tiltAmount) * 26 * (side === 'left' ? -1 : 1) * -1;
 
-        // Feet on the basket floor, following the plank.
+        // Sitting in the basket at the same depth whatever size they are drawn,
+        // so the near wall cuts every animal at the same point on its body.
+        const ride =
+          SCENE.basketWallTop - SCENE.submerge * ANIMAL_ART[animal.species].height * row.scale;
         const local = {
           x: anchor.x + offset * Math.cos(tiltAmount),
-          y: anchor.y + offset * Math.sin(tiltAmount) - SCENE.platformHeight - 6,
+          y: anchor.y + offset * Math.sin(tiltAmount) - ride,
         };
 
         const dance = danceFor(danceIndex);
@@ -192,7 +200,7 @@ export function createScene(theme: SeesawTheme): Scene {
           pose: {
             x: local.x + (from.x - local.x) * journey,
             y: local.y + (from.y - local.y) * journey,
-            scale: 1.08,
+            scale: row.scale,
             tiltRad: tiltAmount,
             // Dancers hold still apart from the hop; a wobble on top reads as noise.
             wobble: dance > 0 ? 0 : wobble,
@@ -290,6 +298,7 @@ export function createScene(theme: SeesawTheme): Scene {
       // front of it would have a child guessing at a weight.
       const onThePlank = placementsFor();
       for (const { animal, pose } of onThePlank) theme.animals.draw(ctx, animal.species, pose);
+      theme.drawSeesawFront(ctx, view);
       for (const { animal, pose } of onThePlank) theme.animals.drawTag(ctx, animal.species, pose);
       theme.drawTarget(ctx, view);
       theme.drawFlag(ctx, view);

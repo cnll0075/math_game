@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { DESIGN, fitToScreen, slotPositions, visibleBounds } from './layout.js';
-import { SCENE, platformAnchor } from './geometry.js';
+import { DESIGN, fitToScreen, layOutRow, visibleBounds } from './layout.js';
+import { PARK, PARK_SCALE, SCENE, platformAnchor } from './geometry.js';
+import { ANIMAL_ART } from './animals-art.js';
+import { ANIMAL_IDS } from '../logic/animals.js';
 import { groupOffsets, traySlots } from './hud.js';
 
 describe('fitToScreen', () => {
@@ -84,30 +86,97 @@ describe('visibleBounds', () => {
   });
 });
 
-describe('slotPositions', () => {
-  it('spaces animals without overlapping, for one through five', () => {
-    for (let count = 1; count <= 5; count++) {
-      const xs = slotPositions(count, 320);
-      expect(xs).toHaveLength(count);
-      for (let i = 1; i < count; i++) expect(xs[i]! - xs[i - 1]!).toBeGreaterThan(40);
+describe('layOutRow', () => {
+  const same = (count: number, width: number) => new Array(count).fill(width);
+
+  it('draws a lone animal as big as it is allowed to be', () => {
+    expect(layOutRow(same(1, 120), 212, 1.08).scale).toBe(1.08);
+  });
+
+  it('centres the row, for one through five', () => {
+    for (let count = 1; count <= 5; count += 1) {
+      const { offsets } = layOutRow(same(count, 120), 212, 1.08);
+      expect(offsets).toHaveLength(count);
+      expect(offsets[0]! + offsets[count - 1]!).toBeCloseTo(0);
     }
   });
 
-  it('centres the row on the platform', () => {
-    for (let count = 1; count <= 5; count++) {
-      const xs = slotPositions(count, 320);
-      expect(xs[0]! + xs[count - 1]!).toBeCloseTo(0);
+  it('keeps every animal inside the basket, whatever is standing in it', () => {
+    for (let count = 1; count <= 5; count += 1) {
+      for (const species of ANIMAL_IDS) {
+        const width = ANIMAL_ART[species].height * ANIMAL_ART[species].aspect;
+        const { scale, offsets } = layOutRow(same(count, width), SCENE.basketInner, 1.08);
+        for (const offset of offsets) {
+          expect(Math.abs(offset) + (width * scale) / 2).toBeLessThanOrEqual(SCENE.basketInner / 2 + 0.5);
+        }
+      }
     }
   });
 
-  it('keeps animals on the platform', () => {
-    for (let count = 1; count <= 6; count++) {
-      for (const x of slotPositions(count, 320)) expect(Math.abs(x)).toBeLessThanOrEqual(160);
-    }
+  it('shrinks a crowd rather than letting it spill out', () => {
+    const one = layOutRow(same(1, 200), 212, 1.08).scale;
+    const four = layOutRow(same(4, 200), 212, 1.08).scale;
+    expect(four).toBeLessThan(one);
   });
 
-  it('returns nothing for an empty platform', () => {
-    expect(slotPositions(0, 320)).toEqual([]);
+  it('gives a heavy armful less room than a light one', () => {
+    const bears = layOutRow(same(2, 203), 212, 1.08).scale;
+    const chicks = layOutRow(same(2, 101), 212, 1.08).scale;
+    expect(bears).toBeLessThan(chicks);
+  });
+
+  it('keeps them in order, left to right', () => {
+    const { offsets } = layOutRow([101, 203, 123], 212, 1.08);
+    expect(offsets[0]!).toBeLessThan(offsets[1]!);
+    expect(offsets[1]!).toBeLessThan(offsets[2]!);
+  });
+
+  it('returns nothing for an empty basket', () => {
+    expect(layOutRow([], 212, 1.08).offsets).toEqual([]);
+  });
+});
+
+/**
+ * The basket swings a long way at full tilt, and an animal that hangs out of it
+ * hangs off the screen. This is the guard on that: it walks the real geometry
+ * with the real artwork rather than trusting the numbers to stay in step.
+ */
+describe('the painted seesaw stays on screen', () => {
+  it('keeps every corner of both trays in frame, at rest and at full tilt', () => {
+    // The tray's four corners, measured from the bolt in the painting's pixels.
+    const corners = [-PARK.trayOuter, PARK.trayOuter].flatMap((dx) =>
+      [-PARK.trayTop, PARK.trayDrop].map((dy) => ({ dx, dy })),
+    );
+    for (const tilt of [-SCENE.maxTiltRad, 0, SCENE.maxTiltRad]) {
+      for (const { dx, dy } of corners) {
+        const x = SCENE.fulcrumX + (dx * Math.cos(tilt) - dy * Math.sin(tilt)) * PARK_SCALE;
+        expect(x).toBeGreaterThanOrEqual(0);
+        expect(x).toBeLessThanOrEqual(DESIGN.width);
+      }
+    }
+  });
+});
+
+describe('animals stay on screen at full tilt', () => {
+  it('keeps every animal inside the frame', () => {
+    for (const tilt of [-SCENE.maxTiltRad, 0, SCENE.maxTiltRad]) {
+      for (const side of ['left', 'right'] as const) {
+        const anchor = platformAnchor(side, tilt);
+        const slide = Math.sin(tilt) * 26 * (side === 'left' ? -1 : 1) * -1;
+        for (let count = 1; count <= 5; count += 1) {
+          for (const species of ANIMAL_IDS) {
+            const width = ANIMAL_ART[species].height * ANIMAL_ART[species].aspect;
+            const row = layOutRow(new Array(count).fill(width), SCENE.basketInner, 1.08);
+            for (const offset of row.offsets) {
+              const centre = anchor.x + offset * Math.cos(tilt) + slide;
+              const half = (width * row.scale) / 2;
+              expect(centre - half).toBeGreaterThanOrEqual(0);
+              expect(centre + half).toBeLessThanOrEqual(DESIGN.width);
+            }
+          }
+        }
+      }
+    }
   });
 });
 
@@ -137,9 +206,11 @@ describe('scene fits the design space', () => {
 describe('the seesaw fits its frame at full tilt', () => {
   const cornerReach = SCENE.plankHalfLength + SCENE.platformWidth / 2;
   const swing = cornerReach * Math.sin(SCENE.maxTiltRad);
+  /** The basket hangs below the board it is bolted to, and that hangs lowest. */
+  const basketBottom = PARK.trayDrop * PARK_SCALE;
 
   it('keeps the low basket clear of the ground', () => {
-    expect(SCENE.fulcrumY + swing).toBeLessThan(SCENE.groundY - 8);
+    expect(SCENE.fulcrumY + swing + basketBottom).toBeLessThan(SCENE.groundY - 8);
   });
 
   it('keeps the high basket clear of the gauge', () => {

@@ -332,6 +332,19 @@ const drawMotion = (ctx: CanvasRenderingContext2D, species: AnimalId, effort: nu
  * dance, the arc of an arrival, the lean, the squash on landing, the breathing.
  * Runs the given drawing inside that transform.
  */
+/**
+ * How big each painted animal is drawn on the plank, at a pose scale of one.
+ * Heights come from the artwork's own proportions, so the bear still looks like
+ * five chickens' worth of animal; the aspect is the picture file's own, which
+ * is what decides whether a row of them fits in a basket.
+ */
+export const ANIMAL_ART: Record<AnimalId, { height: number; aspect: number }> = {
+  chicken: { height: 104, aspect: 0.971 },
+  cat: { height: 130, aspect: 0.948 },
+  dog: { height: 166, aspect: 0.994 },
+  bear: { height: 187, aspect: 1.086 },
+};
+
 export function withPose(
   ctx: CanvasRenderingContext2D,
   species: AnimalId,

@@ -13,11 +13,11 @@ const SKY_BOTTOM = '#e8f6fb';
 const GRASS = '#8fce72';
 const GRASS_DARK = '#6fb257';
 const WOOD = '#c98d4f';
-// Taken from the playground the backdrop is painted from, so the seesaw we draw
-// looks like it came with the park.
-const FULCRUM = '#1781d6';
-const FULCRUM_SHADE = '#1274c8';
-const BOLT = '#feca15';
+// Taken from the painted park, so the drawn seesaw that stands in before the
+// pictures load is the same seesaw in the same colours.
+const FULCRUM = '#ab6225';
+const FULCRUM_SHADE = '#8d4e1b';
+const BOLT = '#fbb028';
 const WOOD_DARK = '#a06c37';
 const INK = '#3a2f2a';
 
@@ -181,6 +181,9 @@ export function createVectorTheme(): SeesawTheme {
       drawFence(ctx, SCENE.groundY, bounds);
       drawFlowers(ctx);
     },
+
+    // The drawn baskets have no near wall to put in front of the animals.
+    drawSeesawFront() {},
 
     drawSeesaw(ctx, view) {
       // Fulcrum, in the painted playground's own blue plastic with its yellow
@@ -348,7 +351,9 @@ export function createVectorTheme(): SeesawTheme {
       ctx.save();
       ctx.translate(anchor.x, anchor.y);
       ctx.rotate(view.plankAngle);
-      ctx.translate(outward * (SCENE.platformWidth / 2 + 4), -SCENE.platformHeight);
+      // Clear of the basket's rim, not its floor: planted any lower and the
+      // near wall swallows the pole and leaves the flag floating.
+      ctx.translate(outward * (SCENE.platformWidth / 2 + 4), -SCENE.basketRim);
 
       ctx.strokeStyle = '#6d4c33';
       ctx.lineWidth = 5;
@@ -358,10 +363,13 @@ export function createVectorTheme(): SeesawTheme {
       ctx.lineTo(0, -height);
       ctx.stroke();
 
+      // The pennant flies inward, over the seesaw. The heavy basket is the one
+      // swung out to the edge of the screen, and a pennant flying outward from
+      // there is half off it.
       ctx.fillStyle = '#e4695f';
       ctx.beginPath();
       ctx.moveTo(0, -height);
-      ctx.lineTo(outward * 50 * view.flagHeight, -height + 15);
+      ctx.lineTo(-outward * 50 * view.flagHeight, -height + 15);
       ctx.lineTo(0, -height + 30);
       ctx.closePath();
       ctx.fill();

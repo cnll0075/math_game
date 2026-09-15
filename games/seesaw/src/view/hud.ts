@@ -120,6 +120,12 @@ export interface TraySlot {
   radius: number;
   /** Half its height. A pen for a huddle is much wider than it is tall. */
   reach: number;
+  /**
+   * Whether this slot is drawn in a pen of its own. Either every slot is or
+   * none is: a shelf behind a row of pens is a second white shape saying the
+   * same thing, and one lone animal beside two penned groups looks unpickable.
+   */
+  penned: boolean;
 }
 
 /**
@@ -132,6 +138,8 @@ const GROUP_CELL = { width: 78, height: 68 };
 const PEN_MARGIN = 18;
 /** How big a penned animal is drawn: the tallest of them fills one cell. */
 const GROUP_ART = 0.44;
+/** The same, as the multiplier a tray pose applies. */
+const PENNED_ART = GROUP_ART * 1.5;
 
 const TRAY_SPACING = 122;
 /** Groups need a pen each, so they stand further apart than single animals. */
@@ -156,15 +164,17 @@ export function penSize(count: number): { width: number; height: number } {
 
 export function traySlots(tray: readonly TrayItem[]): TraySlot[] {
   const available = tray.map((item, index) => ({ item, index })).filter(({ item }) => !item.used);
-  const spacing = available.some(({ item }) => item.count > 1) ? GROUP_SPACING : TRAY_SPACING;
+  const penned = available.some(({ item }) => item.count > 1);
+  const spacing = penned ? GROUP_SPACING : TRAY_SPACING;
   const start = DESIGN.width / 2 - ((available.length - 1) * spacing) / 2;
   return available.map(({ item, index }, position) => ({
     index,
     item,
+    penned,
     x: start + position * spacing,
     y: SCENE.trayY,
-    radius: item.count > 1 ? penSize(item.count).width / 2 : TRAY_SLOT_RADIUS,
-    reach: item.count > 1 ? penSize(item.count).height / 2 : TRAY_SLOT_RADIUS,
+    radius: penned ? penSize(item.count).width / 2 : TRAY_SLOT_RADIUS,
+    reach: penned ? penSize(item.count).height / 2 : TRAY_SLOT_RADIUS,
   }));
 }
 
@@ -206,7 +216,7 @@ function drawTrayItem(
   const { item } = slot;
   const offsets = groupOffsets(item.count);
 
-  if (item.count > 1) {
+  if (slot.penned) {
     // A pen around the huddle, so it reads as one thing to pick up.
     ctx.save();
     ctx.fillStyle = selected ? 'rgba(255,210,63,0.3)' : 'rgba(255,255,255,0.45)';
@@ -215,7 +225,7 @@ function drawTrayItem(
     ctx.beginPath();
     const { width, height } = penSize(item.count);
     // A tall pen has to sit higher, or its bottom runs off the screen.
-    const lift = item.count > 2 ? 30 : 6;
+    const lift = height > GROUP_CELL.height + PEN_MARGIN * 2 ? 30 : 6;
     ctx.roundRect?.(slot.x - width / 2, slot.y - height / 2 - lift, width, height, 22);
     if (!ctx.roundRect) ctx.rect(slot.x - width / 2, slot.y - height / 2 - lift, width, height);
     ctx.fill();
@@ -226,8 +236,10 @@ function drawTrayItem(
   // Back rows first, so the front of the huddle overlaps them.
   const memberPose = (offset: { x: number; y: number; scale: number }) => ({
     x: slot.x + offset.x,
-    y: slot.y + offset.y + (item.count > 2 ? -2 : 18),
-    scale: (selected ? 0.68 : 0.6) * offset.scale * (item.count > 1 ? 1.5 : 1),
+    y: slot.y + offset.y + (slot.penned ? (item.count > 2 ? -2 : 6) : 18),
+    // A penned animal is drawn to its cell, whether it is one of four or on its
+    // own, so every pen in the row is the same size and holds the same thing.
+    scale: (selected ? 0.68 : 0.6) * (slot.penned ? PENNED_ART : offset.scale),
     tiltRad: 0,
     wobble: selected ? Math.sin(time * 7 + offset.x) * 0.3 : 0,
     slide: 0,
@@ -250,7 +262,9 @@ export function drawHud(ctx: CanvasRenderingContext2D, theme: SeesawTheme, hud: 
 
   // Tray shelf.
   const slots = traySlots(hud.tray);
-  if (slots.length > 0) {
+  // The shelf grounds a row of loose animals. A row of pens grounds itself, and
+  // a shelf behind them showed through as a second, larger white shape.
+  if (slots.length > 0 && !slots[0]!.penned) {
     ctx.save();
     ctx.fillStyle = 'rgba(255,255,255,0.42)';
     const left = slots[0]!.x - slots[0]!.radius - 16;

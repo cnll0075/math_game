@@ -164,7 +164,8 @@ export const skyGame: SkyModule = {
         const plane = driver.state.aloft.find((entry) => entry.uid === uid);
         if (!plane) return;
         driver.aim(planeX(plane));
-        if (driver.state.bullets.length === 0 && (stopOnJam || !blocked(plane))) driver.fire();
+        const lined = Math.abs(driver.state.fighterX - planeX(plane)) < 0.01;
+        if (lined && driver.state.bullets.length === 0 && (stopOnJam || !blocked(plane))) driver.fire();
         const events = driver.step(1 / 60);
         handleEvents(events);
         scene.observe(events);

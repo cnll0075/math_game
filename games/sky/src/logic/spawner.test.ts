@@ -122,3 +122,35 @@ describe('spawnPlane', () => {
     expect(plane.lane).toBeCloseTo(0.25, 5);
   });
 });
+
+describe('finding room', () => {
+  it('keeps a new plane clear of the ones already at the top', () => {
+    const rng = createRng(19);
+    const busy = [0.2, 0.5, 0.8];
+    for (let i = 0; i < 200; i += 1) {
+      const plane = spawnPlane(rng, {
+        uid: `p${i}`,
+        number: 9,
+        elapsed: 0,
+        fallSeconds: 10,
+        avoid: busy,
+      });
+      const gap = Math.min(...busy.map((lane) => Math.abs(plane.lane - lane)));
+      // Two numbers in the same place cannot be read, which in a game about
+      // reading the number is the whole game broken.
+      expect(gap).toBeGreaterThan(0.04);
+    }
+  });
+
+  it('still obeys an explicit lane, so an escort pair stays a pair', () => {
+    const plane = spawnPlane(createRng(1), {
+      uid: 'p',
+      number: 9,
+      elapsed: 0,
+      fallSeconds: 10,
+      lane: 0.25,
+      avoid: [0.25],
+    });
+    expect(plane.lane).toBeCloseTo(0.25, 5);
+  });
+});

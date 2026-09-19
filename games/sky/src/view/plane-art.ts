@@ -114,8 +114,33 @@ export function drawFighter(
     ctx.fill();
   }
 
-  // The question rides on the fuselage, where the player's eye already is.
-  numberOn(ctx, options.sum, { x: 0, y: SKY.fighterHeight * 0.1 }, 36);
+  ctx.restore();
+
+  // The question rides on a plaque under the fighter, clear of its body: drawn
+  // across the fuselage, the nose covered the operator, and telling a plus from
+  // a minus is the whole of the take-aways band.
+  const width = Math.max(150, options.sum.length * 26);
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,255,255,0.92)';
+  ctx.strokeStyle = '#2f6f9f';
+  ctx.lineWidth = 4;
+  const left = at.x - width / 2;
+  const top = SKY.plaqueY - SKY.plaqueHeight / 2;
+  const radius = 16;
+  ctx.beginPath();
+  ctx.moveTo(left + radius, top);
+  ctx.arcTo(left + width, top, left + width, top + SKY.plaqueHeight, radius);
+  ctx.arcTo(left + width, top + SKY.plaqueHeight, left, top + SKY.plaqueHeight, radius);
+  ctx.arcTo(left, top + SKY.plaqueHeight, left, top, radius);
+  ctx.arcTo(left, top, left + width, top, radius);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.font = hand(700, 40);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#1e2a38';
+  ctx.fillText(options.sum, at.x, SKY.plaqueY);
   ctx.restore();
 }
 

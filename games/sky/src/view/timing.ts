@@ -4,8 +4,6 @@
  * the choreography.
  */
 export const TIMING = {
-  /** How fast the fighter follows the finger. Higher is snappier. */
-  fighterStiffness: 420,
   /** How long an explosion lasts. */
   boomSeconds: 0.55,
   /**

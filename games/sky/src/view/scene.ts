@@ -1,4 +1,4 @@
-import { createSpring, DESIGN, fitToScreen, visibleBounds, type Point, type Size } from '@bundle/core';
+import { DESIGN, fitToScreen, visibleBounds, type Point, type Size } from '@bundle/core';
 import { sumText } from '../logic/equation.js';
 import type { RunEvent, RunState } from '../logic/run.js';
 import { drawBoom, drawBullet, drawFighter, drawPlane } from './plane-art.js';
@@ -43,9 +43,6 @@ const CLOUDS: readonly { x: number; y: number; r: number; speed: number }[] = [
 ];
 
 export function createScene(): Scene {
-  // The fighter eases rather than snapping, so a finger dragged across the glass
-  // reads as flying rather than as teleporting.
-  const fighter = createSpring(0.5, { stiffness: TIMING.fighterStiffness });
   const booms: Boom[] = [];
   const solved: Solved[] = [];
   let banner: { title: string; life: number } | null = null;
@@ -54,8 +51,10 @@ export function createScene(): Scene {
   let model: SceneModel | null = null;
 
   const scene: Scene = {
+    // The run owns where the fighter is; the scene only draws it there, so a
+    // shell always leaves from the nose the player can see.
     get fighterX() {
-      return fighter.value;
+      return model?.run.fighterX ?? 0.5;
     },
 
     observe(events) {
@@ -88,8 +87,6 @@ export function createScene(): Scene {
     update(dt, next) {
       model = next;
       drift += dt;
-      fighter.target = next.run.fighterX;
-      fighter.step(dt);
 
       for (const boom of booms) boom.life += dt;
       while (booms.length > 0 && booms[0]!.life > TIMING.boomSeconds) booms.shift();
@@ -135,7 +132,7 @@ export function createScene(): Scene {
       for (const boom of booms) drawBoom(ctx, boom.at, boom.life / TIMING.boomSeconds);
       for (const entry of solved) drawSolved(ctx, entry.at, entry.text, entry.life / TIMING.solvedSeconds);
 
-      drawFighter(ctx, fighter.value, { jammed: current.run.jam > 0, sum: current.sumText });
+      drawFighter(ctx, current.run.fighterX, { jammed: current.run.jam > 0, sum: current.sumText });
 
       drawHud(ctx, {
         hearts: current.run.hearts,

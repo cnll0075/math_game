@@ -55,8 +55,16 @@ export const PLANE_IDS: readonly PlaneTypeId[] = ['glider', 'weaver', 'blimp', '
 export const typesAt = (elapsed: number): readonly PlaneType[] =>
   PLANE_IDS.map((id) => PLANE_TYPES[id]).filter((type) => elapsed >= type.from);
 
-export function drawType(rng: Rng, elapsed: number): PlaneType {
-  const available = typesAt(elapsed);
+/**
+ * A type to send up. `maxSpeed` keeps the fast ones out when the plane is being
+ * spawned to be asked about: a scout's fall is short enough that late in a run
+ * it would arrive already outside the fair window, and the game would be asking
+ * a question it had not left time to answer.
+ */
+export function drawType(rng: Rng, elapsed: number, maxSpeed = Infinity): PlaneType {
+  const arrived = typesAt(elapsed);
+  const slow = arrived.filter((type) => type.speed <= maxSpeed);
+  const available = slow.length > 0 ? slow : [PLANE_TYPES.glider];
   const total = available.reduce((sum, type) => sum + type.weight, 0);
   let roll = rng.next() * total;
   for (const type of available) {

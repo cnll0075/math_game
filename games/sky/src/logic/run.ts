@@ -1,7 +1,7 @@
 import { createRng, type Rng } from '@bundle/core';
 import { bandAt, bandById, type Band, type BandId } from './bands.data.js';
 import { writeSum, type Sum } from './equation.js';
-import { advance, damage, escaped, struck, type Plane } from './sky-state.js';
+import { advance, damage, escaped, planeX, struck, type Plane } from './sky-state.js';
 import { hasTrap, nextNumber, spawnPlane, trapNumber } from './spawner.js';
 import { chooseTarget } from './targeting.js';
 import { tempoAt, type Tempo } from './tempo.js';
@@ -35,8 +35,10 @@ export interface RunState {
   targetUid: string | null;
   aloft: Plane[];
   bullets: Bullet[];
-  /** Where the fighter is, 0..1 across the playfield. */
+  /** Where the fighter actually is, 0..1 across the playfield. */
   fighterX: number;
+  /** Where the finger is asking it to be. It flies there rather than jumping. */
+  fighterTarget: number;
   /** Seconds of overheat left. The gun cannot fire while this is above zero. */
   jam: number;
   /** Wrong shells in a row, which is what makes the gun hotter each time. */
@@ -78,6 +80,13 @@ export const JAM_CEILING = 3;
 export const BULLET_SECONDS = 0.35;
 /** Chance a spawn brings an escort pair, once the numbers get big. */
 const ESCORT_CHANCE = 0.18;
+/**
+ * How fast the fighter closes on the finger. It flies rather than teleporting,
+ * and the run owns that rather than the renderer: a shell has to leave from
+ * where the fighter is actually drawn, or a shot taken during a fast drag comes
+ * out of thin air beside it.
+ */
+const FIGHTER_RATE = 18;
 
 export function createRun(options: RunOptions = {}): Run {
   const rng: Rng = createRng(options.seed ?? 1);
@@ -98,6 +107,7 @@ export function createRun(options: RunOptions = {}): Run {
     aloft: [],
     bullets: [],
     fighterX: 0.5,
+    fighterTarget: 0.5,
     jam: 0,
     jamStreak: 0,
     status: 'flying',
@@ -105,13 +115,17 @@ export function createRun(options: RunOptions = {}): Run {
 
   let sinceSpawn = 0;
 
-  const spawn = (events: RunEvent[], number?: number, lane?: number): Plane => {
+  const spawn = (events: RunEvent[], number?: number, lane?: number, toAsk = false): Plane => {
     const plane = spawnPlane(rng, {
       uid: nextUid(),
       number: number ?? nextNumber(rng, state.band, state.sum, state.aloft),
       elapsed: state.elapsed,
       fallSeconds: state.tempo.fallSeconds,
       lane,
+      ...(toAsk ? { minFallSeconds: state.tempo.thinkSeconds } : {}),
+      // Only the planes still near the top can be landed on; the rest have
+      // fallen far enough that sharing a lane reads as depth, not as a pile.
+      avoid: state.aloft.filter((plane) => plane.progress < 0.3).map(planeX),
     });
     state.aloft.push(plane);
     events.push({ type: 'spawned', plane });
@@ -124,7 +138,7 @@ export function createRun(options: RunOptions = {}): Run {
    * never ask a question it has not also made answerable.
    */
   const ask = (events: RunEvent[]): void => {
-    const chosen = chooseTarget(rng, state.aloft, state.tempo.thinkSeconds) ?? spawn(events);
+    const chosen = chooseTarget(rng, state.aloft, state.tempo.thinkSeconds) ?? spawn(events, undefined, undefined, true);
     const sum = writeSum(rng, state.band, chosen.number, state.aloft.map((plane) => plane.number));
     if (!sum) return;
     state.sum = sum;
@@ -160,6 +174,8 @@ export function createRun(options: RunOptions = {}): Run {
       events.push({ type: 'band', band });
     }
     if (state.jam > 0) state.jam = Math.max(0, state.jam - dt);
+
+    state.fighterX += (state.fighterTarget - state.fighterX) * (1 - Math.exp(-FIGHTER_RATE * dt));
 
     for (const plane of state.aloft) advance(plane, dt);
 
@@ -260,7 +276,7 @@ export function createRun(options: RunOptions = {}): Run {
     state,
     step,
     aim(x) {
-      state.fighterX = Math.min(1, Math.max(0, x));
+      state.fighterTarget = Math.min(1, Math.max(0, x));
     },
     fire() {
       if (state.status === 'over' || state.jam > 0) return;

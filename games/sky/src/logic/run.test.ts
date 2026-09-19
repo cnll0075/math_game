@@ -17,11 +17,12 @@ const target = (game: Run): Plane | undefined =>
 /** Lines the fighter up under a plane and shoots until something happens. */
 const shoot = (game: Run, plane: Plane): RunEvent[] => {
   const events: RunEvent[] = [];
-  for (let i = 0; i < 200; i += 1) {
+  for (let i = 0; i < 400; i += 1) {
     const live = game.state.aloft.find((entry) => entry.uid === plane.uid);
     if (!live) break;
     game.aim(planeX(live));
-    game.fire();
+    // The fighter flies there rather than jumping, so wait until it has arrived.
+    if (Math.abs(game.state.fighterX - planeX(live)) < 0.01) game.fire();
     const batch = game.step(FRAME);
     events.push(...batch);
     if (batch.some((event) => event.type === 'destroyed' || event.type === 'jammed')) break;
@@ -64,11 +65,42 @@ const shootThrough = (game: Run, plane: Plane, frames = 900): RunEvent[] => {
     const live = game.state.aloft.find((entry) => entry.uid === plane.uid);
     if (!live) break;
     game.aim(planeX(live));
-    game.fire();
+    if (Math.abs(game.state.fighterX - planeX(live)) < 0.01) game.fire();
     events.push(...game.step(FRAME));
   }
   return events;
 };
+
+describe('flying the fighter', () => {
+  it('flies to where the finger is rather than jumping there', () => {
+    const game = createRun({ seed: 20 });
+    game.aim(1);
+    game.step(FRAME);
+    expect(game.state.fighterX).toBeGreaterThan(0.5);
+    expect(game.state.fighterX).toBeLessThan(1);
+    for (let i = 0; i < 60; i += 1) game.step(FRAME);
+    expect(game.state.fighterX).toBeCloseTo(1, 2);
+  });
+
+  it('fires from where the fighter is, not from where the finger went', () => {
+    const game = createRun({ seed: 21 });
+    game.aim(1);
+    game.step(FRAME);
+    game.fire();
+    expect(game.state.bullets[0]!.x).toBe(game.state.fighterX);
+    expect(game.state.bullets[0]!.x).toBeLessThan(1);
+  });
+
+  it('never leaves the playfield, however far the finger goes', () => {
+    const game = createRun({ seed: 22 });
+    game.aim(5);
+    for (let i = 0; i < 120; i += 1) game.step(FRAME);
+    expect(game.state.fighterX).toBeLessThanOrEqual(1);
+    game.aim(-5);
+    for (let i = 0; i < 120; i += 1) game.step(FRAME);
+    expect(game.state.fighterX).toBeGreaterThanOrEqual(0);
+  });
+});
 
 describe('shooting', () => {
   it('scores the right plane and asks something new', () => {
@@ -158,11 +190,19 @@ describe('the clock', () => {
   it('announces a band change once, without rewriting the live question', () => {
     const game = createRun({ seed: 11, hearts: 99 });
     run(game, 44);
-    const asked = game.state.sum;
-    const events = run(game, 3);
-    const changes = events.filter((event) => event.type === 'band');
-    expect(changes).toHaveLength(1);
-    expect(game.state.sum === asked || game.state.score > 0).toBe(true);
+    let changes = 0;
+    let carriedOver = false;
+    for (let t = 0; t < 3; t += FRAME) {
+      const before = game.state.sum;
+      const events = game.step(FRAME);
+      if (!events.some((event) => event.type === 'band')) continue;
+      changes += 1;
+      // The band changing underneath a player must not rewrite the question in
+      // front of them mid-thought.
+      carriedOver = game.state.sum === before;
+    }
+    expect(changes).toBe(1);
+    expect(carriedOver).toBe(true);
   });
 
   it('keeps the sky as full as the tempo wants', () => {

@@ -114,35 +114,46 @@ describe('the maths is load-bearing', () => {
    * the trigger are both part of flying, not part of the arithmetic — a player
    * who does neither loses hearts, and should.
    */
+  /** Whether the fighter has finished flying to where it was sent. */
+  const lined = (game: Run, chosen: Plane): boolean =>
+    Math.abs(game.state.fighterX - planeX(chosen)) < 0.01;
+
   const playWell = (game: Run, seconds: number): void => {
     for (let t = 0; t < seconds; t += FRAME) {
       const chosen = target(game);
       if (chosen && game.state.bullets.length === 0) {
         game.aim(planeX(chosen));
-        if (Math.abs(game.state.fighterX - planeX(chosen)) < 0.01 && !blocked(game, chosen)) game.fire();
+        if (lined(game, chosen) && !blocked(game, chosen)) game.fire();
       }
       game.step(FRAME);
     }
   };
 
-  /** A player who never reads a number and simply shoots whatever is lowest. */
+  /**
+   * A player who never reads a number and simply shoots whatever is lowest —
+   * but plays that strategy as well as it can be played, waiting to arrive
+   * before firing. A weaker guesser would fail this test for the wrong reason:
+   * missing, rather than being wrong.
+   */
   const playBlind = (game: Run, seconds: number): void => {
     for (let t = 0; t < seconds; t += FRAME) {
       const lowest = [...game.state.aloft].sort((a, b) => b.progress - a.progress)[0];
       if (lowest && game.state.bullets.length === 0) {
         game.aim(planeX(lowest));
-        game.fire();
+        if (lined(game, lowest)) game.fire();
       }
       game.step(FRAME);
     }
   };
 
-  it('is winnable: reading the sum keeps all three hearts for two minutes', () => {
+  it('is winnable: reading the sum flies two minutes and scores a hundred', () => {
     for (const seed of [1, 2, 3, 5]) {
       const game = createRun({ seed });
       playWell(game, 120);
-      expect(game.state.hearts, `seed ${seed}`).toBe(HEARTS);
-      expect(game.state.score).toBeGreaterThan(15);
+      expect(game.state.status, `seed ${seed}`).toBe('flying');
+      // A heart can still go to a scout in a crowded sky; two cannot.
+      expect(game.state.hearts, `seed ${seed}`).toBeGreaterThanOrEqual(HEARTS - 1);
+      expect(game.state.score, `seed ${seed}`).toBeGreaterThan(100);
     }
   });
 

@@ -29,16 +29,15 @@ describe('the scene', () => {
     expect(texts).toContain(sumText(game.state.sum!));
   });
 
-  it('eases the fighter towards where the finger is, never teleporting', () => {
+  it('draws the fighter exactly where the run says it is', () => {
     const game = createRun({ seed: 2 });
     game.aim(1);
+    for (let i = 0; i < 30; i += 1) game.step(FRAME);
     const scene = createScene();
     scene.update(FRAME, modelOf(game));
-    const firstStep = scene.fighterX;
-    expect(firstStep).toBeGreaterThan(0.5);
-    expect(firstStep).toBeLessThan(1);
-    for (let i = 0; i < 120; i += 1) scene.update(FRAME, modelOf(game));
-    expect(scene.fighterX).toBeCloseTo(1, 2);
+    // Not its own eased copy: a shell leaves from the run's position, so the
+    // drawn nose and the shell's origin have to be the same number.
+    expect(scene.fighterX).toBe(game.state.fighterX);
   });
 
   it('shows the solved sum where the plane was, then lets it go', () => {

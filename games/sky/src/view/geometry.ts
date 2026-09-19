@@ -16,7 +16,14 @@ export const SKY = {
   /** Where a plane counts as having got away. */
   escapeY: 616,
   /** The fighter's altitude. */
-  fighterY: 700,
+  fighterY: 682,
+  /**
+   * The sum rides on a plaque below the fighter rather than across its body.
+   * Drawn on the fuselage, the fighter's own nose covered the operator — which
+   * in the take-aways band is the one character that has to be read.
+   */
+  plaqueY: 736,
+  plaqueHeight: 52,
   /** The sides of the playfield. */
   fieldLeft: 84,
   fieldRight: DESIGN.width - 84,

@@ -48,9 +48,11 @@ describe('shell launcher', () => {
     expect(CATALOG).toHaveLength(10);
   });
 
-  it('marks the nine unbuilt games as coming soon', () => {
+  it('marks every unbuilt game as coming soon', () => {
     createShell(root, testDeps()).showLauncher();
-    expect(root.querySelectorAll('[data-coming-soon]')).toHaveLength(9);
+    const playable = CATALOG.filter((tile) => tile.module).length;
+    expect(root.querySelectorAll('[data-coming-soon]')).toHaveLength(CATALOG.length - playable);
+    expect(playable).toBe(2);
   });
 
   it('opens the seesaw game from its tile', async () => {

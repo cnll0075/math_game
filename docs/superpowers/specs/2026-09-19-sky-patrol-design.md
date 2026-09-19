@@ -23,6 +23,11 @@ from the top wearing numbers.
 | Any other plane leaves the screen | Nothing. It was never the player's business |
 | A shot that hits nothing | Nothing. Firing is free |
 
+A sum, once live, stays live until its plane is destroyed or escapes: a band
+change never rewrites the question in front of the player. A blimp's damage
+persists across shots, so two hits and a pause still leave it needing only one
+more.
+
 Hearts are spent only on escapes. A wrong shot costs **time** — the one currency
 that matters more as the sky speeds up — so a misread number is punished without
 a slipped thumb ever ending a run. Three hearts for the entire run.

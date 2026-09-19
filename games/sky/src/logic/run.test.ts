@@ -82,13 +82,41 @@ describe('flying the fighter', () => {
     expect(game.state.fighterX).toBeCloseTo(1, 2);
   });
 
-  it('fires from where the fighter is, not from where the finger went', () => {
+  it('holds the shell until the fighter reaches where the player let go', () => {
     const game = createRun({ seed: 21 });
     game.aim(1);
     game.step(FRAME);
     game.fire();
+    // Still on its way: nothing has left the gun yet.
+    game.step(FRAME);
+    expect(game.state.bullets).toHaveLength(0);
+
+    for (let i = 0; i < 60 && game.state.bullets.length === 0; i += 1) game.step(FRAME);
+    expect(game.state.bullets).toHaveLength(1);
+    // And it leaves from the nose the player can see, up at the far edge.
     expect(game.state.bullets[0]!.x).toBe(game.state.fighterX);
-    expect(game.state.bullets[0]!.x).toBeLessThan(1);
+    expect(game.state.bullets[0]!.x).toBeGreaterThan(0.98);
+  });
+
+  it('gives up waiting rather than swallowing the shot', () => {
+    const game = createRun({ seed: 23 });
+    game.aim(0.5);
+    for (let i = 0; i < 60; i += 1) game.step(FRAME);
+    // Somewhere it can never reach, because the playfield ends.
+    game.aim(0.5);
+    game.fire();
+    for (let i = 0; i < 60 && game.state.bullets.length === 0; i += 1) game.step(FRAME);
+    expect(game.state.bullets).toHaveLength(1);
+  });
+
+  it('will not queue a shell while the gun is overheating', () => {
+    const game = createRun({ seed: 24 });
+    run(game, 2);
+    const wrong = game.state.aloft.find((plane) => plane.number !== game.state.sum!.answer)!;
+    shoot(game, wrong);
+    expect(game.state.jam).toBeGreaterThan(0);
+    game.fire();
+    expect(game.state.pendingFire).toBe(0);
   });
 
   it('never leaves the playfield, however far the finger goes', () => {
@@ -209,5 +237,20 @@ describe('the clock', () => {
     const game = createRun({ seed: 12, hearts: 99 });
     run(game, 150);
     expect(game.state.aloft.length).toBeGreaterThanOrEqual(game.state.tempo.aloft - 2);
+  });
+});
+
+describe('an impatient player', () => {
+  it('is not punished for tapping again while a shell is waiting', () => {
+    const game = createRun({ seed: 25 });
+    game.aim(0.9);
+    game.step(FRAME);
+    game.fire();
+    // Tapping away, as a child does when nothing has happened yet.
+    for (let i = 0; i < 30 && game.state.bullets.length === 0; i += 1) {
+      game.fire();
+      game.step(FRAME);
+    }
+    expect(game.state.bullets.length).toBeGreaterThan(0);
   });
 });

@@ -41,6 +41,8 @@ export interface RunState {
   fighterTarget: number;
   /** Seconds of overheat left. The gun cannot fire while this is above zero. */
   jam: number;
+  /** A shell asked for, waiting for the fighter to arrive under the target. */
+  pendingFire: number;
   /** Wrong shells in a row, which is what makes the gun hotter each time. */
   jamStreak: number;
   status: 'flying' | 'over';
@@ -87,6 +89,13 @@ const ESCORT_CHANCE = 0.18;
  * out of thin air beside it.
  */
 const FIGHTER_RATE = 18;
+/**
+ * How long a shell will wait for the fighter to reach the spot the player let
+ * go over. Letting go somewhere means "shoot there"; without this, a quick drag
+ * across the sky fires from wherever the fighter had got to, which is nowhere
+ * the player was looking.
+ */
+const FIRE_PATIENCE = 0.4;
 
 export function createRun(options: RunOptions = {}): Run {
   const rng: Rng = createRng(options.seed ?? 1);
@@ -109,6 +118,7 @@ export function createRun(options: RunOptions = {}): Run {
     fighterX: 0.5,
     fighterTarget: 0.5,
     jam: 0,
+    pendingFire: 0,
     jamStreak: 0,
     status: 'flying',
   };
@@ -176,6 +186,18 @@ export function createRun(options: RunOptions = {}): Run {
     if (state.jam > 0) state.jam = Math.max(0, state.jam - dt);
 
     state.fighterX += (state.fighterTarget - state.fighterX) * (1 - Math.exp(-FIGHTER_RATE * dt));
+
+    // The shell leaves once the fighter is under the spot the player let go
+    // over — or once it has waited long enough that holding it back would feel
+    // like the gun had ignored them.
+    if (state.pendingFire > 0) {
+      state.pendingFire = Math.max(0, state.pendingFire - dt);
+      const arrived = Math.abs(state.fighterTarget - state.fighterX) < 0.005;
+      if (arrived || state.pendingFire === 0) {
+        state.pendingFire = 0;
+        state.bullets.push({ x: state.fighterX, y: 1 });
+      }
+    }
 
     for (const plane of state.aloft) advance(plane, dt);
 
@@ -280,7 +302,11 @@ export function createRun(options: RunOptions = {}): Run {
     },
     fire() {
       if (state.status === 'over' || state.jam > 0) return;
-      state.bullets.push({ x: state.fighterX, y: 1 });
+      // A shell already waiting is not restarted by another tap. Resetting its
+      // patience each time meant an impatient player, tapping away, held their
+      // own shot back indefinitely.
+      if (state.pendingFire > 0) return;
+      state.pendingFire = FIRE_PATIENCE;
     },
   };
 }

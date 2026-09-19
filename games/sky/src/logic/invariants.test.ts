@@ -121,7 +121,8 @@ describe('the maths is load-bearing', () => {
   const playWell = (game: Run, seconds: number): void => {
     for (let t = 0; t < seconds; t += FRAME) {
       const chosen = target(game);
-      if (chosen && game.state.bullets.length === 0) {
+      // One shell at a time: nothing in the air and nothing waiting to leave.
+      if (chosen && game.state.bullets.length === 0 && game.state.pendingFire === 0) {
         game.aim(planeX(chosen));
         if (lined(game, chosen) && !blocked(game, chosen)) game.fire();
       }
@@ -138,7 +139,7 @@ describe('the maths is load-bearing', () => {
   const playBlind = (game: Run, seconds: number): void => {
     for (let t = 0; t < seconds; t += FRAME) {
       const lowest = [...game.state.aloft].sort((a, b) => b.progress - a.progress)[0];
-      if (lowest && game.state.bullets.length === 0) {
+      if (lowest && game.state.bullets.length === 0 && game.state.pendingFire === 0) {
         game.aim(planeX(lowest));
         if (lined(game, lowest)) game.fire();
       }

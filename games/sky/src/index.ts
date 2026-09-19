@@ -165,7 +165,8 @@ export const skyGame: SkyModule = {
         if (!plane) return;
         driver.aim(planeX(plane));
         const lined = Math.abs(driver.state.fighterX - planeX(plane)) < 0.01;
-        if (lined && driver.state.bullets.length === 0 && (stopOnJam || !blocked(plane))) driver.fire();
+        const idle = driver.state.bullets.length === 0 && driver.state.pendingFire === 0;
+        if (lined && idle && (stopOnJam || !blocked(plane))) driver.fire();
         const events = driver.step(1 / 60);
         handleEvents(events);
         scene.observe(events);

@@ -158,16 +158,16 @@ games/sky/                      package @bundle/sky, module id 'sky', "Sky Patro
   src/index.ts                  GameModule + __test hooks
   src/driver.ts                 rules <-> scene, sound, input
   src/logic/                    pure: no DOM, no timers, no audio
+    tempo.ts                    how the sky tightens with elapsed time
     bands.data.ts               the three bands, their times and mixes
     equation.ts                 sum generation over a band, answer sets
     planes.ts                   plane-type catalog: speed, hits, behaviour
-    sky-state.ts                planes aloft, live sum, hearts, score
-    spawner.ts                  cadence, number choice, the trap invariant
+    sky-state.ts                one plane falling: position, damage, hiding
+    spawner.ts                  number choice and the trap invariant
     targeting.ts                choosing the plane a sum asks about
-    run.ts                      the run: events, band clock, scoring
+    run.ts                      the run: planes, shells, hearts, band clock
   src/view/                     canvas: reads state, never writes it
-    layout.ts geometry.ts scene.ts hud.ts input.ts plane-art.ts
-    sprite-theme.ts timing.ts type.ts
+    geometry.ts timing.ts plane-art.ts hud.ts scene.ts input.ts
   src/audio/sky-sounds.ts       the sky's sound pack
 ```
 
@@ -200,8 +200,19 @@ And the one that guards the Seesaw lesson directly:
   ninety seconds.** If that test ever passes the game, the arithmetic has
   stopped mattering and the design has regressed.
 
+The viewport maths, the spring, the lettering and the canvas test helpers move
+out of `games/seesaw/src/view/` into `packages/core` first, since both games need
+them verbatim and two copies of the game's lettering would let the two drift
+apart.
+
+There is **no theme interface**: with no art assets for this game, a seam with one
+implementation would be a seam for its own sake, so the vector art is one file and
+swapping it later is a change to that file.
+
 ## Deliberately not in the first build
 
+- **Real art and sound.** Vector planes and a synthesised pack, behind the same
+  `SoundPack` names a recorded pack would implement.
 - **Enemy fire to dodge.** A heart lost to dodging is a heart lost to something
   other than arithmetic — the exact failure Seesaw's arcade half was cut for.
 - **Missing-number sums** (`7 + ? = 15`). A fourth form to read; the plane types

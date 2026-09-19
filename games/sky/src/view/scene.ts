@@ -1,0 +1,158 @@
+import { createSpring, DESIGN, fitToScreen, visibleBounds, type Point, type Size } from '@bundle/core';
+import { sumText } from '../logic/equation.js';
+import type { RunEvent, RunState } from '../logic/run.js';
+import { drawBoom, drawBullet, drawFighter, drawPlane } from './plane-art.js';
+import { drawBanner, drawHud, drawSolved, drawSummary, type Summary } from './hud.js';
+import { planePoint } from './geometry.js';
+import { TIMING } from './timing.js';
+
+export interface SceneModel {
+  run: RunState;
+  /** The question, already written out, so the scene never does arithmetic. */
+  sumText: string;
+  /** Set once the run is over. */
+  summary: Summary | null;
+}
+
+interface Boom {
+  at: Point;
+  life: number;
+}
+
+interface Solved {
+  at: Point;
+  text: string;
+  life: number;
+}
+
+export interface Scene {
+  update(dt: number, model: SceneModel): void;
+  /** What just happened, so the scene can react to it. State stays the run's. */
+  observe(events: readonly RunEvent[]): void;
+  render(ctx: CanvasRenderingContext2D, screen: Size): void;
+  toDesign(point: Point, screen: Size): Point;
+  readonly fighterX: number;
+}
+
+/** Drifting cloud, so the sky is never a blank wash. */
+const CLOUDS: readonly { x: number; y: number; r: number; speed: number }[] = [
+  { x: 0.15, y: 0.2, r: 80, speed: 0.012 },
+  { x: 0.55, y: 0.12, r: 110, speed: 0.008 },
+  { x: 0.8, y: 0.3, r: 70, speed: 0.016 },
+  { x: 0.35, y: 0.45, r: 95, speed: 0.01 },
+];
+
+export function createScene(): Scene {
+  // The fighter eases rather than snapping, so a finger dragged across the glass
+  // reads as flying rather than as teleporting.
+  const fighter = createSpring(0.5, { stiffness: TIMING.fighterStiffness });
+  const booms: Boom[] = [];
+  const solved: Solved[] = [];
+  let banner: { title: string; life: number } | null = null;
+  let crack = 0;
+  let drift = 0;
+  let model: SceneModel | null = null;
+
+  const scene: Scene = {
+    get fighterX() {
+      return fighter.value;
+    },
+
+    observe(events) {
+      for (const event of events) {
+        switch (event.type) {
+          case 'destroyed':
+            booms.push({ at: planePoint(event.plane), life: 0 });
+            // The whole equation, finished. The child's confirmation.
+            solved.push({
+              at: planePoint(event.plane),
+              text: `${sumText(event.sum)} = ${event.sum.answer}`,
+              life: 0,
+            });
+            break;
+          case 'damaged':
+            booms.push({ at: planePoint(event.plane), life: TIMING.boomSeconds * 0.6 });
+            break;
+          case 'escaped':
+            crack = TIMING.heartCrackSeconds;
+            break;
+          case 'band':
+            banner = { title: event.band.title, life: 0 };
+            break;
+          default:
+            break;
+        }
+      }
+    },
+
+    update(dt, next) {
+      model = next;
+      drift += dt;
+      fighter.target = next.run.fighterX;
+      fighter.step(dt);
+
+      for (const boom of booms) boom.life += dt;
+      while (booms.length > 0 && booms[0]!.life > TIMING.boomSeconds) booms.shift();
+      for (const entry of solved) entry.life += dt;
+      while (solved.length > 0 && solved[0]!.life > TIMING.solvedSeconds) solved.shift();
+      if (crack > 0) crack = Math.max(0, crack - dt);
+      if (banner) {
+        banner.life += dt;
+        if (banner.life > TIMING.bandAnnounceSeconds) banner = null;
+      }
+    },
+
+    render(ctx, screen) {
+      const current = model;
+      if (!current) return;
+      const transform = fitToScreen(screen);
+      const bounds = visibleBounds(screen, transform);
+
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.translate(transform.offsetX, transform.offsetY);
+      ctx.scale(transform.scale, transform.scale);
+
+      // Sky and cloud are painted across everything visible, so a screen of a
+      // different shape is filled with sky rather than letterboxed.
+      const gradient = ctx.createLinearGradient(0, bounds.top, 0, bounds.bottom);
+      gradient.addColorStop(0, '#9fd2f2');
+      gradient.addColorStop(1, '#dff0fb');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(bounds.left, bounds.top, bounds.right - bounds.left, bounds.bottom - bounds.top);
+
+      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      for (const cloud of CLOUDS) {
+        const x = ((cloud.x + drift * cloud.speed) % 1.2) * DESIGN.width - DESIGN.width * 0.1;
+        ctx.beginPath();
+        ctx.arc(x, cloud.y * DESIGN.height, cloud.r, 0, Math.PI * 2);
+        ctx.arc(x + cloud.r * 0.8, cloud.y * DESIGN.height + cloud.r * 0.2, cloud.r * 0.7, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      for (const plane of current.run.aloft) drawPlane(ctx, plane);
+      for (const bullet of current.run.bullets) drawBullet(ctx, bullet.x, bullet.y);
+      for (const boom of booms) drawBoom(ctx, boom.at, boom.life / TIMING.boomSeconds);
+      for (const entry of solved) drawSolved(ctx, entry.at, entry.text, entry.life / TIMING.solvedSeconds);
+
+      drawFighter(ctx, fighter.value, { jammed: current.run.jam > 0, sum: current.sumText });
+
+      drawHud(ctx, {
+        hearts: current.run.hearts,
+        score: current.run.score,
+        streak: current.run.streak,
+        crack: crack / TIMING.heartCrackSeconds,
+      });
+      if (banner) drawBanner(ctx, banner.title, banner.life / TIMING.bandAnnounceSeconds);
+      if (current.summary) drawSummary(ctx, current.summary);
+
+      ctx.restore();
+    },
+
+    toDesign(point, screen) {
+      return fitToScreen(screen).toDesign(point);
+    },
+  };
+
+  return scene;
+}

@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { createSpring } from './spring.js';
-import { TIMING } from './timing.js';
 
 const settleTime = (spring: ReturnType<typeof createSpring>, limit = 3): number => {
   let elapsed = 0;
@@ -30,10 +29,12 @@ describe('createSpring', () => {
     expect(spring.settled).toBe(false);
   });
 
-  it('settles within roughly the configured time', () => {
+  it('settles quickly enough to read as a reaction, not a drift', () => {
+    // The default stiffness is what every caller gets unless it says otherwise,
+    // so it is worth pinning here rather than in whichever game noticed first.
     const spring = createSpring(0);
     spring.target = 1;
-    expect(settleTime(spring)).toBeLessThan(TIMING.settleSeconds * 3);
+    expect(settleTime(spring)).toBeLessThan(1.4);
   });
 
   it('does not overshoot appreciably', () => {

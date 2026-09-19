@@ -8,3 +8,8 @@ export { tone, noiseBurst, type ToneOptions, type NoiseOptions } from './audio/s
 export type { SoundPack } from './audio/sound-pack.js';
 export { createSampleSoundPack, type SampleOptions } from './audio/samples.js';
 export type { GameHost, GameModule, GameSession, SettingsView } from './game-module.js';
+export { DESIGN, fitToScreen, visibleBounds, type Bounds, type Point, type Size, type ViewTransform } from './view/viewport.js';
+export { createSpring, type Spring, type SpringOptions } from './view/spring.js';
+export { HAND, hand } from './view/type.js';
+export { recordingContext, depthOf, type RecordingContext } from './view/recording-context.js';
+export { installCanvasStub } from './view/canvas-stub.js';

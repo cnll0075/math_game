@@ -13,3 +13,11 @@ export { createSpring, type Spring, type SpringOptions } from './view/spring.js'
 export { HAND, hand } from './view/type.js';
 export { recordingContext, depthOf, type RecordingContext } from './view/recording-context.js';
 export { installCanvasStub } from './view/canvas-stub.js';
+export {
+  label,
+  drawFuelBar,
+  drawArrivingBanner,
+  drawSummaryCard,
+  type FuelModel,
+  type RunSummary,
+} from './view/hud-kit.js';

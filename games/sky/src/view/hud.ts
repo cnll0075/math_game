@@ -1,4 +1,12 @@
-import { DESIGN, hand, type Point } from '@bundle/core';
+import {
+  DESIGN,
+  drawArrivingBanner,
+  drawFuelBar,
+  drawSummaryCard,
+  hand,
+  label,
+  type Point,
+} from '@bundle/core';
 import { HEAL_AMOUNT } from '../logic/run.js';
 import { SKY } from './geometry.js';
 import { TIMING } from './timing.js';
@@ -12,91 +20,11 @@ export interface HudModel {
   crack: number;
 }
 
-/** Green while there is plenty, amber when it matters, red when it is nearly out. */
-const healthColour = (health: number): string => {
-  if (health > 60) return '#5cb85c';
-  if (health > 30) return '#f0a32e';
-  return '#e8543f';
-};
-
-/**
- * The fuel the run flies on. A bar rather than a row of hearts because it
- * drains visibly: a heart blinking out of existence said nothing about why, and
- * a bar that slides down in front of you says it without a word.
- */
-const healthBar = (ctx: CanvasRenderingContext2D, x: number, y: number, model: HudModel): void => {
-  const width = 240;
-  const height = 26;
-  const share = Math.max(0, Math.min(1, model.health / 100));
-
-  ctx.save();
-  ctx.translate(x, y);
-
-  // The empty tank behind it, so what is gone is as visible as what is left.
-  ctx.fillStyle = 'rgba(255,255,255,0.65)';
-  ctx.strokeStyle = 'rgba(30,42,56,0.35)';
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.roundRect?.(0, 0, width, height, 13);
-  ctx.fill();
-  ctx.stroke();
-
-  if (share > 0) {
-    ctx.fillStyle = healthColour(model.health);
-    ctx.beginPath();
-    ctx.roundRect?.(0, 0, Math.max(height, width * share), height, 13);
-    ctx.fill();
-  }
-
-  // One notch per gold plane's worth, which is also four misses: the segments
-  // price both what a mistake costs and what a gold one gives back.
-  ctx.strokeStyle = 'rgba(255,255,255,0.55)';
-  ctx.lineWidth = 2;
-  for (let mark = HEAL_AMOUNT; mark < 100; mark += HEAL_AMOUNT) {
-    const at = width * (mark / 100);
-    ctx.beginPath();
-    ctx.moveTo(at, 4);
-    ctx.lineTo(at, height - 4);
-    ctx.stroke();
-  }
-
-  // A flash across the bar on the beat it drops.
-  if (model.crack > 0) {
-    ctx.fillStyle = `rgba(232,84,63,${0.5 * model.crack})`;
-    ctx.beginPath();
-    ctx.roundRect?.(0, 0, width, height, 13);
-    ctx.fill();
-  }
-
-  ctx.font = hand(700, 17);
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = '#1e2a38';
-  ctx.fillText(`${Math.round(model.health)}%`, width / 2, height / 2 + 1);
-  ctx.restore();
-};
-
-const label = (
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  x: number,
-  y: number,
-  size: number,
-  align: CanvasTextAlign,
-): void => {
-  ctx.font = hand(700, size);
-  ctx.textAlign = align;
-  ctx.textBaseline = 'middle';
-  ctx.lineWidth = Math.max(3, size * 0.18);
-  ctx.strokeStyle = 'rgba(255,255,255,0.85)';
-  ctx.strokeText(text, x, y);
-  ctx.fillStyle = '#1e2a38';
-  ctx.fillText(text, x, y);
-};
-
 export function drawHud(ctx: CanvasRenderingContext2D, model: HudModel): void {
   ctx.save();
-  healthBar(ctx, SKY.fieldLeft, SKY.hudY - 18, model);
+  // One notch per gold plane's worth, which is also four misses: the segments
+  // price both what a mistake costs and what a gold one gives back.
+  drawFuelBar(ctx, SKY.fieldLeft, SKY.hudY - 18, { health: model.health, flash: model.crack }, HEAL_AMOUNT);
 
   label(ctx, String(model.score), DESIGN.width - SKY.fieldLeft, SKY.hudY, 40, 'right');
   // A streak is worth naming only once it is a streak.
@@ -104,22 +32,9 @@ export function drawHud(ctx: CanvasRenderingContext2D, model: HudModel): void {
   ctx.restore();
 }
 
-/**
- * A band announcing itself: large in the middle, then away to the top bar, so a
- * change in the rules is seen arriving rather than discovered. The same grammar
- * Seesaw's chapters use, because a child who has played that one already knows
- * what a banner means.
- */
+/** A band announcing itself, in the bundle's shared grammar. */
 export function drawBanner(ctx: CanvasRenderingContext2D, title: string, progress: number): void {
-  const settle = Math.max(0, (progress - (1 - TIMING.bandSettleFraction)) / TIMING.bandSettleFraction);
-  const y = DESIGN.height * 0.38 + (SKY.hudY - DESIGN.height * 0.38) * settle;
-  const scale = 1 - 0.55 * settle;
-  ctx.save();
-  ctx.translate(DESIGN.width / 2, y);
-  ctx.scale(scale, scale);
-  ctx.globalAlpha = progress > 0.92 ? (1 - progress) / 0.08 : 1;
-  label(ctx, title, 0, 0, 76, 'center');
-  ctx.restore();
+  drawArrivingBanner(ctx, title, progress, TIMING.bandSettleFraction, SKY.hudY);
 }
 
 /**
@@ -187,32 +102,18 @@ const minutes = (seconds: number): string => {
 
 /** How far you flew, never a failure screen. */
 export function drawSummary(ctx: CanvasRenderingContext2D, summary: Summary): void {
-  const width = 640;
-  const height = 380;
-  const left = (DESIGN.width - width) / 2;
-  const top = (DESIGN.height - height) / 2;
-
-  ctx.save();
-  ctx.fillStyle = 'rgba(12,24,38,0.55)';
-  ctx.fillRect(0, 0, DESIGN.width, DESIGN.height);
-  ctx.fillStyle = '#f7fbff';
-  // Four corners by hand rather than roundRect, which an older iPad's Safari
-  // does not have: there it would silently skip the card's background.
-  const radius = 28;
-  ctx.beginPath();
-  ctx.moveTo(left + radius, top);
-  ctx.arcTo(left + width, top, left + width, top + height, radius);
-  ctx.arcTo(left + width, top + height, left, top + height, radius);
-  ctx.arcTo(left, top + height, left, top, radius);
-  ctx.arcTo(left, top, left + width, top, radius);
-  ctx.closePath();
-  ctx.fill();
-
-  label(ctx, summary.beatenBest ? 'A new best!' : 'Good flying!', DESIGN.width / 2, top + 66, 52, 'center');
-  label(ctx, `Planes down   ${summary.score}`, DESIGN.width / 2, top + 150, 34, 'center');
-  label(ctx, `Longest streak   ${summary.bestStreak}`, DESIGN.width / 2, top + 198, 34, 'center');
-  label(ctx, `Time flown   ${minutes(summary.seconds)}`, DESIGN.width / 2, top + 246, 34, 'center');
-  label(ctx, `Best so far   ${summary.best}`, DESIGN.width / 2, top + 294, 28, 'center');
-  label(ctx, 'Tap to fly again', DESIGN.width / 2, top + height - 34, 30, 'center');
-  ctx.restore();
+  drawSummaryCard(ctx, {
+    score: summary.score,
+    bestStreak: summary.bestStreak,
+    seconds: summary.seconds,
+    best: summary.best,
+    beatenBest: summary.beatenBest,
+    headline: summary.beatenBest ? 'A new best!' : 'Good flying!',
+    lines: [
+      `Planes down   ${summary.score}`,
+      `Longest streak   ${summary.bestStreak}`,
+      `Time flown   ${minutes(summary.seconds)}`,
+      `Best so far   ${summary.best}`,
+    ],
+  });
 }

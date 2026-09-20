@@ -4,7 +4,7 @@ import { PLANE_IDS, PLANE_TYPES } from '../logic/planes.js';
 import { FIELD_WIDTH, laneAt, planeSize, skyPoint, SKY } from './geometry.js';
 
 describe('the sky', () => {
-  it('leaves the top bar clear, so a plane never flies through the hearts', () => {
+  it('leaves the top bar clear, so a plane never flies through the health bar', () => {
     expect(SKY.spawnY).toBeGreaterThan(SKY.hudY + 30);
   });
 

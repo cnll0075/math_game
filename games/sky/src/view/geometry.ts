@@ -9,7 +9,7 @@ import { planeX, type Plane } from '../logic/sky-state.js';
  * seen to get away rather than vanishing behind the guns.
  */
 export const SKY = {
-  /** The top bar: hearts on the left, score on the right. */
+  /** The top bar: the health bar on the left, score on the right. */
   hudY: 46,
   /** Where planes enter, clear of the top bar. */
   spawnY: 128,

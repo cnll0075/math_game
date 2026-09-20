@@ -6,7 +6,7 @@ arithmetic is the mechanic rather than the subject:
 - **Seesaw Park** — animal weights drive a seesaw, and making it balance is
   addition you can see.
 - **Sky Patrol** — the only plane you may shoot is the one wearing the answer to
-  the sum on your fighter. One endless run, three hearts.
+  the sum on your fighter. One endless run on a tank of fuel.
 
 ## Running it
 
@@ -354,10 +354,15 @@ sends the fighter to that spot and shoots from there. Firing on touch-down
 would spray a shell every time you repositioned, and repositioning is most of
 what a player does. Arrow keys and space do the same on a Mac.
 
-**Three hearts for the whole run.** A heart goes only when the plane your sum is
-asking for gets away off the bottom. Shooting the wrong plane costs no heart —
+**One tank of fuel for the whole run.** Every plane your sum was asking for that
+gets away off the bottom costs **5%** — twenty of them and the run is over. A
+gold plane gives **20%** back. Shooting the wrong plane costs no fuel at all —
 the plane shrugs the shell off and your gun overheats — so a slipped thumb never
-ends a run. But each wrong shell in a row holds the gun shut longer, to a
+ends a run.
+
+A bar rather than a row of lives on purpose: it drains where you can watch it,
+and the notches show what one miss costs before you pay it. A life blinking out
+of existence said nothing about why. But each wrong shell in a row holds the gun shut longer, to a
 ceiling of three seconds, and a shell home on the right plane cools it
 completely. One slip is cheap; a habit is not.
 
@@ -394,7 +399,7 @@ Each type is a different *reason* to be hard, so the ramp is never merely
 | Glider | 0:00 | Nothing. The plane the others are measured against |
 | Weaver | 0:30 | Falls in an S — the number is plain, lining up is the work |
 | Blimp | 0:50 | Slow and big, and **bursts into two planes whose numbers add up to the one it wore**. Shooting the 15 leaves a 9 and a 6 in the sky |
-| Treasure | 1:00 | Rare, golden, and wearing a heart. Shoot it when the sum asks for it and you get a heart back, up to three. The badge is outlined rather than filled when you are already full, so it never promises twice |
+| Treasure | 1:00 | Rare, golden, and wearing a heart. Shoot it when the sum asks for it and you get 20% of the tank back. The badge is outlined rather than filled when the tank is already full, so it never promises twice |
 | Scout | 1:15 | Falls nearly twice as fast. The one that threatens a heart |
 | Cloud-hider | 1:50 | Ducks behind cloud, so you must remember *which* plane was the 15 |
 
@@ -429,10 +434,11 @@ trap, the spawner sends one up, and sends another when the last one gets away.
 
 `games/sky/src/logic/invariants.test.ts` flies two bots at the game:
 
-- one **reads the sum**, and must still be flying after two minutes with a
-  hundred planes down;
-- one **ignores the numbers** and shoots whatever is lowest, and must lose every
-  heart inside ninety seconds.
+- one **reads the sum**, and must still be flying after five minutes with a
+  near-full tank;
+- one **ignores the numbers** and shoots whatever is lowest, and must run the
+  tank dry — it takes four to six minutes, because a miss costs 5% rather than a
+  whole life, but it always happens.
 
 If that second test ever passes the game, the arithmetic has stopped mattering.
 Fix the game, never the test.

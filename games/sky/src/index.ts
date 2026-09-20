@@ -25,7 +25,7 @@ export interface SkyTestHooks {
   sum(): string;
   answer(): number | null;
   numbers(): readonly number[];
-  hearts(): number;
+  health(): number;
   score(): number;
   band(): BandId;
   status(): 'flying' | 'over';
@@ -207,7 +207,7 @@ export const skyGame: SkyModule = {
         sum: () => driver.model().sumText,
         answer: () => driver.state.sum?.answer ?? null,
         numbers: () => driver.state.aloft.map((plane) => plane.number),
-        hearts: () => driver.state.hearts,
+        health: () => driver.state.health,
         score: () => driver.state.score,
         band: () => driver.state.band.id,
         status: () => driver.state.status,

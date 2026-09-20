@@ -1,34 +1,78 @@
 import { DESIGN, hand, type Point } from '@bundle/core';
-import { HEARTS } from '../logic/run.js';
+import { HEAL_AMOUNT } from '../logic/run.js';
 import { SKY } from './geometry.js';
 import { TIMING } from './timing.js';
 
 export interface HudModel {
-  hearts: number;
+  /** 0 to 100. */
+  health: number;
   score: number;
   streak: number;
   /** 0..1 through the crack animation, just after a heart is lost. */
   crack: number;
 }
 
-const heart = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number, filled: boolean): void => {
+/** Green while there is plenty, amber when it matters, red when it is nearly out. */
+const healthColour = (health: number): string => {
+  if (health > 60) return '#5cb85c';
+  if (health > 30) return '#f0a32e';
+  return '#e8543f';
+};
+
+/**
+ * The fuel the run flies on. A bar rather than a row of hearts because it
+ * drains visibly: a heart blinking out of existence said nothing about why, and
+ * a bar that slides down in front of you says it without a word.
+ */
+const healthBar = (ctx: CanvasRenderingContext2D, x: number, y: number, model: HudModel): void => {
+  const width = 240;
+  const height = 26;
+  const share = Math.max(0, Math.min(1, model.health / 100));
+
   ctx.save();
   ctx.translate(x, y);
+
+  // The empty tank behind it, so what is gone is as visible as what is left.
+  ctx.fillStyle = 'rgba(255,255,255,0.65)';
+  ctx.strokeStyle = 'rgba(30,42,56,0.35)';
+  ctx.lineWidth = 3;
   ctx.beginPath();
-  ctx.moveTo(0, size * 0.3);
-  ctx.bezierCurveTo(size * 0.6, -size * 0.35, size * 0.5, size * 0.55, 0, size);
-  ctx.bezierCurveTo(-size * 0.5, size * 0.55, -size * 0.6, -size * 0.35, 0, size * 0.3);
-  ctx.closePath();
-  if (filled) {
-    ctx.fillStyle = '#e8543f';
+  ctx.roundRect?.(0, 0, width, height, 13);
+  ctx.fill();
+  ctx.stroke();
+
+  if (share > 0) {
+    ctx.fillStyle = healthColour(model.health);
+    ctx.beginPath();
+    ctx.roundRect?.(0, 0, Math.max(height, width * share), height, 13);
     ctx.fill();
-  } else {
-    // A spent heart stays on the bar as an outline, so a child can see what
-    // they have left and what they have already used.
-    ctx.strokeStyle = 'rgba(30,42,56,0.35)';
-    ctx.lineWidth = 3;
+  }
+
+  // One notch per gold plane's worth, which is also four misses: the segments
+  // price both what a mistake costs and what a gold one gives back.
+  ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+  ctx.lineWidth = 2;
+  for (let mark = HEAL_AMOUNT; mark < 100; mark += HEAL_AMOUNT) {
+    const at = width * (mark / 100);
+    ctx.beginPath();
+    ctx.moveTo(at, 4);
+    ctx.lineTo(at, height - 4);
     ctx.stroke();
   }
+
+  // A flash across the bar on the beat it drops.
+  if (model.crack > 0) {
+    ctx.fillStyle = `rgba(232,84,63,${0.5 * model.crack})`;
+    ctx.beginPath();
+    ctx.roundRect?.(0, 0, width, height, 13);
+    ctx.fill();
+  }
+
+  ctx.font = hand(700, 17);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#1e2a38';
+  ctx.fillText(`${Math.round(model.health)}%`, width / 2, height / 2 + 1);
   ctx.restore();
 };
 
@@ -52,13 +96,7 @@ const label = (
 
 export function drawHud(ctx: CanvasRenderingContext2D, model: HudModel): void {
   ctx.save();
-  const size = 24;
-  for (let i = 0; i < HEARTS; i += 1) {
-    const filled = i < model.hearts;
-    // The heart just lost shakes as it empties, so the loss is felt as well as seen.
-    const shake = !filled && i === model.hearts && model.crack > 0 ? Math.sin(model.crack * 40) * 3 : 0;
-    heart(ctx, SKY.fieldLeft + i * (size * 1.9) + shake, SKY.hudY - size / 2, size, filled);
-  }
+  healthBar(ctx, SKY.fieldLeft, SKY.hudY - 18, model);
 
   label(ctx, String(model.score), DESIGN.width - SKY.fieldLeft, SKY.hudY, 40, 'right');
   // A streak is worth naming only once it is a streak.

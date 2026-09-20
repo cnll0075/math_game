@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createRun, HEARTS, JAM_SECONDS, type Run, type RunEvent } from './run.js';
+import { createRun, HEAL_AMOUNT, MAX_HEALTH, MISS_COST, JAM_SECONDS, type Run, type RunEvent } from './run.js';
 import { planeX, type Plane } from './sky-state.js';
 
 const FRAME = 1 / 60;
@@ -36,7 +36,7 @@ describe('a run opening', () => {
     game.step(FRAME);
     expect(game.state.aloft.length).toBeGreaterThanOrEqual(4);
     expect(game.state.sum).not.toBeNull();
-    expect(game.state.hearts).toBe(HEARTS);
+    expect(game.state.health).toBe(MAX_HEALTH);
     expect(game.state.band.id).toBe('easy');
   });
 
@@ -140,7 +140,7 @@ describe('shooting', () => {
     expect(events.some((event) => event.type === 'destroyed')).toBe(true);
     expect(game.state.score).toBe(1);
     expect(game.state.streak).toBe(1);
-    expect(game.state.hearts).toBe(HEARTS);
+    expect(game.state.health).toBe(MAX_HEALTH);
     expect(game.state.sum).not.toBe(asked);
     expect(target(game)!.number).toBe(game.state.sum!.answer);
   });
@@ -151,7 +151,7 @@ describe('shooting', () => {
     const wrong = game.state.aloft.find((plane) => plane.number !== game.state.sum!.answer)!;
     const events = shoot(game, wrong);
     expect(events.some((event) => event.type === 'jammed')).toBe(true);
-    expect(game.state.hearts).toBe(HEARTS);
+    expect(game.state.health).toBe(MAX_HEALTH);
     expect(game.state.score).toBe(0);
     expect(game.state.jam).toBeCloseTo(JAM_SECONDS, 1);
     expect(game.state.aloft.some((plane) => plane.uid === wrong.uid)).toBe(true);
@@ -168,7 +168,7 @@ describe('shooting', () => {
   });
 
   it('bursts a big one into two planes that add up to it', () => {
-    const game = createRun({ seed: 7, startBand: 'take-aways', hearts: 999 });
+    const game = createRun({ seed: 7, startBand: 'take-aways', health: 99999 });
     let blimp: Plane | undefined;
     for (let i = 0; i < 4000 && !blimp; i += 1) {
       game.step(FRAME);
@@ -216,18 +216,23 @@ describe('shooting', () => {
       return gold;
     };
 
-    // A heart down, so there is something to give back.
-    game.state.hearts = 1;
+    // Some fuel gone, so there is something to give back.
+    game.state.health = 50;
     const healedEvents = shootThrough(game, sendGold());
     expect(healedEvents.some((event) => event.type === 'healed')).toBe(true);
-    expect(game.state.hearts).toBe(2);
+    expect(game.state.health).toBe(50 + HEAL_AMOUNT);
 
-    // At full hearts it is still worth shooting, but it cannot give a fourth.
-    game.state.hearts = game.state.maxHearts;
+    // At a full tank it is still worth shooting, but it cannot overfill it.
+    game.state.health = game.state.maxHealth;
     const fullEvents = shootThrough(game, sendGold());
     expect(fullEvents.some((event) => event.type === 'destroyed')).toBe(true);
     expect(fullEvents.some((event) => event.type === 'healed')).toBe(false);
-    expect(game.state.hearts).toBe(game.state.maxHearts);
+    expect(game.state.health).toBe(game.state.maxHealth);
+
+    // And a top-up never spills over the top of the tank.
+    game.state.health = game.state.maxHealth - 1;
+    shootThrough(game, sendGold());
+    expect(game.state.health).toBe(game.state.maxHealth);
   });
 
   it('jams the gun on the wrong plane and costs no heart', () => {
@@ -236,7 +241,7 @@ describe('shooting', () => {
     const wrong = game.state.aloft.find((plane) => plane.number !== game.state.sum!.answer)!;
     const events = shoot(game, wrong);
     expect(events.some((event) => event.type === 'jammed')).toBe(true);
-    expect(game.state.hearts).toBe(HEARTS);
+    expect(game.state.health).toBe(MAX_HEALTH);
     expect(game.state.score).toBe(0);
     expect(game.state.jam).toBeCloseTo(JAM_SECONDS, 1);
     expect(game.state.aloft.some((plane) => plane.uid === wrong.uid)).toBe(true);
@@ -261,11 +266,11 @@ describe('escapes', () => {
     const chosen = target(game)!;
     const events = run(game, chosen.fallSeconds + 1);
     expect(events.some((event) => event.type === 'escaped')).toBe(true);
-    expect(game.state.hearts).toBeLessThan(HEARTS);
+    expect(game.state.health).toBeLessThan(MAX_HEALTH);
   });
 
   it('costs nothing when any other plane leaves', () => {
-    const game = createRun({ seed: 9, hearts: 99 });
+    const game = createRun({ seed: 9, health: 99999 });
     const events = run(game, 60);
     const escapes = events.filter((event) => event.type === 'escaped').length;
     const gone = events.filter((event) => event.type === 'spawned').length - game.state.aloft.length;
@@ -273,7 +278,7 @@ describe('escapes', () => {
   });
 
   it('ends the run when the last heart goes, and stops dead', () => {
-    const game = createRun({ seed: 10, hearts: 1 });
+    const game = createRun({ seed: 10, health: MISS_COST });
     run(game, 2);
     run(game, 40);
     expect(game.state.status).toBe('over');
@@ -284,7 +289,7 @@ describe('escapes', () => {
 
 describe('the clock', () => {
   it('announces a band change once, without rewriting the live question', () => {
-    const game = createRun({ seed: 11, hearts: 99 });
+    const game = createRun({ seed: 11, health: 99999 });
     run(game, 44);
     let changes = 0;
     let carriedOver = false;
@@ -302,7 +307,7 @@ describe('the clock', () => {
   });
 
   it('keeps the sky as full as the tempo wants', () => {
-    const game = createRun({ seed: 12, hearts: 99 });
+    const game = createRun({ seed: 12, health: 99999 });
     run(game, 150);
     expect(game.state.aloft.length).toBeGreaterThanOrEqual(game.state.tempo.aloft - 2);
   });

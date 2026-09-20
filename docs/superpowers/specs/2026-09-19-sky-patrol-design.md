@@ -2,7 +2,7 @@
 
 The bundle's second game. A plane shooter in which the only plane you may shoot
 is the one wearing the answer to the sum on your fighter. Addition and
-subtraction within 20; one continuous run; three hearts.
+subtraction within 20; one continuous run on a tank of fuel.
 
 The whole design answers one question: **can a child win this without reading a
 number?** Seesaw Park's arcade half was built and cut because the answer there
@@ -33,9 +33,14 @@ is ringed where it left with the missed sum written beside it, after the fact,
 so a heart is never lost without a visible cause and the feedback cannot be used
 to skip the arithmetic.
 
-Hearts are spent only on escapes. A wrong shot costs **time** — the one currency
-that matters more as the sky speeds up — so a misread number is punished without
-a slipped thumb ever ending a run. Three hearts for the entire run.
+Fuel is spent only on escapes: **5% each, twenty of them to a run**, with a gold
+plane giving **20%** back. A wrong shot costs **time** — the one currency that
+matters more as the sky speeds up — so a misread number is punished without a
+slipped thumb ever ending a run.
+
+A bar rather than a row of lives, because it drains where the player can watch
+it and its notches price a miss before it is paid. A life blinking out of
+existence said nothing about why it went.
 
 The run ends on a summary: planes downed, longest streak, time flown, and the
 best run so far, kept in `host.storage`. A "how far did you fly" card, not a
@@ -155,7 +160,7 @@ Firing on touch-down was rejected: every reposition would spray shots.
 - **Jam** — the barrel glows red, sparks, a cough, ~0.9s of nothing.
 - **Escape** — the plane dips off the bottom trailing smoke as a heart cracks,
   under a low horn.
-- **HUD** — hearts top-left, score top-right, band banner centre.
+- **HUD** — the fuel bar top-left, score top-right, band banner centre.
 
 ## Structure
 
@@ -171,7 +176,7 @@ games/sky/                      package @bundle/sky, module id 'sky', "Sky Patro
     sky-state.ts                one plane falling: position, damage, hiding
     spawner.ts                  number choice and the trap invariant
     targeting.ts                choosing the plane a sum asks about
-    run.ts                      the run: planes, shells, hearts, band clock
+    run.ts                      the run: planes, shells, fuel, band clock
   src/view/                     canvas: reads state, never writes it
     geometry.ts timing.ts plane-art.ts hud.ts scene.ts input.ts
   src/audio/sky-sounds.ts       the sky's sound pack

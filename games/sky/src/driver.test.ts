@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createDriver } from './driver.js';
+import { MISS_COST } from './logic/run.js';
 
 const FRAME = 1 / 60;
 
@@ -14,7 +15,7 @@ describe('the driver', () => {
   });
 
   it('holds a summary once the run is over, and reports a new best', () => {
-    const driver = createDriver({ best: 0, seed: 2, hearts: 1 });
+    const driver = createDriver({ best: 0, seed: 2, health: MISS_COST });
     for (let i = 0; i < 60 * 60; i += 1) driver.step(FRAME);
     expect(driver.state.status).toBe('over');
     expect(driver.summary).not.toBeNull();
@@ -23,26 +24,26 @@ describe('the driver', () => {
   });
 
   it('does not claim a new best when the old one stands', () => {
-    const driver = createDriver({ best: 9999, seed: 3, hearts: 1 });
+    const driver = createDriver({ best: 9999, seed: 3, health: MISS_COST });
     for (let i = 0; i < 60 * 60; i += 1) driver.step(FRAME);
     expect(driver.summary!.beatenBest).toBe(false);
     expect(driver.summary!.best).toBe(9999);
   });
 
   it('starts a clean run when asked to go again', () => {
-    const driver = createDriver({ best: 0, seed: 4, hearts: 1 });
+    const driver = createDriver({ best: 0, seed: 4, health: MISS_COST });
     for (let i = 0; i < 60 * 60; i += 1) driver.step(FRAME);
     expect(driver.state.status).toBe('over');
     driver.restart();
     driver.step(FRAME);
     expect(driver.state.status).toBe('flying');
     expect(driver.state.score).toBe(0);
-    expect(driver.state.hearts).toBe(1);
+    expect(driver.state.health).toBe(MISS_COST);
     expect(driver.summary).toBeNull();
   });
 
   it('counts time flown from where the band opened, not from zero', () => {
-    const driver = createDriver({ best: 0, seed: 5, hearts: 1, startBand: 'take-aways' });
+    const driver = createDriver({ best: 0, seed: 5, health: MISS_COST, startBand: 'take-aways' });
     for (let i = 0; i < 60 * 60; i += 1) driver.step(FRAME);
     // Opening at 2:00 must not report two free minutes of flying.
     expect(driver.summary!.seconds).toBeLessThan(120);

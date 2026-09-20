@@ -19,18 +19,19 @@ export type RunEvent =
   | { type: 'damaged'; plane: Plane }
   | { type: 'destroyed'; plane: Plane; sum: Sum }
   | { type: 'split'; plane: Plane; into: readonly [Plane, Plane] }
-  | { type: 'healed'; plane: Plane; hearts: number }
+  | { type: 'healed'; plane: Plane; health: number }
   | { type: 'jammed'; plane: Plane }
   /** The sum travels with it, so the player can be shown what they missed. */
-  | { type: 'escaped'; plane: Plane; sum: Sum; hearts: number }
+  | { type: 'escaped'; plane: Plane; sum: Sum; health: number }
   | { type: 'band'; band: Band }
   | { type: 'ended'; score: number };
 
 export interface RunState {
   elapsed: number;
-  hearts: number;
-  /** What a treasure plane can restore a heart up to. */
-  maxHearts: number;
+  /** The fuel the run flies on, 0 to 100. Every plane that gets away costs some. */
+  health: number;
+  /** What a treasure plane can top it back up to. */
+  maxHealth: number;
   score: number;
   streak: number;
   bestStreak: number;
@@ -64,7 +65,7 @@ export interface RunState {
 
 export interface RunOptions {
   seed?: number;
-  hearts?: number;
+  health?: number;
   /** Opens the run at a band's own pace, for `?game=sky&level=take-aways`. */
   startBand?: BandId;
 }
@@ -78,8 +79,12 @@ export interface Run {
   fire(): void;
 }
 
-/** Three for the whole run. */
-export const HEARTS = 3;
+/** A full tank at the start of a run. */
+export const MAX_HEALTH = 100;
+/** What one plane getting away costs. Twenty of them and the run is over. */
+export const MISS_COST = 5;
+/** What a gold plane gives back — four misses' worth. */
+export const HEAL_AMOUNT = 20;
 /** What one wrong answer costs: gun time, never a heart. */
 export const JAM_SECONDS = 0.9;
 /**
@@ -123,11 +128,11 @@ export function createRun(options: RunOptions = {}): Run {
   let uidCounter = 0;
   const nextUid = (): string => `plane-${(uidCounter += 1)}`;
 
-  const hearts = options.hearts ?? HEARTS;
+  const health = options.health ?? MAX_HEALTH;
   const state: RunState = {
     elapsed: opened,
-    hearts,
-    maxHearts: hearts,
+    health,
+    maxHealth: health,
     score: 0,
     streak: 0,
     bestStreak: 0,
@@ -287,7 +292,7 @@ export function createRun(options: RunOptions = {}): Run {
       for (const plane of gone) {
         if (plane.uid !== state.targetUid) continue;
         const missed = state.sum;
-        state.hearts -= 1;
+        state.health = Math.max(0, state.health - MISS_COST);
         state.streak = 0;
         state.sum = null;
         state.targetUid = null;
@@ -296,11 +301,11 @@ export function createRun(options: RunOptions = {}): Run {
         state.missed = missed;
         state.mourning = MOURN_SECONDS;
         // The question travels with the event too, for the marker on the sky.
-        if (missed) events.push({ type: 'escaped', plane, sum: missed, hearts: state.hearts });
+        if (missed) events.push({ type: 'escaped', plane, sum: missed, health: state.health });
       }
     }
 
-    if (state.hearts <= 0) {
+    if (state.health <= 0) {
       state.status = 'over';
       events.push({ type: 'ended', score: state.score });
       return events;
@@ -348,9 +353,9 @@ export function createRun(options: RunOptions = {}): Run {
       state.bestStreak = Math.max(state.bestStreak, state.streak);
       events.push({ type: 'destroyed', plane: hit, sum: state.sum });
       if (hit.type === 'blimp') burst(events, hit);
-      if (hit.type === 'treasure' && state.hearts < state.maxHearts) {
-        state.hearts += 1;
-        events.push({ type: 'healed', plane: hit, hearts: state.hearts });
+      if (hit.type === 'treasure' && state.health < state.maxHealth) {
+        state.health = Math.min(state.maxHealth, state.health + HEAL_AMOUNT);
+        events.push({ type: 'healed', plane: hit, health: state.health });
       }
       state.sum = null;
       state.targetUid = null;

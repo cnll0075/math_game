@@ -169,7 +169,7 @@ export function createScene(): Scene {
       });
 
       drawHud(ctx, {
-        hearts: current.run.hearts,
+        health: current.run.health,
         score: current.run.score,
         streak: current.run.streak,
         crack: crack / TIMING.heartCrackSeconds,

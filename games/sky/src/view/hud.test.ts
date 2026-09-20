@@ -3,28 +3,44 @@ import { depthOf, recordingContext } from '@bundle/core';
 import { drawBanner, drawHud, drawSolved, drawSummary } from './hud.js';
 
 describe('the top bar', () => {
-  it('shows one heart per heart left and the score', () => {
-    const { ctx, texts, calls } = recordingContext();
-    drawHud(ctx, { hearts: 2, score: 17, streak: 4, crack: 0 });
+  it('shows how much fuel is left, and the score', () => {
+    const { ctx, texts } = recordingContext();
+    drawHud(ctx, { health: 65, score: 17, streak: 4, crack: 0 });
     expect(texts).toContain('17');
-    // Two full hearts and one spent, so three heart shapes in all.
-    expect(calls.filter((call) => call === 'bezierCurveTo').length).toBeGreaterThanOrEqual(6);
+    // The number on the bar, so what is left is readable and not just a length.
+    expect(texts).toContain('65%');
+    expect(depthOf(ctx)).toBe(0);
+  });
+
+  it('draws the bar shorter as the run goes badly', () => {
+    const full = recordingContext();
+    drawHud(full.ctx, { health: 100, score: 0, streak: 0, crack: 0 });
+    expect(full.texts).toContain('100%');
+    const nearly = recordingContext();
+    drawHud(nearly.ctx, { health: 5, score: 0, streak: 0, crack: 0 });
+    expect(nearly.texts).toContain('5%');
+  });
+
+  it('draws nothing coloured in when the tank is empty', () => {
+    const { ctx, texts } = recordingContext();
+    drawHud(ctx, { health: 0, score: 3, streak: 0, crack: 0 });
+    expect(texts).toContain('0%');
     expect(depthOf(ctx)).toBe(0);
   });
 
   it('shows a streak only once it is worth showing', () => {
     const quiet = recordingContext();
-    drawHud(quiet.ctx, { hearts: 3, score: 3, streak: 1, crack: 0 });
+    drawHud(quiet.ctx, { health: 100, score: 3, streak: 1, crack: 0 });
     expect(quiet.texts.some((text) => text.includes('in a row'))).toBe(false);
     const hot = recordingContext();
-    drawHud(hot.ctx, { hearts: 3, score: 9, streak: 3, crack: 0 });
+    drawHud(hot.ctx, { health: 100, score: 9, streak: 3, crack: 0 });
     expect(hot.texts.some((text) => text.includes('3 in a row'))).toBe(true);
   });
 
   it('draws without leaving the context saved, whatever the state', () => {
-    for (const hearts of [0, 1, 3]) {
+    for (const health of [0, 5, 50, 100]) {
       const { ctx } = recordingContext();
-      drawHud(ctx, { hearts, score: 0, streak: 0, crack: 0.5 });
+      drawHud(ctx, { health, score: 0, streak: 0, crack: 0.5 });
       expect(depthOf(ctx)).toBe(0);
     }
   });

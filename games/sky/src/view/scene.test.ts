@@ -114,7 +114,7 @@ describe('the scene', () => {
     const target = game.state.aloft.find((plane) => plane.uid === game.state.targetUid)!;
     const sum = game.state.sum!;
     const scene = createScene();
-    scene.observe([{ type: 'escaped', plane: target, sum, hearts: 2 }]);
+    scene.observe([{ type: 'escaped', plane: target, sum, health: 90 }]);
     scene.update(FRAME, modelOf(game));
     const during = recordingContext();
     scene.render(during.ctx, SCREEN);

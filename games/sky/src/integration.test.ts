@@ -34,7 +34,7 @@ describe('a run played through the module', () => {
     session.__test.step();
     expect(session.__test.sum()).toMatch(/\d/);
     expect(session.__test.numbers()).toContain(session.__test.answer());
-    expect(session.__test.hearts()).toBe(3);
+    expect(session.__test.health()).toBe(100);
     session.unmount();
   });
 
@@ -46,7 +46,7 @@ describe('a run played through the module', () => {
       session.__test.step(2);
     }
     expect(session.__test.score()).toBeGreaterThanOrEqual(15);
-    expect(session.__test.hearts()).toBe(3);
+    expect(session.__test.health()).toBe(100);
     expect(session.__test.status()).toBe('flying');
     session.unmount();
   });
@@ -57,7 +57,7 @@ describe('a run played through the module', () => {
     session.__test.shootWrong();
     expect(session.__test.jammed()).toBe(true);
     expect(session.__test.score()).toBe(0);
-    expect(session.__test.hearts()).toBe(3);
+    expect(session.__test.health()).toBe(100);
     session.unmount();
   });
 
@@ -82,14 +82,15 @@ describe('a run played through the module', () => {
 
   it('loses the run when the sums are ignored, then flies again', async () => {
     const { session } = await mountGame();
-    for (let i = 0; i < 60 * 120 && session.__test.status() === 'flying'; i += 1) session.__test.step();
+    // Twenty misses at 5% each, so this takes longer than three lives did.
+    for (let i = 0; i < 60 * 240 && session.__test.status() === 'flying'; i += 1) session.__test.step();
     expect(session.__test.status()).toBe('over');
-    expect(session.__test.hearts()).toBe(0);
+    expect(session.__test.health()).toBe(0);
 
     session.__test.restart();
     session.__test.step();
     expect(session.__test.status()).toBe('flying');
-    expect(session.__test.hearts()).toBe(3);
+    expect(session.__test.health()).toBe(100);
     expect(session.__test.score()).toBe(0);
     session.unmount();
   });
@@ -102,7 +103,7 @@ describe('a run played through the module', () => {
       session.__test.step(2);
     }
     const scored = session.__test.score();
-    for (let i = 0; i < 60 * 180 && session.__test.status() === 'flying'; i += 1) session.__test.step();
+    for (let i = 0; i < 60 * 300 && session.__test.status() === 'flying'; i += 1) session.__test.step();
     expect(host.storage.get('best', 0)).toBeGreaterThanOrEqual(scored);
     session.unmount();
   });

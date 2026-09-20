@@ -11,7 +11,7 @@ export interface DriverOptions {
   /** A band id from the URL. Anything unrecognised opens at the beginning. */
   startBand?: string;
   seed?: number;
-  hearts?: number;
+  health?: number;
 }
 
 /**
@@ -35,7 +35,7 @@ export function createDriver(options: DriverOptions): Driver {
   const start = (): Run =>
     createRun({
       seed: options.seed ?? Math.floor(Date.now() % 100000),
-      hearts: options.hearts,
+      health: options.health,
       startBand: asBand(options.startBand),
     });
 
@@ -102,7 +102,7 @@ export function createDriver(options: DriverOptions): Driver {
           : '',
       mourning: run.state.mourning > 0,
       urgency: urgencyNow(),
-      heartOnOffer: run.state.hearts < run.state.maxHearts,
+      heartOnOffer: run.state.health < run.state.maxHealth,
       summary,
     }),
   };

@@ -1,8 +1,12 @@
 # Math Park
 
-A bundle of ten little math games for iPad. One game is built: **Seesaw Park**,
-in which animal weights drive a seesaw and the arithmetic is the mechanic rather
-than the subject.
+A bundle of ten little math games for iPad. Two are built, and in both the
+arithmetic is the mechanic rather than the subject:
+
+- **Seesaw Park** — animal weights drive a seesaw, and making it balance is
+  addition you can see.
+- **Sky Patrol** — the only plane you may shoot is the one wearing the answer to
+  the sum on your fighter. One endless run, three hearts.
 
 ## Running it
 
@@ -17,7 +21,8 @@ npm run build      # production bundle into dist/
 It runs full-screen in iPad Safari as-is, and is structured to be wrapped in
 Capacitor/WKWebView for the App Store.
 
-Development shortcut: `?game=seesaw&level=level-4` opens a level directly.
+Development shortcuts: `?game=seesaw&level=level-4` opens a level directly, and
+`?game=sky&level=take-aways` opens Sky Patrol straight into subtraction.
 
 ## Testing on an iPad
 
@@ -65,6 +70,7 @@ games/seesaw/    the first game
   src/logic/     pure rules — no DOM, no timers, no audio
   src/view/      canvas presentation — reads state, never writes it
   src/audio/     the seesaw's sound pack
+games/sky/       the second game, laid out the same way
 docs/superpowers/specs/   design spec
 docs/superpowers/plans/   implementation plan
 ```
@@ -292,7 +298,7 @@ for three seconds.
 
 Music defaults to off — the game is built to feel complete muted.
 
-## Layout
+## The design space
 
 The design space is 1152x768 (3:2). Gameplay stays inside it and is visible on
 every screen; scenery paints across the whole canvas, so a screen of a different
@@ -338,166 +344,96 @@ players aiming at the wrong one.
 - Games never ask whether the player paid; the shell hands down a content
   manifest.
 
-## Telling the player what is being asked
+## Sky Patrol
 
-Each level asks for something different, and in play that was easy to miss. Two
-things carry it:
+Planes fall out of the sky wearing numbers. Your fighter carries a sum. Shoot
+the plane wearing its answer.
 
-- **The goal announces itself.** It arrives large in the middle of the screen
-  with a sound, holds, then flies up into the top bar. It fires again for each
-  challenge inside a level, so a new ask is always seen arriving rather than
-  discovered.
-- **Stage dots.** A level with several challenges shows one dot per challenge,
-  ticked off as they are cleared, so it visibly differs from a level that asks
-  for one thing.
+**Drag to move, fire on release.** One shell per touch: lifting your finger
+sends the fighter to that spot and shoots from there. Firing on touch-down
+would spray a shell every time you repositioned, and repositioning is most of
+what a player does. Arrow keys and space do the same on a Mac.
 
-In the arcade there is no picking-up step, so both landing zones glow whenever
-an animal is waiting, and arrows sweep out from it towards them until the player
-has seated two animals themselves. Without that there is nothing on screen
-saying that tapping a side is the verb.
+**Three hearts for the whole run.** A heart goes only when the plane your sum is
+asking for gets away off the bottom. Shooting the wrong plane costs no heart —
+the plane shrugs the shell off and your gun overheats — so a slipped thumb never
+ends a run. But each wrong shell in a row holds the gun shut longer, to a
+ceiling of three seconds, and a shell home on the right plane cools it
+completely. One slip is cheap; a habit is not.
 
-The target for a tilt objective is **one** thing: a ghost of the plank where it
-should end up, with the star at the end of it. An earlier version drew the ghost
-and floated the star above the basket, which read as two separate goals and sent
-players aiming at the wrong one.
+Shells stop at the first plane in their path, so something flying between you
+and the right answer really does block the shot. Wait, or move.
 
-## Design rules worth keeping
+### The three bands, by the clock
 
-- The mathematical state is authoritative. Perfect balance is
-  `leftWeight === rightWeight`, edge-triggered, never derived from the rendered
-  angle — visual smoothing can never move the moment the bell rings.
-- The presentation layer reads game state and never writes to it.
-- Animal weights exist only in the animal catalog, including the numeral each
-  animal wears.
-- Finishing a level is celebrated by the animals themselves — they hop, cheer,
-  and chirp in a wave while the plank bobs — not by a score screen. The bob is
-  added to the rendered angle only and never reaches the balance state.
-- Games never ask whether the player paid; the shell hands down a content
-  manifest.
+| From | Band | Sums | Numbers in the sky |
+| --- | --- | --- | --- |
+| 0:00 | Easy Sums | `a + b` up to ten | 2–10 |
+| 0:45 | Over Ten | sums of 11–20, easy ones still mixed in | 2–20 |
+| 2:00 | Take-Aways | take-aways within 20, addition still ~40% | 1–20 |
 
-## The arcade half: Balance Rush (levels 6–10)
+Addition keeps appearing in the last band so that the **sign** is something
+worth reading rather than a constant to ignore. A band announces itself the way
+a Seesaw chapter does.
 
-A gap sits on the plank — say the left is 5 heavier. A hand of animals waits
-below. The player picks **which** animal closes the gap and **which side** it
-goes on. Land exactly level and the bell rings, the animals cheer and hop off,
-and a fresh gap is set.
+### The planes
 
-That shape is deliberate. An earlier arcade asked only "keep it balanced", one
-animal at a time, two choices — and the whole game could be won by dropping each
-animal on the lighter side without ever reading a number. Ringing the bell is
-now the score rather than a bonus, gaps are wider than any single animal, and
-the hand holds several options, so closing one means combining: 7 is 5 and 2, or
-3 and 3 and 1.
+Each type is a different *reason* to be hard, so the ramp is never merely
+"faster":
 
-The pressure comes from the physical world rather than from arithmetic drills:
+| Plane | From | What makes it hard |
+| --- | --- | --- |
+| Glider | 0:00 | Nothing. The plane the others are measured against |
+| Weaver | 0:30 | Falls in an S — the number is plain, lining up is the work |
+| Blimp | 0:50 | Slow and big, but takes three hits: you cannot change your mind halfway |
+| Scout | 1:15 | Falls nearly twice as fast. The one that threatens a heart |
+| Cloud-hider | 1:50 | Ducks behind cloud, so you must remember *which* plane was the 15 |
 
-- **Impatience.** The chosen animal climbs on by itself if ignored, onto the
-  side already down — so dithering makes the gap worse.
-- **Families** (level 8 on). Two or three animals arrive roped together and all
-  must be seated, so they have to be split between the sides. That is
-  partitioning a set, the richest arithmetic in the game.
-- **Wind** (level 9 on) leans on the plank as a phantom weight, so the sum has
-  to account for it.
-- **The danger meter** ends a round that gets away from the player entirely, and
-  a lost round simply starts again.
+### Why the sum is written about planes already flying
 
-`animal-generator.ts` proposes an arrival; `fairness.ts` disposes. Keeping them
-apart means difficulty is tuned in one place rather than smeared through the
-random draw. The generator judges against `snapshot()`, so it accounts for the
-wind that is actually blowing.
+This is the part to leave alone. **The sky comes first; the sum is written about
+it.** When a new question is needed the game looks at what is already in the
+air, picks a plane, and writes a sum whose answer is its number.
 
-**Level 10** never ends: the pace keeps tightening, so every run is eventually
-lost, and the bells rung are the score. It tracks time survived, animals
-handled, perfect balances, longest streak and near misses, and keeps a personal
-best.
+The reverse — pick a sum, then spawn a plane wearing its answer — was rejected,
+because the answer would always be the newest and highest plane, and a child
+learns that tell in under a minute and stops reading numbers. That is exactly
+how Seesaw's arcade half failed, and it is why it was cut.
 
-### Proving the math matters
+Two guarantees come out of the arrangement, and both are tests:
 
-`arcade-levels.test.ts` plays every level two ways at a child's pace — one
-placement every 1.6 seconds, so a hand of options actually accumulates:
+- **Every plane is shootable.** Its number was drawn from the band's answer set,
+  so a sum that produces it always exists.
+- **The question is always fair.** A plane may only be asked about while it has
+  a full *thinking window* of fall left — 5.5s early, 3s late. A rising tempo
+  shrinks your margin for error, never your time to think.
 
-- **Arithmetic:** pick the animal and side that land closest to level.
-- **Comparison:** take the first animal, drop it on the lighter side. No numbers
-  consulted. This is the strategy that used to win.
+And one deliberate cruelty, the **trap invariant**: while a sum is live the sky
+must also hold an operand of it or a near miss. Asked `7 + 8`, there is usually
+a `7` up there to shoot by mistake, and a `14` or `16` besides. Shooting an
+operand instead of the answer is the characteristic error at this age, so it is
+baited on purpose — otherwise the answer can be picked out as the only plausible
+number on screen, without doing any arithmetic. If chance has not provided a
+trap, the spawner sends one up, and sends another when the last one gets away.
 
-The suite requires that arithmetic wins from every seed (so the generator can
-never deal a dead round) and that it rings at least half again as many bells as
-comparison in the same time. Level 6 is exempt from the second: it teaches the
-loop and should be winnable by feel.
+### The test that guards all of it
 
-## Telling the player what is being asked
+`games/sky/src/logic/invariants.test.ts` flies two bots at the game:
 
-Each level asks for something different, and in play that was easy to miss. Two
-things carry it:
+- one **reads the sum**, and must still be flying after two minutes with a
+  hundred planes down;
+- one **ignores the numbers** and shoots whatever is lowest, and must lose every
+  heart inside ninety seconds.
 
-- **The goal announces itself.** It arrives large in the middle of the screen
-  with a sound, holds, then flies up into the top bar. It fires again for each
-  challenge inside a level, so a new ask is always seen arriving rather than
-  discovered.
-- **Stage dots.** A level with several challenges shows one dot per challenge,
-  ticked off as they are cleared, so it visibly differs from a level that asks
-  for one thing.
-
-In the arcade there is no picking-up step, so both landing zones glow whenever
-an animal is waiting, and arrows sweep out from it towards them until the player
-has seated two animals themselves. Without that there is nothing on screen
-saying that tapping a side is the verb.
-
-The target for a tilt objective is **one** thing: a ghost of the plank where it
-should end up, with the star at the end of it. An earlier version drew the ghost
-and floated the star above the basket, which read as two separate goals and sent
-players aiming at the wrong one.
-
-## Design rules worth keeping
-
-- The mathematical state is authoritative. Perfect balance is
-  `leftWeight === rightWeight`, edge-triggered, never derived from the rendered
-  angle — visual smoothing can never move the moment the bell rings.
-- The presentation layer reads game state and never writes to it.
-- Animal weights exist only in the animal catalog, including the numeral each
-  animal wears.
-- Finishing a level is celebrated by the animals themselves — they hop, cheer,
-  and chirp in a wave while the plank bobs — not by a score screen. The bob is
-  added to the rendered angle only and never reaches the balance state.
-- Games never ask whether the player paid; the shell hands down a content
-  manifest.
-
-## The arcade half (levels 6–10)
-
-Animals arrive on a timer and wander off after a while, so the balance drifts
-whether or not the child acts. Three rules make that fair:
-
-- **Impatience.** The waiting animal climbs on by itself if ignored, choosing
-  the side that is already down — the end it can reach. Ignoring the game makes
-  a lean worse, which is what stops standing still from being a winning move.
-- **Recovery.** In the red with an empty queue there is no move left to make, so
-  the next animal is sent within half a second. The generator only offers
-  animals that can be placed safely, so the help is real help.
-- **The danger meter.** Red fills it, safety drains it, full ends the round —
-  and a lost round simply starts again. One bad move never ends a round.
-
-`animal-generator.ts` proposes; `fairness.ts` disposes. Keeping them apart means
-difficulty is tuned in one place rather than smeared through the random draw.
-
-**Wind** (levels 9 and 10) is a phantom weight, not a nudge to the drawing: a
-gust adds one or two units to a side for a few seconds. Because every system
-reads the one authoritative balance, the tilt, gauge, zone, flag, animal
-reactions, danger meter — and the fairness validator, which therefore only
-offers animals that can be placed safely in the weather actually blowing — all
-respond correctly with no code of their own. A gust announces itself with
-blowing leaves and a rising sound before it pushes.
-
-**Level 10** never ends: the arrival pace keeps tightening towards a floor, so
-every run is eventually lost, and how long it lasted is the score. It tracks
-time survived, animals handled, perfect balances, longest streak and near
-misses, and keeps the best time in the host's storage. The survival bar becomes
-a "beat your best" bar rather than a reward screen.
+If that second test ever passes the game, the arithmetic has stopped mattering.
+Fix the game, never the test.
 
 ## Not built yet
 
-- **Real art and sound.** The prototype's are swappable through `SeesawTheme`
-  and `SoundPack`; see above.
-- **The other nine games.** The shell has a tile each, marked "Soon".
+- **Real art and sound.** Seesaw's are swappable through `SeesawTheme` and
+  `SoundPack`; see above. Sky Patrol has vector planes and a synthesised pack
+  only, behind the same `SoundPack` names a recorded pack would implement.
+- **The other eight games.** The shell has a tile each, marked "Soon".
 - **Timed or scored modes.** An arcade half was built and removed: it added
   pressure rather than arithmetic, and a player could win it by dropping each
   animal on the lighter side without reading a number. It is in the git history

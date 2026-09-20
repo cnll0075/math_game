@@ -97,6 +97,43 @@ export function drawSolved(ctx: CanvasRenderingContext2D, at: Point, text: strin
   ctx.restore();
 }
 
+/**
+ * What just cost a heart, said in the middle of the screen where the player is
+ * already looking. The marker down at the escape line says *where* it happened;
+ * this says *what*, and it is the one that actually gets read.
+ */
+export function drawLoss(ctx: CanvasRenderingContext2D, text: string, progress: number): void {
+  const rise = Math.min(1, progress * 3);
+  ctx.save();
+  ctx.globalAlpha = progress > 0.8 ? (1 - progress) / 0.2 : 1;
+  ctx.translate(DESIGN.width / 2, DESIGN.height * 0.3 - rise * 10);
+
+  const width = Math.max(420, text.length * 34);
+  const height = 150;
+  ctx.fillStyle = 'rgba(232,84,63,0.95)';
+  const left = -width / 2;
+  const top = -height / 2;
+  const radius = 24;
+  ctx.beginPath();
+  ctx.moveTo(left + radius, top);
+  ctx.arcTo(left + width, top, left + width, top + height, radius);
+  ctx.arcTo(left + width, top + height, left, top + height, radius);
+  ctx.arcTo(left, top + height, left, top, radius);
+  ctx.arcTo(left, top, left + width, top, radius);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.font = hand(700, 32);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(255,255,255,0.92)';
+  ctx.fillText('It got away!', 0, -34);
+  ctx.font = hand(700, 58);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(text, 0, 26);
+  ctx.restore();
+}
+
 export interface Summary {
   score: number;
   bestStreak: number;

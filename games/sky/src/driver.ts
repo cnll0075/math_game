@@ -92,7 +92,15 @@ export function createDriver(options: DriverOptions): Driver {
 
     model: () => ({
       run: run.state,
-      sumText: run.state.sum ? sumText(run.state.sum) : '',
+      // Through the beat after a loss the plaque keeps showing the question
+      // that got away, finished, in red — so the heart and the sum are the
+      // same event rather than two unrelated things happening at once.
+      sumText: run.state.missed
+        ? `${sumText(run.state.missed)} = ${run.state.missed.answer}`
+        : run.state.sum
+          ? sumText(run.state.sum)
+          : '',
+      mourning: run.state.mourning > 0,
       urgency: urgencyNow(),
       heartOnOffer: run.state.hearts < run.state.maxHearts,
       summary,

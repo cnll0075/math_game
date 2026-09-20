@@ -2,7 +2,7 @@ import { DESIGN, fitToScreen, visibleBounds, type Point, type Size } from '@bund
 import { sumText } from '../logic/equation.js';
 import type { RunEvent, RunState } from '../logic/run.js';
 import { drawBoom, drawBullet, drawFighter, drawMissed, drawPlane } from './plane-art.js';
-import { drawBanner, drawHud, drawSolved, drawSummary, type Summary } from './hud.js';
+import { drawBanner, drawHud, drawLoss, drawSolved, drawSummary, type Summary } from './hud.js';
 import { planePoint } from './geometry.js';
 import { TIMING } from './timing.js';
 
@@ -12,6 +12,8 @@ export interface SceneModel {
   sumText: string;
   /** How close the plane being asked about is to getting away, 0 to 1. */
   urgency: number;
+  /** Set through the beat after a heart is lost, while the plaque holds it. */
+  mourning: boolean;
   /** Whether a gold plane has a heart to give back right now. */
   heartOnOffer: boolean;
   /** Set once the run is over. */
@@ -58,6 +60,7 @@ export function createScene(): Scene {
   const solved: Solved[] = [];
   const missed: Missed[] = [];
   let banner: { title: string; life: number } | null = null;
+  let loss: { text: string; life: number } | null = null;
   let crack = 0;
   let drift = 0;
   let model: SceneModel | null = null;
@@ -92,6 +95,7 @@ export function createScene(): Scene {
               text: `${sumText(event.sum)} = ${event.sum.answer}`,
               life: 0,
             });
+            loss = { text: `${sumText(event.sum)} = ${event.sum.answer}`, life: 0 };
             break;
           case 'band':
             banner = { title: event.band.title, life: 0 };
@@ -116,6 +120,10 @@ export function createScene(): Scene {
       if (banner) {
         banner.life += dt;
         if (banner.life > TIMING.bandAnnounceSeconds) banner = null;
+      }
+      if (loss) {
+        loss.life += dt;
+        if (loss.life > TIMING.lossSeconds) loss = null;
       }
     },
 
@@ -157,6 +165,7 @@ export function createScene(): Scene {
         jammed: current.run.jam > 0,
         sum: current.sumText,
         urgency: current.urgency,
+        mourning: current.mourning,
       });
 
       drawHud(ctx, {
@@ -166,6 +175,7 @@ export function createScene(): Scene {
         crack: crack / TIMING.heartCrackSeconds,
       });
       if (banner) drawBanner(ctx, banner.title, banner.life / TIMING.bandAnnounceSeconds);
+      if (loss) drawLoss(ctx, loss.text, loss.life / TIMING.lossSeconds);
       if (current.summary) drawSummary(ctx, current.summary);
 
       ctx.restore();

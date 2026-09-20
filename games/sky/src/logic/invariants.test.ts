@@ -84,13 +84,20 @@ describe('a long run never breaks its promises', () => {
     }
   });
 
-  it('never deadlocks: a question is always live or being written', () => {
+  it('never deadlocks: a question is always live, or a loss is being taken in', () => {
     const game = createRun({ seed: 77, hearts: 999 });
     for (let i = 0; i < 60 * 60 * 10; i += 1) {
       game.step(FRAME);
+      // The only moment without a live question is the beat after a plane got
+      // away, and that beat always ends.
+      if (game.state.mourning > 0) {
+        expect(game.state.missed).not.toBeNull();
+        continue;
+      }
       expect(game.state.sum).not.toBeNull();
       expect(target(game)).toBeDefined();
     }
+    expect(game.state.mourning).toBe(0);
   });
 });
 

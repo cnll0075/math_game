@@ -164,7 +164,7 @@ export function drawMissed(
 export function drawFighter(
   ctx: CanvasRenderingContext2D,
   x: number,
-  options: { jammed: boolean; sum: string; urgency: number },
+  options: { jammed: boolean; sum: string; urgency: number; mourning?: boolean },
 ): void {
   const at = fighterPoint(x);
   ctx.save();
@@ -198,7 +198,9 @@ export function drawFighter(
   // The plaque warms towards red as the plane being asked about runs out of
   // sky. It says hurry without saying which one, so the maths still has to be
   // done — a marker on the plane itself would give the answer away.
-  const heat = Math.min(1, Math.max(0, options.urgency));
+  // Through the beat after a loss the plaque is fully red and holds the sum
+  // that got away, answer and all.
+  const heat = options.mourning ? 1 : Math.min(1, Math.max(0, options.urgency));
   const pulse = heat > 0 ? 0.75 + 0.25 * Math.sin(Date.now() / 90) : 1;
   ctx.fillStyle = heat > 0 ? `rgba(255, ${Math.round(255 - 86 * heat)}, ${Math.round(255 - 150 * heat)}, 0.95)` : 'rgba(255,255,255,0.92)';
   ctx.strokeStyle = heat > 0.02 ? `rgba(${Math.round(47 + 185 * heat)}, ${Math.round(111 - 27 * heat)}, ${Math.round(159 - 96 * heat)}, ${pulse})` : '#2f6f9f';
@@ -218,7 +220,7 @@ export function drawFighter(
   ctx.font = hand(700, 40);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillStyle = '#1e2a38';
+  ctx.fillStyle = options.mourning ? '#b52d17' : '#1e2a38';
   ctx.fillText(options.sum, at.x, SKY.plaqueY);
   ctx.restore();
 }

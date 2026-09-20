@@ -49,6 +49,14 @@ export interface RunState {
   jam: number;
   /** A shell asked for, waiting for the fighter to arrive under the target. */
   pendingFire: number;
+  /**
+   * The question that just got away, held while the player takes it in. A new
+   * sum used to arrive on the same frame the heart went, so the two never
+   * connected and the loss had no visible cause.
+   */
+  missed: Sum | null;
+  /** Seconds left of that beat. No new question is asked until it is over. */
+  mourning: number;
   /** Wrong shells in a row, which is what makes the gun hotter each time. */
   jamStreak: number;
   status: 'flying' | 'over';
@@ -86,6 +94,12 @@ export const JAM_ESCALATION = 0.7;
 export const JAM_CEILING = 3;
 /** How long a shell takes to cross the sky. */
 export const BULLET_SECONDS = 0.35;
+/**
+ * How long the game waits after a plane gets away before asking anything new.
+ * The beat is what ties the heart to the question it was lost on, and it gives
+ * a child a moment rather than shoving the next sum at them.
+ */
+export const MOURN_SECONDS = 1.6;
 /** Chance a spawn brings an escort pair, once the numbers get big. */
 const ESCORT_CHANCE = 0.18;
 /**
@@ -127,6 +141,8 @@ export function createRun(options: RunOptions = {}): Run {
     fighterTarget: 0.5,
     jam: 0,
     pendingFire: 0,
+    missed: null,
+    mourning: 0,
     jamStreak: 0,
     status: 'flying',
   };
@@ -242,6 +258,10 @@ export function createRun(options: RunOptions = {}): Run {
       events.push({ type: 'band', band });
     }
     if (state.jam > 0) state.jam = Math.max(0, state.jam - dt);
+    if (state.mourning > 0) {
+      state.mourning = Math.max(0, state.mourning - dt);
+      if (state.mourning === 0) state.missed = null;
+    }
 
     state.fighterX += (state.fighterTarget - state.fighterX) * (1 - Math.exp(-FIGHTER_RATE * dt));
 
@@ -271,8 +291,11 @@ export function createRun(options: RunOptions = {}): Run {
         state.streak = 0;
         state.sum = null;
         state.targetUid = null;
-        // The question travels with the event: a heart vanishing with no
-        // visible cause was the single most confusing thing about a run.
+        // The question stays on screen through the beat that follows, so the
+        // player sees what it was that they lost the heart on.
+        state.missed = missed;
+        state.mourning = MOURN_SECONDS;
+        // The question travels with the event too, for the marker on the sky.
         if (missed) events.push({ type: 'escaped', plane, sum: missed, hearts: state.hearts });
       }
     }
@@ -347,7 +370,7 @@ export function createRun(options: RunOptions = {}): Run {
       }
     }
 
-    if (!state.sum) ask(events);
+    if (!state.sum && state.mourning <= 0) ask(events);
 
     // The trap has to be there for as long as the question is, not only at the
     // moment it was written: the plane that was the near miss gets away like any

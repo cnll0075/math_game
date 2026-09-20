@@ -12,7 +12,7 @@ const harness = (isOver = () => false) => {
   canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1152, height: 768 }) as DOMRect;
   const scene = createScene();
   const game = createRun({ seed: 1 });
-  scene.update(1 / 60, { run: game.state, sumText: '', urgency: 0, heartOnOffer: false, summary: null });
+  scene.update(1 / 60, { run: game.state, sumText: '', urgency: 0, mourning: false, heartOnOffer: false, summary: null });
   const intents: InputIntent[] = [];
   const handle = createInput(canvas, scene, (intent) => intents.push(intent), isOver);
   return { canvas, intents, handle };

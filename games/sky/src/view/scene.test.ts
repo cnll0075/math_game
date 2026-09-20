@@ -11,6 +11,7 @@ const modelOf = (game: ReturnType<typeof createRun>, overrides: Partial<SceneMod
   run: game.state,
   sumText: game.state.sum ? sumText(game.state.sum) : '',
   urgency: 0,
+  mourning: false,
   heartOnOffer: false,
   summary: null,
   ...overrides,

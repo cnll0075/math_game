@@ -53,3 +53,25 @@ describe('createTicker', () => {
     expect(frames).toHaveLength(1);
   });
 });
+
+describe('a clock that misbehaves', () => {
+  it('never runs the game backwards', () => {
+    const deltas: number[] = [];
+    let frame: ((time: number) => void) | null = null;
+    const raf: RafLike = {
+      request: (callback) => {
+        frame = callback;
+        return 1;
+      },
+      cancel: () => {},
+    };
+    const ticker = createTicker((dt) => deltas.push(dt), raf);
+    ticker.start();
+    frame!(1000);
+    frame!(2000);
+    // A timestamp that goes backwards: a zero step, never a negative one.
+    frame!(500);
+    expect(deltas.every((dt) => dt >= 0)).toBe(true);
+    expect(deltas.at(-1)).toBe(0);
+  });
+});

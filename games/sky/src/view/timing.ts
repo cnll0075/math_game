@@ -18,6 +18,8 @@ export const TIMING = {
    * explanation they get for a heart going.
    */
   missedSeconds: 2.0,
+  /** How long the centre-screen explanation of a lost heart stays up. */
+  lossSeconds: 1.6,
   /** How long a heart shows its crack. */
   heartCrackSeconds: 0.9,
   /** How long a band's name is shown large before it flies into the top bar. */

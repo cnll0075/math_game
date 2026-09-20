@@ -43,6 +43,13 @@ it from the icon. That drops the browser chrome and runs it full-screen, which
 is how a child would actually meet it. The page already declares itself
 web-app-capable and locks out pinch-zoom and rubber-band scrolling.
 
+**Getting the address onto the iPad.** Open `/ipad.html` on the Mac at the
+Network address Vite printed — it shows a QR code for whatever host it was
+reached on, and the iPad camera opens it in Safari. Typing a `192.168.x.x`
+address by hand goes wrong more often than not, and a link tapped inside another
+app is refused outright ("the URL can't be shown") unless that app holds iOS
+Local Network permission.
+
 **Hold it in landscape.** The scene is laid out for a landscape iPad; portrait
 works but wastes most of the screen.
 

@@ -1,7 +1,7 @@
 <!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Sky Patrol on the iPad</title>
+<title>Open Math Park on the iPad</title>
 <style>
   body { font: 16px -apple-system, system-ui, sans-serif; background: #f5f8fb; color: #1e2a38;
          margin: 0; min-height: 100vh; display: grid; place-items: center; }
@@ -9,21 +9,35 @@
   h1 { font-size: 26px; margin: 0 0 4px; }
   p { color: #52616f; margin: 4px 0 24px; }
   #qr { display: inline-block; padding: 20px; background: #fff; border-radius: 18px;
-        box-shadow: 0 6px 28px rgba(20,40,70,.13); }
+        box-shadow: 0 6px 28px rgba(20,40,70,.13); min-height: 300px; }
   code { display: block; margin-top: 22px; font-size: 25px; font-weight: 700; letter-spacing: .4px; }
-  small { display: block; margin-top: 14px; color: #7b8794; }
+  small { display: block; margin-top: 14px; color: #7b8794; max-width: 30em; margin-inline: auto; }
+  a { color: #2f6f9f; }
 </style>
 <main>
   <h1>Point the iPad camera at this</h1>
-  <p>It opens Sky Patrol in Safari — nothing to type.</p>
+  <p>It opens Math Park in Safari — nothing to type.</p>
   <div id="qr"></div>
-  <code>192.168.1.65:5173/?game=sky</code>
-  <small>The iPad must be on the same Wi-Fi as this Mac.</small>
+  <code id="url"></code>
+  <small>
+    Serve with <code style="display:inline;font-size:inherit">npm run dev:ipad</code>, open this page
+    on the Mac at the <b>Network</b> address Vite prints, and scan. Typing a
+    <code style="display:inline;font-size:inherit">192.168.x.x</code> address into an iPad by hand goes wrong more
+    often than not, and a link tapped inside another app is refused outright unless that app holds
+    iOS Local Network permission.
+  </small>
 </main>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
-  new QRCode(document.getElementById('qr'), {
-    text: 'http://192.168.1.65:5173/?game=sky',
-    width: 300, height: 300, correctLevel: QRCode.CorrectLevel.M
-  });
+  // Whatever host this page was reached on is the one the iPad needs, so the
+  // address is never hardcoded and never goes stale.
+  const target = `${location.origin}/`;
+  document.getElementById('url').textContent = target.replace(/^https?:\/\//, '');
+  if (window.QRCode) {
+    new QRCode(document.getElementById('qr'), {
+      text: target, width: 300, height: 300, correctLevel: QRCode.CorrectLevel.M,
+    });
+  } else {
+    document.getElementById('qr').textContent = 'The QR library needs a network connection; type the address instead.';
+  }
 </script>

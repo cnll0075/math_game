@@ -1,6 +1,6 @@
 import { createTicker, DESIGN, type GameHost, type GameModule, type GameSession } from '@bundle/core';
 import { createDriver, type Driver } from './driver.js';
-import type { BandId } from './logic/bands.data.js';
+import type { BandId } from '@bundle/math';
 import type { RunEvent } from './logic/run.js';
 import { planeX, struck, type Plane } from './logic/sky-state.js';
 import { createSkySoundPack } from './audio/sky-sounds.js';
@@ -219,6 +219,6 @@ export const skyGame: SkyModule = {
 };
 
 export default skyGame;
-export { BANDS, bandAt, bandById, type Band, type BandId } from './logic/bands.data.js';
+export { BANDS, bandAt, bandById, type Band, type BandId } from '@bundle/math';
 export { PLANE_TYPES, PLANE_IDS, type PlaneTypeId } from './logic/planes.js';
 export { createSkySoundPack, SOUND_EVENTS } from './audio/sky-sounds.js';

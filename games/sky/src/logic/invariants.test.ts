@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { answerSet, BANDS } from './bands.data.js';
+import { answerSet, BANDS } from '@bundle/math';
 import { createRun, MAX_HEALTH, MISS_COST, type Run } from './run.js';
 import { hasTrap } from './spawner.js';
 import { planeX, remaining, struck, type Plane } from './sky-state.js';

@@ -9,6 +9,7 @@ export default defineConfig({
       '@bundle/core': resolvePath('./packages/core/src/index.ts'),
       '@bundle/seesaw': resolvePath('./games/seesaw/src/index.ts'),
       '@bundle/sky': resolvePath('./games/sky/src/index.ts'),
+      '@bundle/math': resolvePath('./packages/math/src/index.ts'),
     },
   },
   test: {

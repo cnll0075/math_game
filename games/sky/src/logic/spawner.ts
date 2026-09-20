@@ -1,35 +1,13 @@
 import type { Rng } from '@bundle/core';
-import { answerSet, type Band } from './bands.data.js';
-import { drawAnswer, type Sum } from './equation.js';
+import { drawAnswer, isTrapFor, trapNumber, type Band, type Sum } from '@bundle/math';
 import { drawType, PLANE_TYPES, type PlaneTypeId } from './planes.js';
 import type { Plane } from './sky-state.js';
 
-/**
- * Whether a number is worth having in the sky while this sum is live: an
- * operand, or a near miss. Either forces the answer to be computed instead of
- * scanned for as the only plausible number up there.
- */
-export const isTrapFor = (sum: Sum, value: number): boolean =>
-  value !== sum.answer &&
-  (value === sum.left || value === sum.right || Math.abs(value - sum.answer) <= 2);
+export { isTrapFor, trapNumber } from '@bundle/math';
 
+/** Whether anything currently aloft is a plausible wrong answer for this sum. */
 export const hasTrap = (sum: Sum, aloft: readonly Plane[]): boolean =>
   aloft.some((plane) => isTrapFor(sum, plane.number));
-
-/**
- * A trap to send up. An operand first — shooting the 7 when asked for 7 + 8 is
- * the characteristic error at this age, and it should be there to make — then a
- * near miss, then anything the band allows rather than nothing at all.
- */
-export const trapNumber = (rng: Rng, sum: Sum, band: Band): number => {
-  const allowed = answerSet(band);
-  const operands = [sum.left, sum.right].filter((value) => isTrapFor(sum, value) && allowed.includes(value));
-  if (operands.length > 0) return rng.pick(operands);
-  const nearby = [sum.answer - 1, sum.answer + 1, sum.answer - 2, sum.answer + 2].filter(
-    (value) => allowed.includes(value) && isTrapFor(sum, value),
-  );
-  return nearby.length > 0 ? rng.pick(nearby) : rng.pick(allowed);
-};
 
 export interface SpawnSpec {
   uid: string;

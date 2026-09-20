@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { recordingContext } from '@bundle/core';
 import { createDriver } from '../driver.js';
-import { sumText } from '../logic/equation.js';
 import { createScene, type Scene } from './scene.js';
+import { sumText } from '@bundle/math';
 
 const FRAME = 1 / 60;
 const SCREEN = { width: 1152, height: 768 };

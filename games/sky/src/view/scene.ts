@@ -1,10 +1,10 @@
 import { DESIGN, fitToScreen, visibleBounds, type Point, type Size } from '@bundle/core';
-import { sumText } from '../logic/equation.js';
 import type { RunEvent, RunState } from '../logic/run.js';
 import { drawBoom, drawBullet, drawFighter, drawMissed, drawPlane } from './plane-art.js';
 import { drawBanner, drawHud, drawLoss, drawSolved, drawSummary, type Summary } from './hud.js';
 import { planePoint } from './geometry.js';
 import { TIMING } from './timing.js';
+import { sumText } from '@bundle/math';
 
 export interface SceneModel {
   run: RunState;

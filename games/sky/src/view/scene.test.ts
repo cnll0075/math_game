@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { depthOf, recordingContext, DESIGN } from '@bundle/core';
 import { createRun } from '../logic/run.js';
 import { createScene, type SceneModel } from './scene.js';
-import { sumText } from '../logic/equation.js';
+import { sumText } from '@bundle/math';
 
 const FRAME = 1 / 60;
 const SCREEN = { width: 1152, height: 768 };

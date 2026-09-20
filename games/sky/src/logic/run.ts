@@ -1,6 +1,6 @@
 import { createRng, type Rng } from '@bundle/core';
-import { answerSet, bandAt, bandById, type Band, type BandId } from './bands.data.js';
-import { writeSum, type Sum } from './equation.js';
+import { answerSet, bandAt, bandById, type Band, type BandId } from '@bundle/math';
+import { writeSum, type Sum } from '@bundle/math';
 import type { PlaneTypeId } from './planes.js';
 import { advance, damage, escaped, planeX, struck, type Plane } from './sky-state.js';
 import { hasTrap, nextNumber, spawnPlane, trapNumber } from './spawner.js';

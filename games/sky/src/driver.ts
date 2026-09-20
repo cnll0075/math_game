@@ -1,5 +1,5 @@
-import { bandById, type BandId } from './logic/bands.data.js';
-import { sumText } from './logic/equation.js';
+import { bandById, type BandId } from '@bundle/math';
+import { sumText } from '@bundle/math';
 import { createRun, type Run, type RunEvent, type RunState } from './logic/run.js';
 import { remaining } from './logic/sky-state.js';
 import type { Summary } from './view/hud.js';

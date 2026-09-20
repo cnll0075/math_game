@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { createRng } from '@bundle/core';
-import { answerSet, BANDS } from './bands.data.js';
+import { answerSet, BANDS } from '@bundle/math';
 import { hasTrap, isTrapFor, nextNumber, spawnPlane, trapNumber } from './spawner.js';
 import { PLANE_TYPES } from './planes.js';
 import { planeX, type Plane } from './sky-state.js';
-import type { Sum } from './equation.js';
+import type { Sum } from '@bundle/math';
 
 const OVER_TEN = BANDS[1]!;
 const SEVEN_PLUS_EIGHT: Sum = { left: 7, op: '+', right: 8, answer: 15 };

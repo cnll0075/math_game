@@ -1,5 +1,6 @@
 import { seesawGame } from '@bundle/seesaw';
 import { skyGame } from '@bundle/sky';
+import { brambleGame } from '@bundle/bramble';
 import type { GameModule } from '@bundle/core';
 
 export interface GameTile {
@@ -19,9 +20,9 @@ export interface GameTile {
 export const CATALOG: readonly GameTile[] = [
   { id: 'seesaw', title: 'Seesaw Park', blurb: 'Balance the animals', colors: ['#8fce72', '#5aa9d6'], module: seesawGame },
   { id: 'sky', title: 'Sky Patrol', blurb: 'Shoot the right answer', colors: ['#6fb6e8', '#2f6f9f'], module: skyGame },
+  { id: 'bramble', title: 'Bramble Dash', blurb: 'Run the right way', colors: ['#8fce72', '#3f8f52'], module: brambleGame },
   { id: 'counting', title: 'Counting Meadow', blurb: 'Count the flowers', colors: ['#f7d05e', '#f2a65a'] },
   { id: 'shapes', title: 'Shape Workshop', blurb: 'Build with shapes', colors: ['#e4695f', '#f2a65a'] },
-  { id: 'sorting', title: 'Sorting Station', blurb: 'Big, small, biggest', colors: ['#63c07a', '#3f9f8f'] },
   { id: 'patterns', title: 'Pattern Path', blurb: 'What comes next?', colors: ['#b48ee0', '#7b6bd6'] },
   { id: 'measure', title: 'Measuring Yard', blurb: 'How long is it?', colors: ['#5aa9d6', '#3f7fbf'] },
   { id: 'coins', title: 'Market Stall', blurb: 'Make it add up', colors: ['#f2b950', '#d98b3f'] },

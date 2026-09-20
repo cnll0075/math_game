@@ -38,6 +38,12 @@ the next answer, so the player has to decide whether there is time for both.
 That is the only moment in the game where steering is a choice rather than an
 answer, and it is what stops the run from being a metronome.
 
+**A berry never costs fuel to take.** It arrives no later than halfway through
+the gap between rows, so there is always time to collect it and still reach any
+lane before the next row lands. The choice it offers is whether to bother, never
+whether to survive — a reward that could cost 10% is a trap wearing a berry's
+face.
+
 ## The row
 
 Three lanes. **Exactly one wears the answer.** Never two — two would be
@@ -166,8 +172,8 @@ above becomes a test:
 - **exactly one lane per row wears the answer** — never none, never two
 - both other lanes are plausible: an operand or within two of the answer
 - a wrong lane costs exactly 10% and a berry gives exactly 10%, never past full
-- a berry is never placed where it cannot be reached from the previous row's
-  answer lane in the time available
+- a berry always arrives with at least half the gap left, so taking it can never
+  strand the rabbit in the wrong lane
 - seeded ten-minute runs never deadlock and never produce a row without an answer
 
 And the two that guard the design:

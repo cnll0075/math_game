@@ -164,11 +164,16 @@ describe('the maths is load-bearing', () => {
    * this ever passes the game, the arithmetic has stopped mattering and the
    * design has regressed — fix the game, never the test.
    */
-  it('cannot be played blind: shooting the lowest plane loses every heart inside ninety seconds', () => {
-    for (const seed of [1, 2, 3, 5, 8]) {
+  it('cannot be played blind: guessing is dead inside the two minutes reading survives', () => {
+    // The same window the reading bot gets above, so the two tests are a direct
+    // contrast: in two minutes, reading scores a hundred and lives; guessing
+    // dies. A gold plane can hand a guesser a heart back and buy them twenty
+    // seconds, which is fine — it does not save them.
+    for (const seed of [1, 2, 3, 5, 8, 13, 21]) {
       const game = createRun({ seed });
-      playBlind(game, 90);
+      playBlind(game, 120);
       expect(game.state.status, `seed ${seed} survived without reading a number`).toBe('over');
+      expect(game.state.score, `seed ${seed} scored too well for a guesser`).toBeLessThan(60);
     }
   });
 

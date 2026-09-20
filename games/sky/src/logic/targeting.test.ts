@@ -30,6 +30,16 @@ describe('eligible', () => {
 });
 
 describe('chooseTarget', () => {
+  it('points at a gold plane far more often, or its heart is never winnable', () => {
+    const gold = { ...at('gold', 0.05), type: 'treasure' as const };
+    const aloft = [gold, at('a', 0.25), at('b', 0.45)];
+    const rng = createRng(44);
+    let picked = 0;
+    for (let i = 0; i < 600; i += 1) if (chooseTarget(rng, aloft, 5)!.uid === 'gold') picked += 1;
+    // It sits highest, so urgency alone would make it the least likely pick.
+    expect(picked).toBeGreaterThan(150);
+  });
+
   it('gives up when nothing aloft has time left', () => {
     expect(chooseTarget(createRng(1), [at('low', 0.95)], 3)).toBeNull();
     expect(chooseTarget(createRng(1), [], 3)).toBeNull();

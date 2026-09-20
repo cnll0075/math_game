@@ -10,6 +10,8 @@ const SCREEN = { width: 1152, height: 768 };
 const modelOf = (game: ReturnType<typeof createRun>, overrides: Partial<SceneModel> = {}): SceneModel => ({
   run: game.state,
   sumText: game.state.sum ? sumText(game.state.sum) : '',
+  urgency: 0,
+  heartOnOffer: false,
   summary: null,
   ...overrides,
 });
@@ -103,6 +105,25 @@ describe('the scene', () => {
     scene.render(ctx, SCREEN);
     expect(texts.join(' ')).toContain('12');
     expect(texts.join(' ').toLowerCase()).toContain('tap');
+  });
+
+  it('says what got away, and for how long', () => {
+    const game = createRun({ seed: 7 });
+    game.step(FRAME);
+    const target = game.state.aloft.find((plane) => plane.uid === game.state.targetUid)!;
+    const sum = game.state.sum!;
+    const scene = createScene();
+    scene.observe([{ type: 'escaped', plane: target, sum, hearts: 2 }]);
+    scene.update(FRAME, modelOf(game));
+    const during = recordingContext();
+    scene.render(during.ctx, SCREEN);
+    // The answer they missed, written out where the plane left.
+    expect(during.texts).toContain(`${sumText(sum)} = ${sum.answer}`);
+
+    for (let i = 0; i < 180; i += 1) scene.update(FRAME, modelOf(game));
+    const after = recordingContext();
+    scene.render(after.ctx, SCREEN);
+    expect(after.texts).not.toContain(`${sumText(sum)} = ${sum.answer}`);
   });
 
   it('draws nothing at all before it has been given a model', () => {

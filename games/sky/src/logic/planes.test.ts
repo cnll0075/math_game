@@ -11,14 +11,24 @@ describe('plane types', () => {
     expect(typesAt(30).map((type) => type.id)).toEqual(['glider', 'weaver']);
     expect(typesAt(50).map((type) => type.id)).toContain('blimp');
     expect(typesAt(75).map((type) => type.id)).toContain('scout');
+    expect(typesAt(60).map((type) => type.id)).toContain('treasure');
     expect(typesAt(110).map((type) => type.id)).toEqual(PLANE_IDS);
   });
 
-  it('describes a blimp as slow and three-hit, and a scout as fast and one-hit', () => {
+  it('describes a blimp as slow and a scout as fast', () => {
     expect(PLANE_TYPES.blimp.speed).toBeLessThan(1);
-    expect(PLANE_TYPES.blimp.hits).toBe(3);
     expect(PLANE_TYPES.scout.speed).toBeGreaterThan(1.5);
-    expect(PLANE_TYPES.scout.hits).toBe(1);
+  });
+
+  it('brings every plane down in one shell; the big one bursts instead', () => {
+    for (const id of PLANE_IDS) expect(PLANE_TYPES[id].hits).toBe(1);
+  });
+
+  it('keeps gold rare, so a heart back stays worth something', () => {
+    const others = PLANE_IDS.filter((id) => id !== 'treasure');
+    for (const id of others) {
+      expect(PLANE_TYPES.treasure.weight).toBeLessThanOrEqual(PLANE_TYPES[id].weight);
+    }
   });
 
   it('gives only the cloud-hider something to hide behind', () => {

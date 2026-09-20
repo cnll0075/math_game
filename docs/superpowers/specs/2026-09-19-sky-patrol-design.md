@@ -24,9 +24,14 @@ from the top wearing numbers.
 | A shot that hits nothing | Nothing. Firing is free |
 
 A sum, once live, stays live until its plane is destroyed or escapes: a band
-change never rewrites the question in front of the player. A blimp's damage
-persists across shots, so two hits and a pause still leave it needing only one
-more.
+change never rewrites the question in front of the player.
+
+**Nothing marks the plane being asked about.** A marker would hand over the
+answer. The urgency is carried by the fighter's plaque, which warms towards red
+as that plane runs out of sky — *hurry*, without *which*. A plane that gets away
+is ringed where it left with the missed sum written beside it, after the fact,
+so a heart is never lost without a visible cause and the feedback cannot be used
+to skip the arithmetic.
 
 Hearts are spent only on escapes. A wrong shot costs **time** — the one currency
 that matters more as the sky speeds up — so a misread number is punished without
@@ -110,7 +115,8 @@ exceed 20, so no plane can wear a number no sum could produce.
 | --- | --- | --- |
 | **Glider** | 0:00 | Straight down, steady. The default |
 | **Weaver** | ~0:30 | Falls in an S. The number is plain; lining up is the work. Delays a child who knows the answer, never punishes them |
-| **Blimp** | ~0:50 | 0.55× speed, large readable number, **three hits**. Rewards committing to an answer — you cannot dab at it and change your mind. Also a breather |
+| **Blimp** | ~0:50 | 0.55× speed, large readable number, and **bursts into two planes whose numbers add up to the one it wore**. Three hits on one answer turned out to be three identical taps; a sum coming apart in front of the player is the same commitment made interesting |
+| **Treasure** | ~1:00 | Rare and golden, wearing a heart badge: shot when the sum asks for it, it gives a heart back up to the maximum, and the badge is outlined rather than filled when there is nothing to give. Targeting is weighted towards it, because the player cannot choose what the sum asks about — an unreachable reward is no reward |
 | **Scout** | ~1:15 | 1.8× fall speed. The type that genuinely threatens a heart; the fair window still applies, so a scout you are asked about is always winnable |
 | **Cloud-hider** | ~1:50 | Ducks behind cloud, its number gone ~1.2s at a time, so the player must remember *which* plane was the 15. Never hidden at the instant a sum is chosen; it hides afterwards |
 

@@ -1,7 +1,7 @@
 import type { Rng } from '@bundle/core';
 import { answerSet, type Band } from './bands.data.js';
 import { drawAnswer, type Sum } from './equation.js';
-import { drawType } from './planes.js';
+import { drawType, PLANE_TYPES, type PlaneTypeId } from './planes.js';
 import type { Plane } from './sky-state.js';
 
 /**
@@ -46,6 +46,10 @@ export interface SpawnSpec {
    * about, so it cannot arrive already too fast to be a fair question.
    */
   minFallSeconds?: number;
+  /** Force a type, for the halves a blimp bursts into. */
+  type?: PlaneTypeId;
+  /** Where down the screen it starts; halves carry on from where it burst. */
+  progress?: number;
 }
 
 /** How many lanes to try before settling for the roomiest of them. */
@@ -77,13 +81,13 @@ const roomyLane = (rng: Rng, halfWidth: number, avoid: readonly number[]): numbe
 
 export function spawnPlane(rng: Rng, spec: SpawnSpec): Plane {
   const maxSpeed = spec.minFallSeconds ? spec.fallSeconds / spec.minFallSeconds : Infinity;
-  const type = drawType(rng, spec.elapsed, maxSpeed);
+  const type = spec.type ? PLANE_TYPES[spec.type] : drawType(rng, spec.elapsed, maxSpeed);
   const lane = spec.lane ?? roomyLane(rng, type.halfWidth, spec.avoid ?? []);
   return {
     uid: spec.uid,
     number: spec.number,
     type: type.id,
-    progress: 0,
+    progress: spec.progress ?? 0,
     fallSeconds: spec.fallSeconds / type.speed,
     lane: Math.min(1 - type.halfWidth, Math.max(type.halfWidth, lane)),
     phase: rng.next() * Math.PI * 2,

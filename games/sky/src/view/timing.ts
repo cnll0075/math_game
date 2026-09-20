@@ -12,6 +12,12 @@ export const TIMING = {
    * longer than the explosion it follows.
    */
   solvedSeconds: 1.1,
+  /**
+   * How long the marker over a plane that got away stays up. Longer than the
+   * solved sum: a child needs time to read what they missed, and it is the only
+   * explanation they get for a heart going.
+   */
+  missedSeconds: 2.0,
   /** How long a heart shows its crack. */
   heartCrackSeconds: 0.9,
   /** How long a band's name is shown large before it flies into the top bar. */

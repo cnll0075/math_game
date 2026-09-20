@@ -1,7 +1,7 @@
 import { DESIGN, fitToScreen, visibleBounds, type Point, type Size } from '@bundle/core';
 import { sumText } from '../logic/equation.js';
 import type { RunEvent, RunState } from '../logic/run.js';
-import { drawBoom, drawBullet, drawFighter, drawPlane } from './plane-art.js';
+import { drawBoom, drawBullet, drawFighter, drawMissed, drawPlane } from './plane-art.js';
 import { drawBanner, drawHud, drawSolved, drawSummary, type Summary } from './hud.js';
 import { planePoint } from './geometry.js';
 import { TIMING } from './timing.js';
@@ -10,6 +10,10 @@ export interface SceneModel {
   run: RunState;
   /** The question, already written out, so the scene never does arithmetic. */
   sumText: string;
+  /** How close the plane being asked about is to getting away, 0 to 1. */
+  urgency: number;
+  /** Whether a gold plane has a heart to give back right now. */
+  heartOnOffer: boolean;
   /** Set once the run is over. */
   summary: Summary | null;
 }
@@ -20,6 +24,13 @@ interface Boom {
 }
 
 interface Solved {
+  at: Point;
+  text: string;
+  life: number;
+}
+
+/** One that got away, and the sum it was carrying. */
+interface Missed {
   at: Point;
   text: string;
   life: number;
@@ -45,6 +56,7 @@ const CLOUDS: readonly { x: number; y: number; r: number; speed: number }[] = [
 export function createScene(): Scene {
   const booms: Boom[] = [];
   const solved: Solved[] = [];
+  const missed: Missed[] = [];
   let banner: { title: string; life: number } | null = null;
   let crack = 0;
   let drift = 0;
@@ -74,6 +86,12 @@ export function createScene(): Scene {
             break;
           case 'escaped':
             crack = TIMING.heartCrackSeconds;
+            // Say what was lost and why, where it happened.
+            missed.push({
+              at: planePoint(event.plane),
+              text: `${sumText(event.sum)} = ${event.sum.answer}`,
+              life: 0,
+            });
             break;
           case 'band':
             banner = { title: event.band.title, life: 0 };
@@ -92,6 +110,8 @@ export function createScene(): Scene {
       while (booms.length > 0 && booms[0]!.life > TIMING.boomSeconds) booms.shift();
       for (const entry of solved) entry.life += dt;
       while (solved.length > 0 && solved[0]!.life > TIMING.solvedSeconds) solved.shift();
+      for (const entry of missed) entry.life += dt;
+      while (missed.length > 0 && missed[0]!.life > TIMING.missedSeconds) missed.shift();
       if (crack > 0) crack = Math.max(0, crack - dt);
       if (banner) {
         banner.life += dt;
@@ -127,12 +147,17 @@ export function createScene(): Scene {
         ctx.fill();
       }
 
-      for (const plane of current.run.aloft) drawPlane(ctx, plane);
+      for (const plane of current.run.aloft) drawPlane(ctx, plane, current.heartOnOffer);
       for (const bullet of current.run.bullets) drawBullet(ctx, bullet.x, bullet.y);
       for (const boom of booms) drawBoom(ctx, boom.at, boom.life / TIMING.boomSeconds);
       for (const entry of solved) drawSolved(ctx, entry.at, entry.text, entry.life / TIMING.solvedSeconds);
+      for (const entry of missed) drawMissed(ctx, entry.at, entry.text, entry.life / TIMING.missedSeconds);
 
-      drawFighter(ctx, current.run.fighterX, { jammed: current.run.jam > 0, sum: current.sumText });
+      drawFighter(ctx, current.run.fighterX, {
+        jammed: current.run.jam > 0,
+        sum: current.sumText,
+        urgency: current.urgency,
+      });
 
       drawHud(ctx, {
         hearts: current.run.hearts,

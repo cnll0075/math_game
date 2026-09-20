@@ -167,9 +167,7 @@ describe('shooting', () => {
     expect(game.state.bullets.length).toBe(before);
   });
 
-  it('takes three shells to down a blimp, and the sum survives the first two', () => {
-    // Hearts to spare: this waits for a blimp to be asked about without firing,
-    // which would otherwise end the run on escapes long before one arrived.
+  it('bursts a big one into two planes that add up to it', () => {
     const game = createRun({ seed: 7, startBand: 'take-aways', hearts: 999 });
     let blimp: Plane | undefined;
     for (let i = 0; i < 4000 && !blimp; i += 1) {
@@ -179,11 +177,81 @@ describe('shooting', () => {
     }
     expect(blimp, 'no blimp was ever asked about').toBeDefined();
     const events = shootThrough(game, blimp!);
-    // Two dents and then down: the blimp is the plane you cannot change your
-    // mind about halfway through.
-    expect(events.filter((event) => event.type === 'damaged')).toHaveLength(2);
-    expect(events.some((event) => event.type === 'destroyed')).toBe(true);
+    const split = events.find((event) => event.type === 'split');
+    expect(split, 'the big one did not come apart').toBeDefined();
+    if (split?.type !== 'split') throw new Error('unreachable');
+
+    const [left, right] = split.into;
+    // The whole point: the halves are the number it was wearing, taken apart.
+    expect(left.number + right.number).toBe(blimp!.number);
+    // And both are still flying, from where it burst.
+    for (const half of split.into) {
+      expect(game.state.aloft.some((plane) => plane.uid === half.uid)).toBe(true);
+      expect(half.progress).toBeCloseTo(blimp!.progress, 1);
+    }
   });
+
+  it('gives a heart back for a gold one, and never more than you started with', () => {
+    const game = createRun({ seed: 31 });
+    game.step(FRAME);
+
+    /** Puts a gold plane in the sky wearing the answer, and asks about it. */
+    const sendGold = (): Plane => {
+      const answer = game.state.sum!.answer;
+      const gold: Plane = {
+        uid: `gold-${game.state.aloft.length}`,
+        number: answer,
+        type: 'treasure',
+        progress: 0.1,
+        fallSeconds: 12,
+        lane: 0.5,
+        phase: 0,
+        age: 0,
+        hits: 0,
+        hidden: false,
+        hideTimer: 0,
+      };
+      game.state.aloft.push(gold);
+      game.state.targetUid = gold.uid;
+      return gold;
+    };
+
+    // A heart down, so there is something to give back.
+    game.state.hearts = 1;
+    const healedEvents = shootThrough(game, sendGold());
+    expect(healedEvents.some((event) => event.type === 'healed')).toBe(true);
+    expect(game.state.hearts).toBe(2);
+
+    // At full hearts it is still worth shooting, but it cannot give a fourth.
+    game.state.hearts = game.state.maxHearts;
+    const fullEvents = shootThrough(game, sendGold());
+    expect(fullEvents.some((event) => event.type === 'destroyed')).toBe(true);
+    expect(fullEvents.some((event) => event.type === 'healed')).toBe(false);
+    expect(game.state.hearts).toBe(game.state.maxHearts);
+  });
+
+  it('jams the gun on the wrong plane and costs no heart', () => {
+    const game = createRun({ seed: 5 });
+    run(game, 2);
+    const wrong = game.state.aloft.find((plane) => plane.number !== game.state.sum!.answer)!;
+    const events = shoot(game, wrong);
+    expect(events.some((event) => event.type === 'jammed')).toBe(true);
+    expect(game.state.hearts).toBe(HEARTS);
+    expect(game.state.score).toBe(0);
+    expect(game.state.jam).toBeCloseTo(JAM_SECONDS, 1);
+    expect(game.state.aloft.some((plane) => plane.uid === wrong.uid)).toBe(true);
+  });
+
+  it('will not fire while the gun is overheating', () => {
+    const game = createRun({ seed: 6 });
+    run(game, 2);
+    const wrong = game.state.aloft.find((plane) => plane.number !== game.state.sum!.answer)!;
+    shoot(game, wrong);
+    const before = game.state.bullets.length;
+    game.fire();
+    expect(game.state.bullets.length).toBe(before);
+  });
+
 });
 
 describe('escapes', () => {

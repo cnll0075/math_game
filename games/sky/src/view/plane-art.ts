@@ -6,10 +6,13 @@ import { bulletPoint, fighterPoint, planePoint, planeSize, SKY } from './geometr
 /** One palette per type, so a scout is known by its colour before its number. */
 const PALETTE: Record<PlaneTypeId, { body: string; wing: string; trim: string }> = {
   glider: { body: '#e8eef5', wing: '#b9c8d8', trim: '#41628a' },
-  weaver: { body: '#f6dc8a', wing: '#d9b551', trim: '#8a6a1f' },
+  // Striped orange, not gold: it dodges, it is not treasure. Gold promising a
+  // reward the game never paid was the thing that misled a player.
+  weaver: { body: '#f7a35c', wing: '#d97a2b', trim: '#7d3f10' },
   blimp: { body: '#cfd8e0', wing: '#aab7c4', trim: '#4a5a6a' },
   scout: { body: '#f2a0a0', wing: '#d06a6a', trim: '#7d2f2f' },
   hider: { body: '#cbbce8', wing: '#a793d1', trim: '#54407f' },
+  treasure: { body: '#ffd45e', wing: '#e0a81f', trim: '#7d5a06' },
 };
 
 /** A number on a plane has to read at a glance from across a room. */
@@ -25,7 +28,38 @@ const numberOn = (ctx: CanvasRenderingContext2D, text: string, at: Point, size: 
   ctx.fillText(text, at.x, at.y);
 };
 
-export function drawPlane(ctx: CanvasRenderingContext2D, plane: Plane): void {
+/** The badge that tells a child, without a word, what a gold plane is worth. */
+const heartBadge = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number, earned: boolean): void => {
+  ctx.save();
+  ctx.translate(x, y);
+  // A soft halo, so the badge reads against both the sky and the plane.
+  ctx.beginPath();
+  ctx.arc(0, size * 0.5, size * 0.95, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(0, size * 0.3);
+  ctx.bezierCurveTo(size * 0.6, -size * 0.35, size * 0.5, size * 0.55, 0, size);
+  ctx.bezierCurveTo(-size * 0.5, size * 0.55, -size * 0.6, -size * 0.35, 0, size * 0.3);
+  ctx.closePath();
+  if (earned) {
+    ctx.fillStyle = '#e8543f';
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+    ctx.stroke();
+  } else {
+    // An outline, exactly as a spent heart is drawn on the top bar, so the two
+    // say the same thing: this one is not yours to win right now.
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(70,52,30,0.55)';
+    ctx.stroke();
+  }
+  ctx.restore();
+};
+
+export function drawPlane(ctx: CanvasRenderingContext2D, plane: Plane, heartOnOffer = true): void {
   const type = PLANE_TYPES[plane.type];
   const { width, height } = planeSize(type);
   const at = planePoint(plane);
@@ -72,6 +106,15 @@ export function drawPlane(ctx: CanvasRenderingContext2D, plane: Plane): void {
     ctx.fill();
   }
 
+  if (plane.type === 'treasure') {
+    // A glint, so gold reads as gold even against a bright sky.
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    ctx.beginPath();
+    ctx.arc(-width * 0.3, -height * 0.34, height * 0.11, 0, Math.PI * 2);
+    ctx.fill();
+    heartBadge(ctx, 0, -height * 1.5, height * 0.52, heartOnOffer);
+  }
+
   // Cloud-hiders duck behind a puff; the plane stays visible, the number does not.
   if (plane.hidden) {
     ctx.fillStyle = 'rgba(248,250,252,0.94)';
@@ -87,10 +130,41 @@ export function drawPlane(ctx: CanvasRenderingContext2D, plane: Plane): void {
   ctx.restore();
 }
 
+/**
+ * A plane that got away, ringed in red where it left, with the sum it was
+ * carrying. Shown only after the fact: a marker on the target while it was
+ * still flying would hand over the answer and there would be no arithmetic
+ * left in the game.
+ */
+export function drawMissed(
+  ctx: CanvasRenderingContext2D,
+  at: Point,
+  text: string,
+  progress: number,
+): void {
+  ctx.save();
+  ctx.globalAlpha = Math.max(0, 1 - progress);
+  ctx.strokeStyle = '#e8543f';
+  ctx.lineWidth = 6;
+  ctx.beginPath();
+  ctx.arc(at.x, at.y, 44 + progress * 26, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.font = hand(700, 40);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineWidth = 7;
+  ctx.strokeStyle = 'rgba(255,255,255,0.92)';
+  ctx.strokeText(text, at.x, at.y - 76);
+  ctx.fillStyle = '#c8371f';
+  ctx.fillText(text, at.x, at.y - 76);
+  ctx.restore();
+}
+
 export function drawFighter(
   ctx: CanvasRenderingContext2D,
   x: number,
-  options: { jammed: boolean; sum: string },
+  options: { jammed: boolean; sum: string; urgency: number },
 ): void {
   const at = fighterPoint(x);
   ctx.save();
@@ -121,9 +195,14 @@ export function drawFighter(
   // a minus is the whole of the take-aways band.
   const width = Math.max(150, options.sum.length * 26);
   ctx.save();
-  ctx.fillStyle = 'rgba(255,255,255,0.92)';
-  ctx.strokeStyle = '#2f6f9f';
-  ctx.lineWidth = 4;
+  // The plaque warms towards red as the plane being asked about runs out of
+  // sky. It says hurry without saying which one, so the maths still has to be
+  // done — a marker on the plane itself would give the answer away.
+  const heat = Math.min(1, Math.max(0, options.urgency));
+  const pulse = heat > 0 ? 0.75 + 0.25 * Math.sin(Date.now() / 90) : 1;
+  ctx.fillStyle = heat > 0 ? `rgba(255, ${Math.round(255 - 86 * heat)}, ${Math.round(255 - 150 * heat)}, 0.95)` : 'rgba(255,255,255,0.92)';
+  ctx.strokeStyle = heat > 0.02 ? `rgba(${Math.round(47 + 185 * heat)}, ${Math.round(111 - 27 * heat)}, ${Math.round(159 - 96 * heat)}, ${pulse})` : '#2f6f9f';
+  ctx.lineWidth = 4 + 3 * heat;
   const left = at.x - width / 2;
   const top = SKY.plaqueY - SKY.plaqueHeight / 2;
   const radius = 16;

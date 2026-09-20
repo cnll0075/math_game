@@ -77,6 +77,12 @@ export const skyGame: SkyModule = {
           case 'damaged':
             sounds.play('damage');
             break;
+          case 'split':
+            sounds.play('split');
+            break;
+          case 'healed':
+            sounds.play('healed', { delay: 0.18 });
+            break;
           case 'jammed':
             sounds.play('jam');
             break;

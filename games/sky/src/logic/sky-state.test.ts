@@ -62,14 +62,10 @@ describe('a plane falling', () => {
     expect(struck(p, 0.5, 0.5 + PLANE_TYPES.glider.halfHeight + 0.01)).toBe(false);
   });
 
-  it('takes a glider down in one shot', () => {
+  it('takes any plane down in one shot', () => {
     expect(damage(plane('glider'))).toBe('destroyed');
-  });
-
-  it('takes a blimp down in three, and no fewer', () => {
-    const p = plane('blimp');
-    expect(damage(p)).toBe('damaged');
-    expect(damage(p)).toBe('damaged');
-    expect(damage(p)).toBe('destroyed');
+    // The big one goes down in one too; what makes it different is that it
+    // bursts into two, which the run handles rather than the plane.
+    expect(damage(plane('blimp'))).toBe('destroyed');
   });
 });

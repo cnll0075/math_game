@@ -1,6 +1,7 @@
 import { createRng, type Rng } from '@bundle/core';
-import { bandAt, bandById, type Band, type BandId } from './bands.data.js';
+import { answerSet, bandAt, bandById, type Band, type BandId } from './bands.data.js';
 import { writeSum, type Sum } from './equation.js';
+import type { PlaneTypeId } from './planes.js';
 import { advance, damage, escaped, planeX, struck, type Plane } from './sky-state.js';
 import { hasTrap, nextNumber, spawnPlane, trapNumber } from './spawner.js';
 import { chooseTarget } from './targeting.js';
@@ -17,14 +18,19 @@ export type RunEvent =
   | { type: 'asked'; sum: Sum; target: Plane }
   | { type: 'damaged'; plane: Plane }
   | { type: 'destroyed'; plane: Plane; sum: Sum }
+  | { type: 'split'; plane: Plane; into: readonly [Plane, Plane] }
+  | { type: 'healed'; plane: Plane; hearts: number }
   | { type: 'jammed'; plane: Plane }
-  | { type: 'escaped'; plane: Plane; hearts: number }
+  /** The sum travels with it, so the player can be shown what they missed. */
+  | { type: 'escaped'; plane: Plane; sum: Sum; hearts: number }
   | { type: 'band'; band: Band }
   | { type: 'ended'; score: number };
 
 export interface RunState {
   elapsed: number;
   hearts: number;
+  /** What a treasure plane can restore a heart up to. */
+  maxHearts: number;
   score: number;
   streak: number;
   bestStreak: number;
@@ -103,9 +109,11 @@ export function createRun(options: RunOptions = {}): Run {
   let uidCounter = 0;
   const nextUid = (): string => `plane-${(uidCounter += 1)}`;
 
+  const hearts = options.hearts ?? HEARTS;
   const state: RunState = {
     elapsed: opened,
-    hearts: options.hearts ?? HEARTS,
+    hearts,
+    maxHearts: hearts,
     score: 0,
     streak: 0,
     bestStreak: 0,
@@ -140,6 +148,56 @@ export function createRun(options: RunOptions = {}): Run {
     state.aloft.push(plane);
     events.push({ type: 'spawned', plane });
     return plane;
+  };
+
+  const spawnAt = (
+    events: RunEvent[],
+    number: number,
+    extra: { lane?: number; progress?: number; type?: PlaneTypeId },
+  ): Plane => {
+    const plane = spawnPlane(rng, {
+      uid: nextUid(),
+      number,
+      elapsed: state.elapsed,
+      fallSeconds: state.tempo.fallSeconds,
+      ...extra,
+    });
+    state.aloft.push(plane);
+    events.push({ type: 'spawned', plane });
+    return plane;
+  };
+
+  /**
+   * The two numbers a big one comes apart into. Both have to be numbers this
+   * band allows in the sky, or the halves would be unshootable.
+   */
+  const halvesOf = (total: number): [number, number] | null => {
+    const allowed = answerSet(state.band);
+    const pairs: [number, number][] = [];
+    for (const left of allowed) {
+      const right = total - left;
+      if (right >= left && allowed.includes(right)) pairs.push([left, right]);
+    }
+    return pairs.length > 0 ? rng.pick(pairs) : null;
+  };
+
+  /**
+   * A big one bursts into two planes whose numbers add up to the one it wore, so
+   * shooting it is a sum coming apart in front of the player rather than the
+   * same answer fired three times.
+   */
+  const burst = (events: RunEvent[], blimp: Plane): void => {
+    const halves = halvesOf(blimp.number);
+    if (!halves) return;
+    const made = halves.map((number, index) =>
+      spawnAt(events, number, {
+        // They drift apart from where it burst, and carry on falling.
+        lane: Math.min(0.94, Math.max(0.06, blimp.lane + (index === 0 ? -0.09 : 0.09))),
+        progress: blimp.progress,
+        type: 'glider',
+      }),
+    ) as [Plane, Plane];
+    events.push({ type: 'split', plane: blimp, into: made });
   };
 
   /**
@@ -208,11 +266,14 @@ export function createRun(options: RunOptions = {}): Run {
       state.aloft = state.aloft.filter((plane) => !escaped(plane));
       for (const plane of gone) {
         if (plane.uid !== state.targetUid) continue;
+        const missed = state.sum;
         state.hearts -= 1;
         state.streak = 0;
         state.sum = null;
         state.targetUid = null;
-        events.push({ type: 'escaped', plane, hearts: state.hearts });
+        // The question travels with the event: a heart vanishing with no
+        // visible cause was the single most confusing thing about a run.
+        if (missed) events.push({ type: 'escaped', plane, sum: missed, hearts: state.hearts });
       }
     }
 
@@ -263,6 +324,11 @@ export function createRun(options: RunOptions = {}): Run {
       state.streak += 1;
       state.bestStreak = Math.max(state.bestStreak, state.streak);
       events.push({ type: 'destroyed', plane: hit, sum: state.sum });
+      if (hit.type === 'blimp') burst(events, hit);
+      if (hit.type === 'treasure' && state.hearts < state.maxHearts) {
+        state.hearts += 1;
+        events.push({ type: 'healed', plane: hit, hearts: state.hearts });
+      }
       state.sum = null;
       state.targetUid = null;
     }

@@ -1,6 +1,7 @@
 import { bandById, type BandId } from './logic/bands.data.js';
 import { sumText } from './logic/equation.js';
 import { createRun, type Run, type RunEvent, type RunState } from './logic/run.js';
+import { remaining } from './logic/sky-state.js';
 import type { Summary } from './view/hud.js';
 import type { SceneModel } from './view/scene.js';
 
@@ -44,6 +45,18 @@ export function createDriver(options: DriverOptions): Driver {
   /** Where the run's clock stood when it opened, so "time flown" is honest. */
   let opened = run.state.elapsed;
 
+  /**
+   * How close the plane being asked about is to getting away, 0 to 1. The
+   * fighter's plaque warms with it, which is a way of saying hurry without
+   * saying which plane — naming the plane would hand over the answer.
+   */
+  const urgencyNow = (): number => {
+    const target = run.state.aloft.find((plane) => plane.uid === run.state.targetUid);
+    if (!target) return 0;
+    const warnFrom = Math.min(3, run.state.tempo.thinkSeconds);
+    return Math.min(1, Math.max(0, 1 - remaining(target) / warnFrom));
+  };
+
   return {
     get state() {
       return run.state;
@@ -80,6 +93,8 @@ export function createDriver(options: DriverOptions): Driver {
     model: () => ({
       run: run.state,
       sumText: run.state.sum ? sumText(run.state.sum) : '',
+      urgency: urgencyNow(),
+      heartOnOffer: run.state.hearts < run.state.maxHearts,
       summary,
     }),
   };

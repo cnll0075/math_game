@@ -16,7 +16,7 @@ describe('the sky sound pack', () => {
   });
 
   it('names the moments the design cares about', () => {
-    for (const event of ['fire', 'destroy', 'damage', 'jam', 'escape', 'band', 'over']) {
+    for (const event of ['fire', 'destroy', 'damage', 'jam', 'escape', 'band', 'over', 'split', 'healed']) {
       expect(SOUND_EVENTS).toContain(event);
     }
   });

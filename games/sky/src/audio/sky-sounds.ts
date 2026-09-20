@@ -12,6 +12,8 @@ export const SOUND_EVENTS: readonly string[] = [
   'jam',
   'escape',
   'heart',
+  'split',
+  'healed',
   'band',
   'over',
   'best',
@@ -57,6 +59,20 @@ const heart: Voice = (bus, delay) => {
   noiseBurst(bus, { duration: 0.14, gain: 0.05, filterHz: 260, delay: delay + 0.04 });
 };
 
+/** A big one coming apart: a soft burst and two notes falling away from one. */
+const split: Voice = (bus, delay) => {
+  noiseBurst(bus, { duration: 0.3, gain: 0.11, filterHz: 1200, sweepTo: 240, delay });
+  tone(bus, { freq: 523.25, duration: 0.24, type: 'triangle', gain: 0.13, sweepTo: 392, delay: delay + 0.05 });
+  tone(bus, { freq: 523.25, duration: 0.24, type: 'triangle', gain: 0.13, sweepTo: 659.25, delay: delay + 0.05 });
+};
+
+/** A heart given back: warm, rising, and unmistakably good news. */
+const healed: Voice = (bus, delay) => {
+  [392, 523.25, 659.25, 783.99].forEach((freq, index) => {
+    tone(bus, { freq, duration: 0.3, type: 'sine', gain: 0.16, delay: delay + index * 0.07 });
+  });
+};
+
 /** A new band: three notes climbing, attention without alarm. */
 const band: Voice = (bus, delay) => {
   [523.25, 659.25, 830.61].forEach((freq, index) => {
@@ -78,7 +94,7 @@ const best: Voice = (bus, delay) => {
   });
 };
 
-const VOICES: Record<string, Voice> = { fire, damage, destroy, jam, escape, heart, band, over, best };
+const VOICES: Record<string, Voice> = { fire, damage, destroy, jam, escape, heart, split, healed, band, over, best };
 
 export function createSkySoundPack(bus: AudioBus): SoundPack {
   return {

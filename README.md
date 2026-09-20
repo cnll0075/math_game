@@ -364,6 +364,14 @@ completely. One slip is cheap; a habit is not.
 Shells stop at the first plane in their path, so something flying between you
 and the right answer really does block the shot. Wait, or move.
 
+**Nothing marks the plane you are after** — marking it would hand over the
+answer and leave no arithmetic in the game. So the urgency is carried by the
+plaque instead: it warms towards red as the plane being asked about runs out of
+sky. That says *hurry* without saying *which*. And when one does get away it is
+ringed in red where it left, with the sum you missed written out beside it —
+after the fact, so it cannot be used to skip the thinking. A heart should never
+vanish without the player seeing why.
+
 ### The three bands, by the clock
 
 | From | Band | Sums | Numbers in the sky |
@@ -385,7 +393,8 @@ Each type is a different *reason* to be hard, so the ramp is never merely
 | --- | --- | --- |
 | Glider | 0:00 | Nothing. The plane the others are measured against |
 | Weaver | 0:30 | Falls in an S — the number is plain, lining up is the work |
-| Blimp | 0:50 | Slow and big, but takes three hits: you cannot change your mind halfway |
+| Blimp | 0:50 | Slow and big, and **bursts into two planes whose numbers add up to the one it wore**. Shooting the 15 leaves a 9 and a 6 in the sky |
+| Treasure | 1:00 | Rare, golden, and wearing a heart. Shoot it when the sum asks for it and you get a heart back, up to three. The badge is outlined rather than filled when you are already full, so it never promises twice |
 | Scout | 1:15 | Falls nearly twice as fast. The one that threatens a heart |
 | Cloud-hider | 1:50 | Ducks behind cloud, so you must remember *which* plane was the 15 |
 

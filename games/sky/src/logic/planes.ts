@@ -1,6 +1,6 @@
 import type { Rng } from '@bundle/core';
 
-export type PlaneTypeId = 'glider' | 'weaver' | 'blimp' | 'scout' | 'hider';
+export type PlaneTypeId = 'glider' | 'weaver' | 'blimp' | 'scout' | 'hider' | 'treasure';
 
 /**
  * A kind of plane. Each one is a different *reason* to be hard — thumbs, time,
@@ -39,18 +39,23 @@ export const PLANE_TYPES: Record<PlaneTypeId, PlaneType> = {
   // Falls in an S. The number is plain; lining up is the work — so it delays a
   // child who knows the answer and never punishes them for knowing it.
   weaver: { id: 'weaver', label: 'Weaver', speed: 1, hits: 1, from: 30, weight: 3, halfWidth: 0.05, halfHeight: 0.042, sway: 0.12, swayHz: 0.35, hideSeconds: 0, showSeconds: 0 },
-  // Slow, big, and three hits: it rewards committing to an answer, because you
-  // cannot dab at it and change your mind. Also a breather between scouts.
-  blimp: { id: 'blimp', label: 'Blimp', speed: 0.55, hits: 3, from: 50, weight: 2, halfWidth: 0.085, halfHeight: 0.06, sway: 0.02, swayHz: 0.15, hideSeconds: 0, showSeconds: 0 },
+  // Slow, big, and it bursts into two planes whose numbers add up to the one it
+  // was wearing. Three hits on the same answer was three identical taps; this
+  // way the big one is a sum coming apart in front of you.
+  blimp: { id: 'blimp', label: 'Blimp', speed: 0.55, hits: 1, from: 50, weight: 2, halfWidth: 0.085, halfHeight: 0.06, sway: 0.02, swayHz: 0.15, hideSeconds: 0, showSeconds: 0 },
   // The type that genuinely threatens a heart. The fair window still applies, so
   // a scout you are asked about is always winnable.
   scout: { id: 'scout', label: 'Scout', speed: 1.8, hits: 1, from: 75, weight: 2, halfWidth: 0.045, halfHeight: 0.035, sway: 0, swayHz: 0, hideSeconds: 0, showSeconds: 0 },
   // Ducks behind cloud, so the player must remember which plane was the 15.
   hider: { id: 'hider', label: 'Cloud-hider', speed: 0.9, hits: 1, from: 110, weight: 2, halfWidth: 0.055, halfHeight: 0.045, sway: 0.05, swayHz: 0.2, hideSeconds: 1.2, showSeconds: 1.6 },
+  // Rare, golden, and wearing a heart: shoot it when the sum asks for it and you
+  // get one back. Gold used to be the weaver's paint job, which promised a
+  // reward the game never paid.
+  treasure: { id: 'treasure', label: 'Treasure', speed: 0.8, hits: 1, from: 60, weight: 1, halfWidth: 0.06, halfHeight: 0.05, sway: 0.03, swayHz: 0.18, hideSeconds: 0, showSeconds: 0 },
 };
 
 /** Arrival order, which is also the order the catalog is read in. */
-export const PLANE_IDS: readonly PlaneTypeId[] = ['glider', 'weaver', 'blimp', 'scout', 'hider'];
+export const PLANE_IDS: readonly PlaneTypeId[] = ['glider', 'weaver', 'blimp', 'scout', 'hider', 'treasure'];
 
 export const typesAt = (elapsed: number): readonly PlaneType[] =>
   PLANE_IDS.map((id) => PLANE_TYPES[id]).filter((type) => elapsed >= type.from);

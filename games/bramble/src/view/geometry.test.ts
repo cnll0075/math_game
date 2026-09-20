@@ -5,7 +5,10 @@ import { laneWidth, obstacleSize, PATH, pathPoint, pathXTo } from './geometry.js
 
 describe('the path', () => {
   it('leaves the top bar clear, so a row never starts under the fuel bar', () => {
-    expect(PATH.horizonY).toBeGreaterThan(PATH.hudY + 40);
+    // The whole obstacle, not just the line it sits on: a number half under the
+    // fuel bar is unreadable at exactly the moment it most wants reading.
+    const topOfObstacle = PATH.horizonY - obstacleSize().height / 2;
+    expect(topOfObstacle).toBeGreaterThan(PATH.hudY + 16);
   });
 
   it('gives the rabbit room below the last row', () => {

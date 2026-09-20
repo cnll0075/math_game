@@ -147,7 +147,8 @@ export function drawRabbit(
   // The sum rides on a sign above the rabbit, clear of its body — the lesson
   // from Sky Patrol, where the fighter's own nose covered the operator.
   const signWidth = Math.max(160, options.sum.length * 28);
-  const signY = at.y - h * 0.95;
+  // Clear of the ears, which reach about 0.78 of its height above it.
+  const signY = at.y - h * 1.18;
   ctx.save();
   ctx.fillStyle = 'rgba(255,255,255,0.94)';
   ctx.strokeStyle = options.stumbling ? '#e8543f' : '#3f8f52';

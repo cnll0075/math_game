@@ -7,6 +7,8 @@ arithmetic is the mechanic rather than the subject:
   addition you can see.
 - **Sky Patrol** — the only plane you may shoot is the one wearing the answer to
   the sum on your fighter. One endless run on a tank of fuel.
+- **Bramble Dash** — a rabbit runs wearing a sum; three lanes come at it and
+  exactly one wears the answer. Burst through that one.
 
 ## Running it
 
@@ -22,7 +24,8 @@ It runs full-screen in iPad Safari as-is, and is structured to be wrapped in
 Capacitor/WKWebView for the App Store.
 
 Development shortcuts: `?game=seesaw&level=level-4` opens a level directly, and
-`?game=sky&level=take-aways` opens Sky Patrol straight into subtraction.
+`?game=sky&level=take-aways` or `?game=bramble&level=take-aways` opens either of
+the other two straight into subtraction.
 
 ## Testing on an iPad
 
@@ -78,6 +81,8 @@ games/seesaw/    the first game
   src/view/      canvas presentation — reads state, never writes it
   src/audio/     the seesaw's sound pack
 games/sky/       the second game, laid out the same way
+games/bramble/   the third, likewise
+packages/math/   the curriculum both number games share: bands, sums, traps
 docs/superpowers/specs/   design spec
 docs/superpowers/plans/   implementation plan
 ```
@@ -450,12 +455,79 @@ trap, the spawner sends one up, and sends another when the last one gets away.
 If that second test ever passes the game, the arithmetic has stopped mattering.
 Fix the game, never the test.
 
+## Bramble Dash
+
+A rabbit runs forward on its own, wearing a sum. Three lanes of obstacles come
+at it, each wearing a number, and exactly one wears the answer. Steer into that
+one and it bursts in a shower of leaves.
+
+Where Sky Patrol gives a child time to *work a sum out*, this one gives them
+about three seconds and asks them to *know it*. Same three bands, same facts —
+one game teaches them, the other drills them.
+
+**Drag to steer.** A finger anywhere on the glass and the rabbit runs to it.
+There is no jump and no fire button: the lane is the answer, so a second axis of
+input would make this a dexterity game with sums attached. Arrow keys work on a
+Mac.
+
+**One tank of fuel.** A wrong lane costs **10%** — ten of them and the run is
+over — and a berry gives **10%** back. The bar's notches are one berry each, so
+it prices both a mistake and its remedy.
+
+**Every lane is filled.** There is never a safe lane and never a gap to thread,
+so every row is a forced choice and standing still is a choice like any other.
+That is the difference between a maths game and a dodging game.
+
+### The row
+
+Exactly one lane wears the answer — never two, which would be ambiguous, and
+never none. The other two are drawn the same way Sky Patrol picks its decoys and
+for the same reason: an operand of the sum first (a `6` or a `9` when the rabbit
+wears `6 + 9`), then a near miss. Two obviously-wrong lanes would let a child
+pick by elimination without adding anything.
+
+### Berries
+
+A berry sits alone in a lane between rows and is worth 10%. It is the only
+steering choice in the game that is not an answer, and it is free: a berry lands
+no later than halfway through a gap, so there is always time to take it and
+still reach any lane before the next row. A reward that could cost 10% is a trap
+wearing a berry's face — and a test plays a greedy run on four seeds to prove it
+never happens.
+
+### Why the path runs straight down
+
+Not away to a horizon. In a perspective runner an obstacle's number is smallest
+exactly when the player most needs to read it and biggest when it is too late to
+act — the arithmetic would quietly lose to the eyesight. Straight down keeps
+every number full size from the moment it appears.
+
+The ramp is in reading speed rather than reaction time: rows arrive every 3.5s
+at the start and every 1.8s by three minutes, and there is always more than one
+row on the path so the next can be read early.
+
+### The test that guards it
+
+`games/bramble/src/logic/invariants.test.ts` runs three bots. Three lanes makes
+guessing sharp to catch — it is right one time in three and pays 10% on the
+other two:
+
+| Bot | What it must do |
+| --- | --- |
+| Reads the sums | Still running after five minutes, tank full, 146 rows burst |
+| Picks lanes at random | Finished inside ninety seconds — measured at 56 to 64 |
+| Never steers at all | Finished too — measured at 45 to 62 |
+
+If either guesser survives, the arithmetic has stopped mattering. Fix the game,
+never the test.
+
 ## Not built yet
 
 - **Real art and sound.** Seesaw's are swappable through `SeesawTheme` and
   `SoundPack`; see above. Sky Patrol has vector planes and a synthesised pack
-  only, behind the same `SoundPack` names a recorded pack would implement.
-- **The other eight games.** The shell has a tile each, marked "Soon".
+  only, behind the same `SoundPack` names a recorded pack would implement, and
+  Bramble Dash the same.
+- **The other seven games.** The shell has a tile each, marked "Soon".
 - **Timed or scored modes.** An arcade half was built and removed: it added
   pressure rather than arithmetic, and a player could win it by dropping each
   animal on the lighter side without reading a number. It is in the git history

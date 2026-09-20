@@ -13,8 +13,8 @@ import { LANES } from '../logic/lanes.js';
 export const PATH = {
   /** The top bar: the fuel bar on the left, score on the right. */
   hudY: 46,
-  /** Where a row appears. */
-  horizonY: 120,
+  /** Where a row appears — far enough down that a whole obstacle clears the bar. */
+  horizonY: 152,
   /** Where the rabbit runs, and where a row is met. */
   rabbitY: 620,
   left: 180,

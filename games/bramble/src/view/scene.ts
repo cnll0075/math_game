@@ -107,7 +107,14 @@ export function createScene(): Scene {
       for (const row of current.run.rows) {
         if (row.resolved) continue;
         row.numbers.forEach((number, lane) => {
-          drawObstacle(ctx, pathPoint(laneCentre(lane), row.progress), row.kinds[lane] ?? 'rock', number);
+          const jitter = row.jitter[lane];
+          drawObstacle(
+            ctx,
+            pathPoint(laneCentre(lane), row.progress + (jitter?.lift ?? 0)),
+            row.kinds[lane] ?? 'rock',
+            number,
+            jitter,
+          );
         });
       }
       for (const entry of bursts) drawBurst(ctx, entry.at, entry.life / TIMING.burstSeconds);

@@ -1,6 +1,6 @@
-import { hand, label, type Point } from '@bundle/core';
+import { hand, type Point } from '@bundle/core';
 import { LANES } from '../logic/lanes.js';
-import type { ObstacleKind } from '../logic/row.js';
+import type { Jitter, ObstacleKind } from '../logic/row.js';
 import { laneWidth, obstacleSize, PATH, PATH_WIDTH, pathPoint, RUN_HEIGHT } from './geometry.js';
 
 /** The track, with lane lines and a texture that scrolls to say "moving". */
@@ -35,10 +35,31 @@ export function drawPath(ctx: CanvasRenderingContext2D, scroll: number): void {
   ctx.restore();
 }
 
-const OBSTACLE_SKIN: Record<ObstacleKind, { body: string; trim: string }> = {
-  rock: { body: '#b9bec6', trim: '#7d848d' },
-  bear: { body: '#a9754c', trim: '#6f4726' },
-  log: { body: '#c08b5c', trim: '#8a5c33' },
+const OBSTACLE_SKIN: Record<ObstacleKind, { body: string; dark: string; light: string }> = {
+  rock: { body: '#9aa3ad', dark: '#6d757e', light: '#c3cad2' },
+  bear: { body: '#a9754c', dark: '#7a5233', light: '#c99a72' },
+  log: { body: '#b5793f', dark: '#7d5026', light: '#d8a469' },
+};
+
+/**
+ * The number on a pale disc rather than straight onto the obstacle. Written
+ * across a bear or a boulder it fought with the shape underneath and neither
+ * read; on a disc the shape can be a shape and the number can be a number.
+ */
+const numberBadge = (ctx: CanvasRenderingContext2D, value: number, size: number): void => {
+  const radius = size * 0.3;
+  ctx.beginPath();
+  ctx.arc(0, 0, radius, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.93)';
+  ctx.fill();
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = 'rgba(40,52,64,0.25)';
+  ctx.stroke();
+  ctx.font = hand(700, radius * 1.05);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#1e2a38';
+  ctx.fillText(String(value), 0, size * 0.015);
 };
 
 export function drawObstacle(
@@ -46,67 +67,148 @@ export function drawObstacle(
   at: Point,
   kind: ObstacleKind,
   number: number,
+  jitter: Jitter = { scale: 1, tilt: 0, lift: 0 },
 ): void {
-  const { width, height } = obstacleSize();
+  const base = obstacleSize();
+  const width = base.width * jitter.scale;
+  const height = base.height * jitter.scale;
   const skin = OBSTACLE_SKIN[kind];
+
   ctx.save();
   ctx.translate(at.x, at.y);
-  ctx.fillStyle = skin.body;
+
+  // A soft shadow on the grass, so it sits on the path rather than floating.
+  ctx.fillStyle = 'rgba(70,100,50,0.18)';
+  ctx.beginPath();
+  ctx.ellipse(0, height * 0.52, width * 0.44, height * 0.16, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.rotate(jitter.tilt);
 
   if (kind === 'rock') {
+    // A boulder: a rounded lump with a lit top and a darker base.
+    ctx.fillStyle = skin.body;
     ctx.beginPath();
-    ctx.moveTo(-width / 2, height / 2);
-    ctx.lineTo(-width * 0.34, -height * 0.4);
-    ctx.lineTo(width * 0.1, -height / 2);
-    ctx.lineTo(width / 2, height * 0.16);
-    ctx.lineTo(width * 0.3, height / 2);
+    ctx.moveTo(-width * 0.46, height * 0.42);
+    ctx.quadraticCurveTo(-width * 0.54, -height * 0.12, -width * 0.24, -height * 0.4);
+    ctx.quadraticCurveTo(0, -height * 0.58, width * 0.26, -height * 0.38);
+    ctx.quadraticCurveTo(width * 0.54, -height * 0.1, width * 0.44, height * 0.42);
     ctx.closePath();
     ctx.fill();
+    ctx.fillStyle = skin.light;
+    ctx.beginPath();
+    ctx.moveTo(-width * 0.2, -height * 0.38);
+    ctx.quadraticCurveTo(0, -height * 0.56, width * 0.22, -height * 0.36);
+    ctx.quadraticCurveTo(0, -height * 0.2, -width * 0.2, -height * 0.38);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = skin.dark;
+    ctx.beginPath();
+    ctx.ellipse(0, height * 0.4, width * 0.45, height * 0.09, 0, 0, Math.PI * 2);
+    ctx.fill();
   } else if (kind === 'log') {
+    // A log lying across the lane: bark along the top, rings on the cut end.
+    ctx.fillStyle = skin.body;
     ctx.beginPath();
-    ctx.roundRect?.(-width / 2, -height / 2, width, height, height * 0.4);
+    ctx.roundRect?.(-width * 0.44, -height * 0.34, width * 0.88, height * 0.68, height * 0.22);
     ctx.fill();
-    ctx.fillStyle = skin.trim;
+    ctx.strokeStyle = skin.dark;
+    ctx.lineWidth = Math.max(2, height * 0.05);
+    for (const at2 of [-0.12, 0.1]) {
+      ctx.beginPath();
+      ctx.moveTo(-width * 0.3, height * at2);
+      ctx.lineTo(width * 0.24, height * at2);
+      ctx.stroke();
+    }
+    // The sawn end, turned towards the player.
+    ctx.fillStyle = skin.light;
     ctx.beginPath();
-    ctx.ellipse(-width / 2, 0, height * 0.18, height / 2, 0, 0, Math.PI * 2);
+    ctx.ellipse(-width * 0.42, 0, height * 0.16, height * 0.34, 0, 0, Math.PI * 2);
     ctx.fill();
+    ctx.strokeStyle = skin.dark;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(-width * 0.42, 0, height * 0.08, height * 0.17, 0, 0, Math.PI * 2);
+    ctx.stroke();
   } else {
-    // A bear: a round body and two ears. Cute rather than frightening — it is
-    // an obstacle in a child's game, not a threat.
+    // A bear, seen face-on: round ears, a muzzle and two eyes. Cute rather than
+    // frightening — it is an obstacle in a child's game, not a threat.
+    ctx.fillStyle = skin.dark;
     ctx.beginPath();
-    ctx.arc(-width * 0.26, -height * 0.34, height * 0.22, 0, Math.PI * 2);
+    ctx.arc(-width * 0.3, -height * 0.33, height * 0.21, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
-    ctx.arc(width * 0.26, -height * 0.34, height * 0.22, 0, Math.PI * 2);
+    ctx.arc(width * 0.3, -height * 0.33, height * 0.21, 0, Math.PI * 2);
     ctx.fill();
+    ctx.fillStyle = skin.body;
     ctx.beginPath();
-    ctx.ellipse(0, 0, width / 2, height / 2, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, width * 0.44, height * 0.46, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = skin.trim;
+    ctx.fillStyle = skin.light;
     ctx.beginPath();
-    ctx.ellipse(0, height * 0.2, width * 0.2, height * 0.2, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, height * 0.22, width * 0.2, height * 0.17, 0, 0, Math.PI * 2);
     ctx.fill();
+    ctx.fillStyle = '#3b2a1d';
+    ctx.beginPath();
+    ctx.ellipse(0, height * 0.14, width * 0.06, height * 0.05, 0, 0, Math.PI * 2);
+    ctx.fill();
+    for (const eye of [-0.19, 0.19]) {
+      ctx.beginPath();
+      ctx.arc(width * eye, -height * 0.08, height * 0.055, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 
-  label(ctx, String(number), 0, 0, height * 0.62, 'center');
+  ctx.rotate(-jitter.tilt);
+  numberBadge(ctx, number, height);
   ctx.restore();
 }
 
+/**
+ * A carrot, not a berry. A rabbit running at a carrot explains itself; three
+ * red circles in the grass explained nothing, and a reward nobody understands
+ * is just something confusing in the way.
+ */
 export function drawBerry(ctx: CanvasRenderingContext2D, at: Point): void {
   ctx.save();
   ctx.translate(at.x, at.y);
-  ctx.fillStyle = '#3f8f52';
-  ctx.fillRect(-3, -30, 6, 16);
-  ctx.fillStyle = '#d6335c';
-  for (const [dx, dy] of [[-12, 0], [12, 0], [0, -12]] as const) {
-    ctx.beginPath();
-    ctx.arc(dx, dy, 15, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  // Smaller than an obstacle — it is a treat, not a wall — but big enough to be
+  // spotted a lane away and decided about.
+  ctx.scale(1.4, 1.4);
+
+  // A glow, so it reads as something to want rather than something to avoid.
+  ctx.fillStyle = 'rgba(255,214,102,0.35)';
   ctx.beginPath();
-  ctx.arc(-16, -5, 4, 0, Math.PI * 2);
+  ctx.arc(0, 0, 44, 0, Math.PI * 2);
   ctx.fill();
+
+  // Leaves.
+  ctx.fillStyle = '#4e9a51';
+  for (const lean of [-0.5, 0, 0.5]) {
+    ctx.save();
+    ctx.rotate(lean);
+    ctx.beginPath();
+    ctx.ellipse(0, -34, 7, 16, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // The root: a tapering triangle, with the ridges a carrot has.
+  ctx.fillStyle = '#ef8034';
+  ctx.beginPath();
+  ctx.moveTo(-15, -20);
+  ctx.lineTo(15, -20);
+  ctx.lineTo(0, 34);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(180,80,20,0.55)';
+  ctx.lineWidth = 2;
+  for (const y of [-8, 4]) {
+    ctx.beginPath();
+    ctx.moveTo(-9 + y * 0.12, y);
+    ctx.lineTo(9 - y * 0.12, y - 3);
+    ctx.stroke();
+  }
   ctx.restore();
 }
 

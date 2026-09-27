@@ -14,7 +14,7 @@ export const PATH = {
   /** The top bar: the fuel bar on the left, score on the right. */
   hudY: 46,
   /** Where a row appears — far enough down that a whole obstacle clears the bar. */
-  horizonY: 152,
+  horizonY: 168,
   /** Where the rabbit runs, and where a row is met. */
   rabbitY: 620,
   left: 180,
@@ -37,9 +37,16 @@ export const laneWidth = (): number => PATH_WIDTH / LANES;
 
 /** One size for every obstacle, whatever its kind, and whatever its distance. */
 export const obstacleSize = (): { width: number; height: number } => ({
-  width: laneWidth() * 0.72,
-  height: laneWidth() * 0.46,
+  width: laneWidth() * 0.74,
+  height: laneWidth() * 0.6,
 });
+
+/**
+ * How far the tallest part of an obstacle reaches above its centre. A bear's
+ * ears stand proud of its body, and it is the ears that decide whether a row
+ * clears the top bar.
+ */
+export const obstacleReach = (): number => obstacleSize().height * 0.58;
 
 /** Turns a touch's design x into a position across the path. */
 export const pathXTo = (designX: number): number => clamp01((designX - PATH.left) / PATH_WIDTH);

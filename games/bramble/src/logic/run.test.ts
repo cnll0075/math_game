@@ -187,23 +187,37 @@ describe('the clock', () => {
 });
 
 describe('steering', () => {
-  it('runs to the finger rather than jumping there', () => {
+  it('runs to the lane the finger points at, rather than jumping there', () => {
     const game = createRun({ seed: 14 });
     game.steer(1);
     game.step(FRAME);
-    expect(game.state.rabbitX).toBeGreaterThan(0.5);
-    expect(game.state.rabbitX).toBeLessThan(1);
+    expect(game.state.rabbitX).toBeGreaterThan(laneCentre(1));
+    expect(game.state.rabbitX).toBeLessThan(laneCentre(2));
     for (let i = 0; i < 60; i += 1) game.step(FRAME);
-    expect(game.state.rabbitX).toBeCloseTo(1, 2);
+    // Snapped to the lane's middle, never to the edge of the path: a rabbit
+    // half off the course is not standing in any lane.
+    expect(game.state.rabbitX).toBeCloseTo(laneCentre(2), 3);
+  });
+
+  it('always ends up in the middle of a lane, wherever the finger went', () => {
+    const game = createRun({ seed: 16 });
+    for (const asked of [0, 0.05, 0.3, 0.5, 0.7, 0.95, 1]) {
+      game.steer(asked);
+      for (let i = 0; i < 60; i += 1) game.step(FRAME);
+      const nearest = [laneCentre(0), laneCentre(1), laneCentre(2)]
+        .map((centre) => Math.abs(centre - game.state.rabbitX))
+        .sort((a, b) => a - b)[0]!;
+      expect(nearest, `steering to ${asked} left the rabbit between lanes`).toBeLessThan(0.002);
+    }
   });
 
   it('never leaves the path', () => {
     const game = createRun({ seed: 15 });
     game.steer(5);
     for (let i = 0; i < 120; i += 1) game.step(FRAME);
-    expect(game.state.rabbitX).toBeLessThanOrEqual(1);
+    expect(game.state.rabbitX).toBeLessThanOrEqual(laneCentre(2));
     game.steer(-5);
     for (let i = 0; i < 120; i += 1) game.step(FRAME);
-    expect(game.state.rabbitX).toBeGreaterThanOrEqual(0);
+    expect(game.state.rabbitX).toBeGreaterThanOrEqual(laneCentre(0));
   });
 });

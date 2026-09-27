@@ -1,7 +1,7 @@
 import { createRng, type Rng } from '@bundle/core';
 import { bandAt, bandById, type Band, type BandId, type Sum } from '@bundle/math';
 import { makeBerry, BERRY_LATEST_SHARE, type Berry } from './berries.js';
-import { laneAt } from './lanes.js';
+import { laneAt, snapToLane } from './lanes.js';
 import { buildRow, type Row } from './row.js';
 import { tempoAt, type Tempo } from './tempo.js';
 
@@ -9,7 +9,7 @@ export type RunEvent =
   | { type: 'row'; row: Row }
   | { type: 'burst'; row: Row; lane: number; sum: Sum }
   | { type: 'thump'; row: Row; lane: number; sum: Sum; health: number }
-  | { type: 'berryArrived'; berry: Berry; gapLeft: number }
+  | { type: 'berryArrived'; berry: Berry; gapLeft: number; gap: number }
   | { type: 'berry'; berry: Berry; health: number }
   | { type: 'band'; band: Band }
   | { type: 'ended'; score: number; distance: number };
@@ -66,6 +66,12 @@ const STUMBLE_SLOWDOWN = 0.35;
 const STEER_RATE = 14;
 /** Paces a second at a run, for the distance on the card. */
 const PACE = 6;
+/**
+ * How much the gap between rows wanders either side of the tempo's figure. Rows
+ * arriving on an exact metronome read as one long identical corridor; a little
+ * unevenness is what makes the path feel like somewhere rather than a treadmill.
+ */
+const GAP_WANDER = 0.35;
 
 /** The next row the rabbit has to answer. The sum it wears is this row's. */
 export const currentRow = (state: RunState): Row | undefined => state.rows.find((row) => !row.resolved);
@@ -89,8 +95,8 @@ export function createRun(options: RunOptions = {}): Run {
     tempo: tempoAt(opened),
     rows: [],
     berries: [],
-    rabbitX: 0.5,
-    rabbitTarget: 0.5,
+    rabbitX: snapToLane(0.5),
+    rabbitTarget: snapToLane(0.5),
     stumble: 0,
     missed: null,
     status: 'running',
@@ -107,16 +113,20 @@ export function createRun(options: RunOptions = {}): Run {
     events.push({ type: 'row', row });
   };
 
-  const sendBerry = (events: RunEvent[], gapLeft: number): void => {
+  const sendBerry = (events: RunEvent[], gapLeft: number, gap: number): void => {
     const berry = makeBerry(rng, nextUid('berry'), state.tempo.approachSeconds);
     state.berries.push(berry);
-    events.push({ type: 'berryArrived', berry, gapLeft });
+    events.push({ type: 'berryArrived', berry, gapLeft, gap });
   };
+
+  /** How long until the row after this one, wandering either side of the tempo. */
+  const nextGap = (): number => state.tempo.rowEvery * (1 + (rng.next() * 2 - 1) * GAP_WANDER);
 
   // The first row is already on its way when the run opens, so the rabbit has a
   // sum to read from the first frame rather than running at nothing.
   sendRow([]);
-  untilNextRow = state.tempo.rowEvery;
+  let gap = state.tempo.rowEvery;
+  untilNextRow = gap;
 
   const step = (dt: number): readonly RunEvent[] => {
     const events: RunEvent[] = [];
@@ -184,13 +194,16 @@ export function createRun(options: RunOptions = {}): Run {
     // The cadence. A berry lands in the first half of a gap, so there is always
     // time to reach any lane afterwards.
     untilNextRow -= worldDt;
-    if (!berryThisGap && untilNextRow <= state.tempo.rowEvery * BERRY_LATEST_SHARE && untilNextRow > 0) {
+    // Measured against this gap rather than the tempo's average, so a short gap
+    // still leaves half of itself after the berry lands.
+    if (!berryThisGap && untilNextRow <= gap * BERRY_LATEST_SHARE && untilNextRow > 0) {
       berryThisGap = true;
-      if (rng.next() < state.tempo.berryChance) sendBerry(events, untilNextRow);
+      if (rng.next() < state.tempo.berryChance) sendBerry(events, untilNextRow, gap);
     }
     if (untilNextRow <= 0) {
       sendRow(events);
-      untilNextRow = state.tempo.rowEvery;
+      gap = nextGap();
+      untilNextRow = gap;
       berryThisGap = false;
     }
 
@@ -201,7 +214,9 @@ export function createRun(options: RunOptions = {}): Run {
     state,
     step,
     steer(x) {
-      state.rabbitTarget = Math.min(1, Math.max(0, x));
+      // Snapped to a lane: the rabbit runs down one of three, never between two
+      // and never half off the edge of the path.
+      state.rabbitTarget = snapToLane(Math.min(1, Math.max(0, x)));
     },
   };
 }

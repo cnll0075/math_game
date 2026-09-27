@@ -7,6 +7,20 @@ export type ObstacleKind = 'rock' | 'bear' | 'log';
 
 const KINDS: readonly ObstacleKind[] = ['rock', 'bear', 'log'];
 
+/**
+ * Cosmetic wobble, so a row is three things in a meadow rather than three
+ * stamps of the same sprite. It cannot affect fairness: which lane the rabbit
+ * meets is decided by the lane, never by where a shape happens to be drawn.
+ */
+export interface Jitter {
+  /** 0.88 to 1.12 of the standard size. */
+  scale: number;
+  /** A few degrees either way, in radians. */
+  tilt: number;
+  /** A nudge up or down the path, in progress units. */
+  lift: number;
+}
+
 export interface Row {
   readonly uid: string;
   /** One number per lane. Exactly one of them is the answer. */
@@ -14,6 +28,7 @@ export interface Row {
   readonly answerLane: number;
   readonly sum: Sum;
   readonly kinds: readonly ObstacleKind[];
+  readonly jitter: readonly Jitter[];
   /** 0 at the horizon, 1 at the rabbit. */
   progress: number;
   approachSeconds: number;
@@ -60,6 +75,11 @@ export function buildRow(rng: Rng, band: Band, uid: string, approachSeconds: num
     answerLane,
     sum,
     kinds: numbers.map(() => rng.pick(KINDS)),
+    jitter: numbers.map(() => ({
+      scale: 0.88 + rng.next() * 0.24,
+      tilt: (rng.next() * 2 - 1) * 0.16,
+      lift: (rng.next() * 2 - 1) * 0.035,
+    })),
     progress: 0,
     approachSeconds,
     resolved: false,

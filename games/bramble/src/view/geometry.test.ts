@@ -1,13 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import { DESIGN } from '@bundle/core';
 import { LANES, laneCentre } from '../logic/lanes.js';
-import { laneWidth, obstacleSize, PATH, pathPoint, pathXTo } from './geometry.js';
+import { laneWidth, obstacleReach, obstacleSize, PATH, pathPoint, pathXTo } from './geometry.js';
 
 describe('the path', () => {
   it('leaves the top bar clear, so a row never starts under the fuel bar', () => {
     // The whole obstacle, not just the line it sits on: a number half under the
     // fuel bar is unreadable at exactly the moment it most wants reading.
-    const topOfObstacle = PATH.horizonY - obstacleSize().height / 2;
+    // Measured to the ears, which stand higher than the body: it is the tallest
+    // part that decides whether a row clears the bar.
+    const topOfObstacle = PATH.horizonY - obstacleReach();
     expect(topOfObstacle).toBeGreaterThan(PATH.hudY + 16);
   });
 

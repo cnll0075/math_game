@@ -70,7 +70,9 @@ describe('a long run never breaks its promises', () => {
       for (let i = 0; i < 60 * 60 * 3; i += 1) {
         for (const event of game.step(FRAME)) {
           if (event.type !== 'berryArrived') continue;
-          expect(event.gapLeft).toBeGreaterThanOrEqual(game.state.tempo.rowEvery * 0.5 - 0.05);
+          // Against this gap rather than the tempo's average, because the gaps
+          // wander either side of it.
+          expect(event.gapLeft).toBeGreaterThanOrEqual(event.gap * 0.5 - 0.05);
         }
       }
     }

@@ -14,3 +14,10 @@ export const laneCentre = (lane: number): number => (lane + 0.5) / LANES;
  */
 export const laneAt = (x: number): number =>
   Math.min(LANES - 1, Math.max(0, Math.floor(x * LANES)));
+
+/**
+ * The nearest lane's centre. The rabbit only ever stands in a lane, never
+ * between two or half off the edge of the path: the lane is the answer, so
+ * "which one am I in" must never be a question the player has to squint at.
+ */
+export const snapToLane = (x: number): number => laneCentre(laneAt(x));

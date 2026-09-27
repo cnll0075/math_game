@@ -73,7 +73,9 @@ describe('a run played through the module', () => {
   it('ends after ten wrong lanes, and runs again', async () => {
     const { session } = await mountGame();
     session.__test.step(10);
-    for (let i = 0; i < 12 && session.__test.status() === 'running'; i += 1) {
+    // More attempts than the ten it takes, because crossing to a wrong lane can
+    // occasionally land the rabbit on the right one mid-transit.
+    for (let i = 0; i < 30 && session.__test.status() === 'running'; i += 1) {
       session.__test.takeWrongLane();
     }
     expect(session.__test.status()).toBe('over');
@@ -92,7 +94,7 @@ describe('a run played through the module', () => {
     session.__test.step(10);
     for (let i = 0; i < 4; i += 1) session.__test.takeRightLane();
     const scored = session.__test.score();
-    for (let i = 0; i < 12 && session.__test.status() === 'running'; i += 1) {
+    for (let i = 0; i < 30 && session.__test.status() === 'running'; i += 1) {
       session.__test.takeWrongLane();
     }
     expect(host.storage.get('best', 0)).toBeGreaterThanOrEqual(scored);

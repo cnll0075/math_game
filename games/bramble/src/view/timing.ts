@@ -9,6 +9,8 @@ export const TIMING = {
   solvedSeconds: 1.0,
   /** How long the centre-screen explanation of a thump stays up. */
   thumpSeconds: 1.4,
+  /** How long "streak lost" stays up after a run of right answers is broken. */
+  streakLostSeconds: 1.6,
   /** How long the fuel bar flashes after it drops. */
   flashSeconds: 0.7,
   /** How long a band's name is shown large before it flies to the top bar. */

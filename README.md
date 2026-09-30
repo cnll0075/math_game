@@ -470,6 +470,12 @@ There is no jump and no fire button: the lane is the answer, so a second axis of
 input would make this a dexterity game with sums attached. Arrow keys work on a
 Mac.
 
+**The top bar names both numbers.** The score is how many obstacles you have
+burst and never resets; the streak is how many in a row and resets the moment
+you bump one, which it says out loud. Unlabelled, the big number on the right
+was read as a streak — and a score that never resets looks exactly like a streak
+refusing to reset on a mistake.
+
 **One tank of fuel.** A wrong lane costs **10%** — ten of them and the run is
 over — and a berry gives **10%** back. The bar's notches are one berry each, so
 it prices both a mistake and its remedy.
@@ -510,11 +516,19 @@ Rows do **not** arrive on a beat, and only **one is ever on the path at a time**
 An earlier version put up to three walls of obstacles on screen at once and it
 read as noise rather than as a choice.
 
-Gaps are drawn as phrases — tight, steady, or a breather — each a multiple of a
-floor, with the weighting shifting towards tight as a run goes on. A breather is
-longer than the path is deep, so it empties the path completely: that emptiness
-is the rest, and the rabbit's sign goes away with it rather than hanging there
-blank.
+Two things vary, and both are meant to be *seen*:
+
+- **The gap**, drawn as a phrase — tight, steady, or a breather — with the
+  weighting shifting towards tight as a run goes on.
+- **The speed**, drawn per row: quick, even or slow. With one fixed speed every
+  row looked exactly like the last — appear at the horizon, travel down, land —
+  and the variation in the gaps was invisible, because there was never a second
+  row on screen to compare against. Measured, a row takes anywhere from 2.0s to
+  7.1s to come down early on, and 1.8s to 4.0s five minutes in.
+
+A breather is longer than the path is deep, so it empties the path completely:
+that emptiness is the rest, and the rabbit's sign goes away with it rather than
+hanging there blank.
 
 What never moves under the player is the **floor**: the shortest gap the game
 will ever ask for. Measured, from the moment a sum appears on the sign to the

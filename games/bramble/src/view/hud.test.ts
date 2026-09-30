@@ -5,7 +5,7 @@ import { drawHud, drawSolved, drawSummary, drawThump } from './hud.js';
 describe('the top bar', () => {
   it('shows the fuel and the score', () => {
     const { ctx, texts } = recordingContext();
-    drawHud(ctx, { health: 70, score: 12, streak: 0, flash: 0 });
+    drawHud(ctx, { health: 70, score: 12, streak: 0, flash: 0, brokeStreak: 0 });
     expect(texts).toContain('70%');
     expect(texts).toContain('12');
     expect(depthOf(ctx)).toBe(0);
@@ -13,11 +13,30 @@ describe('the top bar', () => {
 
   it('names a streak only once it is one', () => {
     const quiet = recordingContext();
-    drawHud(quiet.ctx, { health: 100, score: 2, streak: 1, flash: 0 });
+    drawHud(quiet.ctx, { health: 100, score: 2, streak: 1, flash: 0, brokeStreak: 0 });
     expect(quiet.texts.some((text) => text.includes('in a row'))).toBe(false);
     const hot = recordingContext();
-    drawHud(hot.ctx, { health: 100, score: 9, streak: 4, flash: 0 });
+    drawHud(hot.ctx, { health: 100, score: 9, streak: 4, flash: 0, brokeStreak: 0 });
     expect(hot.texts.some((text) => text.includes('4 in a row'))).toBe(true);
+  });
+
+  it('names both numbers, so neither can be read as the other', () => {
+    const { ctx, texts } = recordingContext();
+    drawHud(ctx, { health: 100, score: 38, streak: 5, flash: 0, brokeStreak: 0 });
+    const all = texts.join(' ');
+    // A big unlabelled number was read as a streak, and a score that never
+    // resets looked like a streak refusing to reset on a mistake.
+    expect(all).toContain('burst');
+    expect(all).toContain('streak');
+    expect(all).toContain('38');
+    expect(all).toContain('5 in a row');
+  });
+
+  it('says so when a streak is lost, rather than just removing it', () => {
+    const { ctx, texts } = recordingContext();
+    drawHud(ctx, { health: 90, score: 38, streak: 0, flash: 0.5, brokeStreak: 1 });
+    expect(texts.join(' ')).toContain('streak lost');
+    expect(texts.join(' ')).not.toContain('in a row');
   });
 });
 

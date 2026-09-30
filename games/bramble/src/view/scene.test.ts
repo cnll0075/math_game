@@ -39,7 +39,7 @@ describe('the scene', () => {
     game.step(FRAME);
     const row = currentRow(game.state)!;
     const scene = createScene();
-    scene.observe([{ type: 'thump', row, lane: 0, sum: row.sum, health: 90 }]);
+    scene.observe([{ type: 'thump', row, lane: 0, sum: row.sum, health: 90, streakWas: 4 }]);
     scene.update(FRAME, modelOf(game));
     const during = recordingContext();
     scene.render(during.ctx, SCREEN);

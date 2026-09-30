@@ -24,12 +24,29 @@ export interface Tempo {
 
 const RAMP_SECONDS = 180;
 /**
- * How far ahead a row is put on the path, as a multiple of the floor. Kept low
- * on purpose: at 2.75 there were three walls of obstacles on screen at once and
- * it read as a wall of noise. Below the longest gap, so a breather genuinely
- * empties the path — that emptiness is the rest.
+ * How long a row takes to come down the path, as a multiple of the floor. Three
+ * speeds, drawn per row.
+ *
+ * With one fixed speed and one row on the path at a time, every row looked
+ * exactly like the last — appear at the horizon, travel down, land — and the
+ * variation in the *gaps* was invisible, because there was never a second row
+ * on screen to compare against. A row that visibly rushes and a row that
+ * visibly drifts are variation a player can actually see.
+ *
+ * All three are at least the floor, so the slowest gap still cannot shorten the
+ * time a child gets; and the slowest is twice the floor at most, so two rows on
+ * the path is the ceiling and three never happens.
  */
-const LOOK_AHEAD = 1.7;
+const APPROACHES = {
+  quick: 1.25,
+  even: 1.6,
+  slow: 2.0,
+} as const;
+
+export type Approach = keyof typeof APPROACHES;
+
+/** The average, for anything that needs one number rather than a draw. */
+const LOOK_AHEAD = APPROACHES.even;
 
 const clamp01 = (value: number): number => Math.min(1, Math.max(0, value));
 const lerp = (from: number, to: number, t: number): number => from + (to - from) * t;
@@ -69,6 +86,12 @@ export const ROOMY_GAP = GAP_SHAPES.steady;
  * Picks the next gap. As pressure rises the tight ones crowd out the breathers,
  * so the cadence picks up without the floor ever moving under the player.
  */
+/** How long the next row should take to come down. */
+export function drawApproach(rng: Rng, tempo: Tempo): { seconds: number; speed: Approach } {
+  const speed = rng.pick(['quick', 'even', 'even', 'slow'] as const);
+  return { seconds: tempo.minGap * APPROACHES[speed], speed };
+}
+
 export function drawGap(rng: Rng, tempo: Tempo): { seconds: number; shape: GapShape } {
   const weights: [GapShape, number][] = [
     ['tight', 0.15 + tempo.pressure * 1.5],

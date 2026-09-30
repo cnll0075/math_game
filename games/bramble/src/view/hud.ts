@@ -8,14 +8,34 @@ export interface HudModel {
   streak: number;
   /** 0..1 through the flash that follows a drop. */
   flash: number;
+  /** 0..1 through the notice that a streak has just been broken. */
+  brokeStreak: number;
 }
 
 export function drawHud(ctx: CanvasRenderingContext2D, model: HudModel): void {
   ctx.save();
-  // One notch per berry's worth, so the bar prices both a mistake and a reward.
+  // One notch per carrot's worth, so the bar prices both a mistake and a reward.
   drawFuelBar(ctx, PATH.left, PATH.hudY - 18, { health: model.health, flash: model.flash }, BERRY_GIVES);
-  label(ctx, String(model.score), DESIGN.width - PATH.left, PATH.hudY, 40, 'right');
-  if (model.streak >= 3) label(ctx, `${model.streak} in a row!`, DESIGN.width / 2, PATH.hudY, 26, 'center');
+
+  // Both numbers are named. Unlabelled, the big one on the right was read as a
+  // streak — and a score that never resets looked like a streak that would not
+  // reset on a mistake.
+  const right = DESIGN.width - PATH.left;
+  label(ctx, String(model.score), right, PATH.hudY - 4, 38, 'right');
+  label(ctx, 'burst', right, PATH.hudY + 24, 17, 'right');
+
+  // The streak lives next to the score and says plainly when it has gone, so a
+  // broken run of right answers is something the player sees happen.
+  const streakX = right - 150;
+  if (model.streak >= 2) {
+    label(ctx, `${model.streak} in a row`, streakX, PATH.hudY - 4, 30, 'right');
+    label(ctx, 'streak', streakX, PATH.hudY + 24, 17, 'right');
+  } else if (model.brokeStreak > 0) {
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, model.brokeStreak * 2);
+    label(ctx, 'streak lost', streakX, PATH.hudY - 4, 26, 'right');
+    ctx.restore();
+  }
   ctx.restore();
 }
 

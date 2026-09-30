@@ -35,6 +35,7 @@ export function createScene(): Scene {
   let thump: { text: string; life: number } | null = null;
   let banner: { title: string; life: number } | null = null;
   let flash = 0;
+  let brokeStreak = 0;
   let scroll = 0;
   let bob = 0;
   let model: SceneModel | null = null;
@@ -51,6 +52,8 @@ export function createScene(): Scene {
           }
           case 'thump':
             flash = TIMING.flashSeconds;
+            // Only worth saying if there was a run of right answers to lose.
+            if (event.streakWas >= 2) brokeStreak = TIMING.streakLostSeconds;
             thump = { text: `${sumText(event.sum)} = ${event.sum.answer}`, life: 0 };
             break;
           case 'band':
@@ -68,6 +71,7 @@ export function createScene(): Scene {
       scroll += dt * TIMING.groundScroll * (next.stumbling ? 0.35 : 1);
       bob += dt * (next.stumbling ? 1.4 : 3.2);
       if (flash > 0) flash = Math.max(0, flash - dt);
+      if (brokeStreak > 0) brokeStreak = Math.max(0, brokeStreak - dt);
       for (const entry of bursts) entry.life += dt;
       while (bursts.length > 0 && bursts[0]!.life > TIMING.burstSeconds) bursts.shift();
       for (const entry of solved) entry.life += dt;
@@ -131,6 +135,7 @@ export function createScene(): Scene {
         score: current.run.score,
         streak: current.run.streak,
         flash: flash / TIMING.flashSeconds,
+        brokeStreak: brokeStreak / TIMING.streakLostSeconds,
       });
       if (banner) {
         drawArrivingBanner(

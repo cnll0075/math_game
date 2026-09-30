@@ -3,12 +3,12 @@ import { bandAt, bandById, type Band, type BandId, type Sum } from '@bundle/math
 import { makeBerry, BERRY_LATEST_SHARE, type Berry } from './berries.js';
 import { laneAt, snapToLane } from './lanes.js';
 import { buildRow, type Row } from './row.js';
-import { drawGap, tempoAt, type Tempo } from './tempo.js';
+import { drawApproach, drawGap, tempoAt, type Tempo } from './tempo.js';
 
 export type RunEvent =
   | { type: 'row'; row: Row }
   | { type: 'burst'; row: Row; lane: number; sum: Sum }
-  | { type: 'thump'; row: Row; lane: number; sum: Sum; health: number }
+  | { type: 'thump'; row: Row; lane: number; sum: Sum; health: number; streakWas: number }
   | { type: 'berryArrived'; berry: Berry; gapLeft: number; gap: number }
   | { type: 'berry'; berry: Berry; health: number }
   | { type: 'band'; band: Band }
@@ -108,6 +108,8 @@ export function createRun(options: RunOptions = {}): Run {
   /** The gap this arrival is from the one before, for the carrot rule. */
   let gap = 0;
   let gapIsRoomy = true;
+  /** How long the row for `nextArrival` should take to come down. */
+  let nextApproach = 0;
   /** Whether this gap has already had its carrot. */
   let berryThisGap = false;
   /** Set once the row for `nextArrival` is on the path. */
@@ -142,6 +144,7 @@ export function createRun(options: RunOptions = {}): Run {
   // running rather than with a wall.
   gap = state.tempo.minGap;
   nextArrival = opened + gap;
+  nextApproach = drawApproach(rng, state.tempo).seconds;
 
   const step = (dt: number): readonly RunEvent[] => {
     const events: RunEvent[] = [];
@@ -182,11 +185,12 @@ export function createRun(options: RunOptions = {}): Run {
         state.bestStreak = Math.max(state.bestStreak, state.streak);
         events.push({ type: 'burst', row, lane, sum: row.sum });
       } else {
+        const streakWas = state.streak;
         state.health = Math.max(0, state.health - MISS_COST);
         state.streak = 0;
         state.stumble = STUMBLE_SECONDS;
         state.missed = row.sum;
-        events.push({ type: 'thump', row, lane, sum: row.sum, health: state.health });
+        events.push({ type: 'thump', row, lane, sum: row.sum, health: state.health, streakWas });
       }
     }
     state.rows = state.rows.filter((row) => row.progress < 1.2);
@@ -211,7 +215,9 @@ export function createRun(options: RunOptions = {}): Run {
     // spawns, and that time shrinks as a run goes on — so spacing the spawns
     // evenly let later rows catch the ones ahead and land far closer together
     // than the floor promised.
-    if (!sent && state.elapsed >= nextArrival - state.tempo.approachSeconds) {
+    // Each row gets its own speed, drawn when the previous one lands, so the
+    // path is not a procession of identical arrivals.
+    if (!sent && state.elapsed >= nextArrival - nextApproach) {
       sent = true;
       sendRow(events, Math.max(0.1, nextArrival - state.elapsed));
     }
@@ -237,6 +243,7 @@ export function createRun(options: RunOptions = {}): Run {
       gap = drawn.seconds;
       gapIsRoomy = drawn.roomy;
       nextArrival = state.elapsed + gap;
+      nextApproach = drawApproach(rng, state.tempo).seconds;
       berryThisGap = false;
       sent = false;
     }

@@ -1,6 +1,6 @@
 import { DESIGN, type Point } from '@bundle/core';
 import type { Intent } from '../intent.js';
-import type { RescueDef } from '../logic/rescue-def.js';
+import { DEFAULT_HOOKS, hooksOf, type RescueDef } from '../logic/rescue-def.js';
 import { puffTaken, trayTaken, type RescueState } from '../logic/rescue.js';
 
 /** Where everything sits, in design coordinates. */
@@ -52,6 +52,16 @@ export function bunchPoint(slot: number, count: number, at: Point): Point {
   return { x: at.x + offset * spread, y: at.y - LAYOUT.harnessHeight - 104 - (slot % 2) * 46 };
 }
 
+/**
+ * How many places the bunch is laid out for. A limited harness is laid out for
+ * all its hooks from the start, so the free ones can be drawn as empty clips and
+ * the limit is seen rather than discovered.
+ */
+export const bunchCount = (state: RescueState): number => {
+  const used = state.tied.length + state.clipped.length;
+  return hooksOf(state.def) < DEFAULT_HOOKS ? hooksOf(state.def) : used;
+};
+
 /** Puffs gather behind the kit, on the side away from the ledge. */
 export const puffPoint = (slot: number, at: Point): Point => ({ x: at.x - 96, y: at.y - 34 - slot * 54 });
 
@@ -102,8 +112,9 @@ export function hitTest(point: Point, state: RescueState): Intent | null {
   const { left, top, width, height } = LAYOUT.button;
   if (point.x >= left && point.x <= left + width && point.y >= top && point.y <= top + height) return { kind: 'letGo' };
 
-  const count = state.tied.length + state.clipped.length;
-  for (let slot = count - 1; slot >= 0; slot -= 1) {
+  const used = state.tied.length + state.clipped.length;
+  const count = bunchCount(state);
+  for (let slot = used - 1; slot >= 0; slot -= 1) {
     const tied = state.tied[slot];
     const clipped = state.clipped[slot - state.tied.length];
     const value = tied?.value ?? clipped?.value ?? 1;

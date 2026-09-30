@@ -5,6 +5,7 @@ import {
   drawBalloon,
   drawButton,
   drawCliff,
+  drawEmptyClip,
   drawFox,
   drawGround,
   drawParachute,
@@ -18,7 +19,7 @@ import {
   drawWindSock,
 } from './art.js';
 import { flightPose, type Pose } from './flight.js';
-import { bunchPoint, harnessPoint, HOME, LAYOUT, ledgeSpot, puffPoint, puffTrayPoint, trayPoint } from './geometry.js';
+import { bunchCount, bunchPoint, harnessPoint, HOME, LAYOUT, ledgeSpot, puffPoint, puffTrayPoint, trayPoint } from './geometry.js';
 import { drawCount, drawFinished, drawGauge, drawSolved, drawStars, drawTopBar } from './hud.js';
 import { TIMING } from './timing.js';
 
@@ -60,8 +61,8 @@ function countNow(model: SceneModel): { slot: number; text: string } | null {
   return { slot: liftedSlots(model.rescue)[index] ?? -1, text: last ? `${sum}!` : `${sum}…` };
 }
 
-function drawBunch(ctx: CanvasRenderingContext2D, state: RescueState, at: Point, lit: number): void {
-  const count = state.tied.length + state.clipped.length;
+function drawBunch(ctx: CanvasRenderingContext2D, state: RescueState, at: Point, lit: number, showFree: boolean): void {
+  const count = bunchCount(state);
   const ring = harnessPoint(at);
   const values = [...state.tied.map((balloon) => balloon.value), ...state.clipped.map((taken) => taken.value)];
   values.forEach((value, slot) => {
@@ -70,6 +71,8 @@ function drawBunch(ctx: CanvasRenderingContext2D, state: RescueState, at: Point,
     drawString(ctx, ring, limp ? { x: point.x, y: point.y + 40 } : point);
     drawBalloon(ctx, point, value, { limp, glow: slot === lit ? 1 : 0 });
   });
+  if (!showFree) return;
+  for (let slot = values.length; slot < count; slot += 1) drawEmptyClip(ctx, ring, bunchPoint(slot, count, at));
 }
 
 export function createScene(): Scene {
@@ -84,8 +87,7 @@ export function createScene(): Scene {
       for (const event of events) {
         if (event.type === 'chapter') banner = { title: event.chapter.title, life: 0 };
         if (event.type === 'popped' && model) {
-          const count = model.rescue.tied.length + model.rescue.clipped.length;
-          bursts.push({ at: bunchPoint(event.index, count, HOME), value: event.value, life: 0 });
+          bursts.push({ at: bunchPoint(event.index, bunchCount(model.rescue), HOME), value: event.value, life: 0 });
         }
         if (event.type === 'rescued') rescuedFor = 0;
       }
@@ -136,9 +138,9 @@ export function createScene(): Scene {
         // Safe on the ledge, the kit lets the bunch go: it rises away rather
         // than sitting over the top bar, which is where it would be otherwise.
         const rise = rescuedFor * TIMING.releaseRise;
-        if (rise < TIMING.releaseGone) drawBunch(ctx, state, { x: pose.at.x, y: pose.at.y - rise }, -1);
+        if (rise < TIMING.releaseGone) drawBunch(ctx, state, { x: pose.at.x, y: pose.at.y - rise }, -1, false);
       } else {
-        drawBunch(ctx, state, pose.at, countNow(current)?.slot ?? -1);
+        drawBunch(ctx, state, pose.at, countNow(current)?.slot ?? -1, building);
       }
       drawFox(ctx, pose.at, { weight: def.weight, mood: pose.mood, bob });
       for (const burst of bursts) drawPopBurst(ctx, burst.at, burst.value, burst.life / TIMING.popSeconds);

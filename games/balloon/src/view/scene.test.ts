@@ -91,6 +91,14 @@ describe('the scene', () => {
     expect(recording.texts).not.toContain('3');
   });
 
+  it('shows a small harness\'s free hooks as empty clips, and a roomy one\'s not at all', () => {
+    const tiny = createDriver({ book: {}, startLevel: 'tiny-harness-1' });
+    tiny.act({ kind: 'tray', index: 3 }); // one of the two hooks used
+    expect(render(tiny).calls.filter((call) => call === 'setLineDash').length).toBeGreaterThanOrEqual(1);
+    const roomy = createDriver({ book: {}, startLevel: 'whoosh-1' });
+    expect(render(roomy).calls).not.toContain('setLineDash');
+  });
+
   it('draws the wind, the steps and the puffs in Windy Ridge', () => {
     const driver = createDriver({ book: {}, startLevel: 'windy-ridge-1' });
     const { texts } = render(driver);

@@ -3,7 +3,7 @@ import { DESIGN } from '@bundle/core';
 import { createRescue } from '../logic/rescue.js';
 import { RESCUES } from '../logic/levels.data.js';
 import type { RescueDef } from '../logic/rescue-def.js';
-import { balloonRadius, bunchPoint, HOME, hitTest, LAYOUT, ledgeSpot, pegPoint, PUFF_RADIUS, puffTrayPoint, trayPoint } from './geometry.js';
+import { balloonRadius, bunchCount, bunchPoint, HOME, hitTest, LAYOUT, ledgeSpot, pegPoint, PUFF_RADIUS, puffTrayPoint, trayPoint } from './geometry.js';
 
 const def: RescueDef = { id: 'g', line: '', weight: 8, tray: [5, 3, 6, 2] };
 
@@ -71,6 +71,15 @@ describe('geometry', () => {
     rescue.clip(0);
     expect(hitTest(bunchPoint(1, 4, HOME), rescue.state)).toEqual({ kind: 'tied', index: 1 });
     expect(hitTest(bunchPoint(3, 4, HOME), rescue.state)).toEqual({ kind: 'clipped', slot: 0 });
+  });
+
+  it('lays a limited harness out by its hooks, and finds its balloons there', () => {
+    const limited: RescueDef = { id: 'h', line: '', weight: 12, hooks: 2, tray: [4, 8] };
+    const rescue = createRescue(limited);
+    rescue.clip(1);
+    expect(bunchCount(rescue.state)).toBe(2);
+    expect(hitTest(bunchPoint(0, 2, HOME), rescue.state)).toEqual({ kind: 'clipped', slot: 0 });
+    expect(bunchCount(createRescue(def).state)).toBe(0);
   });
 
   it('finds the button', () => {

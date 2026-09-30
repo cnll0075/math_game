@@ -210,6 +210,22 @@ export function drawBalloon(
   ctx.restore();
 }
 
+/** A free hook on a limited harness: a dashed outline where a balloon could go. */
+export function drawEmptyClip(ctx: CanvasRenderingContext2D, ring: Point, at: Point): void {
+  ctx.save();
+  ctx.setLineDash([6, 6]);
+  ctx.strokeStyle = 'rgba(30,42,56,0.35)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(ring.x, ring.y);
+  ctx.lineTo(at.x, at.y + 26);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(at.x, at.y, 23, 26, 0, 0, TAU);
+  ctx.stroke();
+  ctx.restore();
+}
+
 /** A little cloud of breath that pushes sideways. */
 export function drawPuff(ctx: CanvasRenderingContext2D, at: Point, value: number): void {
   ctx.save();

@@ -73,6 +73,24 @@ describe('the scene', () => {
     expect(recording.texts).toContain('Tap for the next rescue');
   });
 
+  it('lets the balloons float away once the kit is safe, so they never sit on the top bar', () => {
+    const driver = createDriver({ book: {}, startLevel: 'whoosh-1' });
+    driver.act({ kind: 'tray', index: 1 }); // 4
+    driver.act({ kind: 'tray', index: 2 }); // 3
+    driver.act({ kind: 'letGo' });
+    const scene = createScene();
+    for (let i = 0; i < 60 * 8; i += 1) {
+      scene.observe(driver.step(FRAME));
+      scene.update(FRAME, driver.model());
+    }
+    expect(driver.phase).toBe('rescued');
+    const recording = recordingContext();
+    scene.render(recording.ctx, SCREEN);
+    // The tray still holds the 6 and the 1; the 4 and the 3 have floated off.
+    expect(recording.texts).not.toContain('4');
+    expect(recording.texts).not.toContain('3');
+  });
+
   it('draws the wind, the steps and the puffs in Windy Ridge', () => {
     const driver = createDriver({ book: {}, startLevel: 'windy-ridge-1' });
     const { texts } = render(driver);

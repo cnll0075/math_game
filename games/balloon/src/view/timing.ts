@@ -25,6 +25,10 @@ export const TIMING = {
   solvedSeconds: 1.2,
   starsDelaySeconds: 0.9,
   starSeconds: 0.35,
+  /** How fast a released bunch rises off the ledge, in design pixels per second. */
+  releaseRise: 420,
+  /** How far it rises before it is off the top and no longer drawn. */
+  releaseGone: 560,
 } as const;
 
 export const countSeconds = (balloons: number): number =>

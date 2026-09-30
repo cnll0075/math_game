@@ -132,6 +132,11 @@ export function createScene(): Scene {
       state.puffs.forEach((taken, slot) => drawPuff(ctx, puffPoint(slot, pose.at), taken.value));
       if (pose.parachute) {
         drawParachute(ctx, pose.at);
+      } else if (current.phase === 'rescued' || current.phase === 'finished') {
+        // Safe on the ledge, the kit lets the bunch go: it rises away rather
+        // than sitting over the top bar, which is where it would be otherwise.
+        const rise = rescuedFor * TIMING.releaseRise;
+        if (rise < TIMING.releaseGone) drawBunch(ctx, state, { x: pose.at.x, y: pose.at.y - rise }, -1);
       } else {
         drawBunch(ctx, state, pose.at, countNow(current)?.slot ?? -1);
       }

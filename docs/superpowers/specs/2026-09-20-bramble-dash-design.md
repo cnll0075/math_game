@@ -92,13 +92,24 @@ quietly break the game — the arithmetic would lose to the eyesight. Scrolling
 the path towards the camera keeps every number at full size from the moment it
 appears.
 
+Rows are **phrased, not beaten out**. A gap is drawn as one of three shapes —
+tight, steady, or a breather — as a multiple of a floor, and the weighting shifts
+towards tight as a run goes on. An even beat reads as one long identical
+corridor however much the beat is jittered; phrasing is what makes a path feel
+like somewhere.
+
 | | Start | By ~3:00 |
 | --- | --- | --- |
-| Gap between rows | 3.5s | 1.8s |
-| Berries | about every third gap | about every fifth |
+| Floor: the shortest gap ever asked for | 2.4s | 1.3s |
+| Typical spread, measured | 1.9s–6.1s | 1.1s–3.3s |
+| Carrots | about two in five roomy gaps | about one in five |
 
-The ramp is in **reading speed**, not reaction time: the rabbit's steering stays
-as quick as it ever was, and what shrinks is how long the numbers are on screen.
+The floor is the promise: it is the least time a player is ever given to read a
+sum and pick a lane, and no phrase or wobble may go under it. The ramp is in
+**reading speed**, not reaction time — the rabbit's steering stays as quick as it
+ever was, and what shrinks is how long the numbers are on screen.
+
+A carrot only ever lands in a gap with room in it, never in a flurry.
 
 ## Controls
 

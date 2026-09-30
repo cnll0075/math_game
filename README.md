@@ -488,11 +488,13 @@ pick by elimination without adding anything.
 
 ### Berries
 
-A berry sits alone in a lane between rows and is worth 10%. It is the only
+A carrot sits alone in a lane between rows and is worth 10%. A carrot rather
+than a berry because a rabbit running at a carrot explains itself. It is the only
 steering choice in the game that is not an answer, and it is free: a berry lands
 no later than halfway through a gap, so there is always time to take it and
-still reach any lane before the next row. A reward that could cost 10% is a trap
-wearing a berry's face — and a test plays a greedy run on four seeds to prove it
+still reach any lane before the next row — and it only ever appears in a gap
+with room in it, never in a flurry. A reward that could cost 10% is a trap
+wearing a carrot's face, and a test plays a greedy run on four seeds to prove it
 never happens.
 
 ### Why the path runs straight down
@@ -502,9 +504,28 @@ exactly when the player most needs to read it and biggest when it is too late to
 act — the arithmetic would quietly lose to the eyesight. Straight down keeps
 every number full size from the moment it appears.
 
-The ramp is in reading speed rather than reaction time: rows arrive every 3.5s
-at the start and every 1.8s by three minutes, and there is always more than one
-row on the path so the next can be read early.
+### Rhythm
+
+Rows do **not** arrive on a beat. A path that ticks is one long identical
+corridor however much you jitter the tick, so gaps are drawn as *phrases*: tight,
+steady, or a breather. Early on the breathers win and a run reads as
+
+```
+2.5   6.1   2.9   3.4   3.9   6.0   2.9   3.0
+```
+
+By four minutes the tight ones have crowded them out:
+
+```
+2.0   1.6   1.8   1.6   1.3   1.6   2.6   2.3
+```
+
+That is where the cadence lives. What never moves under the player is the
+**floor** — the shortest gap the game will ever ask for, 2.4s at the start and
+1.3s by three minutes. Every phrase is a multiple of it, so a flurry is still
+readable and the ramp is in reading speed rather than reaction time. The path
+always shows more than one row, so the next can be read while the current one
+closes.
 
 ### The test that guards it
 

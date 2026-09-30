@@ -3,7 +3,7 @@ import { bandAt, bandById, type Band, type BandId, type Sum } from '@bundle/math
 import { makeBerry, BERRY_LATEST_SHARE, type Berry } from './berries.js';
 import { laneAt, snapToLane } from './lanes.js';
 import { buildRow, type Row } from './row.js';
-import { tempoAt, type Tempo } from './tempo.js';
+import { drawGap, ROOMY_GAP, tempoAt, type Tempo } from './tempo.js';
 
 export type RunEvent =
   | { type: 'row'; row: Row }
@@ -66,12 +66,7 @@ const STUMBLE_SLOWDOWN = 0.35;
 const STEER_RATE = 14;
 /** Paces a second at a run, for the distance on the card. */
 const PACE = 6;
-/**
- * How much the gap between rows wanders either side of the tempo's figure. Rows
- * arriving on an exact metronome read as one long identical corridor; a little
- * unevenness is what makes the path feel like somewhere rather than a treadmill.
- */
-const GAP_WANDER = 0.35;
+
 
 /** The next row the rabbit has to answer. The sum it wears is this row's. */
 export const currentRow = (state: RunState): Row | undefined => state.rows.find((row) => !row.resolved);
@@ -119,13 +114,22 @@ export function createRun(options: RunOptions = {}): Run {
     events.push({ type: 'berryArrived', berry, gapLeft, gap });
   };
 
-  /** How long until the row after this one, wandering either side of the tempo. */
-  const nextGap = (): number => state.tempo.rowEvery * (1 + (rng.next() * 2 - 1) * GAP_WANDER);
+  /**
+   * How long until the row after this one, and whether it has room for a carrot.
+   * Both decided together, here: the floor shrinks as a run goes on, so asking
+   * "is this gap roomy?" every frame let a gap change its mind halfway through
+   * and drop a carrot far too late to be safe.
+   */
+  const nextGap = (): { seconds: number; roomy: boolean } => {
+    const drawn = drawGap(rng, state.tempo);
+    return { seconds: drawn.seconds, roomy: drawn.shape !== 'tight' };
+  };
 
   // The first row is already on its way when the run opens, so the rabbit has a
   // sum to read from the first frame rather than running at nothing.
   sendRow([]);
-  let gap = state.tempo.rowEvery;
+  let gap = state.tempo.minGap * ROOMY_GAP;
+  let gapIsRoomy = true;
   untilNextRow = gap;
 
   const step = (dt: number): readonly RunEvent[] => {
@@ -194,15 +198,18 @@ export function createRun(options: RunOptions = {}): Run {
     // The cadence. A berry lands in the first half of a gap, so there is always
     // time to reach any lane afterwards.
     untilNextRow -= worldDt;
-    // Measured against this gap rather than the tempo's average, so a short gap
-    // still leaves half of itself after the berry lands.
-    if (!berryThisGap && untilNextRow <= gap * BERRY_LATEST_SHARE && untilNextRow > 0) {
+    // Only in a gap with room in it, and only in its second half, so taking a
+    // carrot can never strand the rabbit in the wrong lane when the next row
+    // lands. A tight gap is no place for a treat.
+    if (!berryThisGap && gapIsRoomy && untilNextRow <= gap * BERRY_LATEST_SHARE && untilNextRow > 0) {
       berryThisGap = true;
       if (rng.next() < state.tempo.berryChance) sendBerry(events, untilNextRow, gap);
     }
     if (untilNextRow <= 0) {
       sendRow(events);
-      gap = nextGap();
+      const drawn = nextGap();
+      gap = drawn.seconds;
+      gapIsRoomy = drawn.roomy;
       untilNextRow = gap;
       berryThisGap = false;
     }

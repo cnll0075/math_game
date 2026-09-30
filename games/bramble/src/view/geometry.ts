@@ -38,7 +38,7 @@ export const laneWidth = (): number => PATH_WIDTH / LANES;
 /** One size for every obstacle, whatever its kind, and whatever its distance. */
 export const obstacleSize = (): { width: number; height: number } => ({
   width: laneWidth() * 0.74,
-  height: laneWidth() * 0.6,
+  height: laneWidth() * 0.55,
 });
 
 /**

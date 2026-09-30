@@ -38,9 +38,9 @@ const RAMP_SECONDS = 180;
  * the path is the ceiling and three never happens.
  */
 const APPROACHES = {
-  quick: 1.25,
-  even: 1.6,
-  slow: 2.0,
+  quick: 1.15,
+  even: 1.8,
+  slow: 2.4,
 } as const;
 
 export type Approach = keyof typeof APPROACHES;
@@ -88,7 +88,7 @@ export const ROOMY_GAP = GAP_SHAPES.steady;
  */
 /** How long the next row should take to come down. */
 export function drawApproach(rng: Rng, tempo: Tempo): { seconds: number; speed: Approach } {
-  const speed = rng.pick(['quick', 'even', 'even', 'slow'] as const);
+  const speed = rng.pick(['quick', 'quick', 'even', 'slow', 'slow'] as const);
   return { seconds: tempo.minGap * APPROACHES[speed], speed };
 }
 

@@ -68,8 +68,21 @@ const STEER_RATE = 14;
 const PACE = 6;
 
 
-/** The next row the rabbit has to answer. The sum it wears is this row's. */
-export const currentRow = (state: RunState): Row | undefined => state.rows.find((row) => !row.resolved);
+/**
+ * The next row the rabbit has to answer, and the sum it wears.
+ *
+ * The one closest to the rabbit, not the one sent first: rows can be in the air
+ * together and a slow row sent early is passed by a quick one sent later, so
+ * the order they were spawned in says nothing about the order they arrive.
+ */
+export const currentRow = (state: RunState): Row | undefined => {
+  let nearest: Row | undefined;
+  for (const row of state.rows) {
+    if (row.resolved) continue;
+    if (!nearest || row.progress > nearest.progress) nearest = row;
+  }
+  return nearest;
+};
 
 export function createRun(options: RunOptions = {}): Run {
   const rng: Rng = createRng(options.seed ?? 1);
@@ -98,22 +111,26 @@ export function createRun(options: RunOptions = {}): Run {
   };
 
   /**
-   * When the next row should *land*, not when it should be sent. Rows take their
-   * approach time from the tempo at the moment they spawn, and that time shrinks
-   * as a run goes on — so spacing the spawns evenly let later rows catch up the
-   * ones ahead and land far closer together than the floor promised. Scheduling
-   * the arrival and working backwards is what makes the floor real.
+   * What is coming, in world-clock seconds. More than one is scheduled at a
+   * time so that rows can be in the air together: with only ever one on the
+   * path, every row was the identical event — appear, travel, land — and no
+   * amount of varying the gaps showed, because there was never a second row at
+   * a different distance to see it against.
    */
-  let nextArrival = 0;
-  /** The gap this arrival is from the one before, for the carrot rule. */
-  let gap = 0;
-  let gapIsRoomy = true;
-  /** How long the row for `nextArrival` should take to come down. */
-  let nextApproach = 0;
-  /** Whether this gap has already had its carrot. */
-  let berryThisGap = false;
-  /** Set once the row for `nextArrival` is on the path. */
-  let sent = false;
+  interface Booking {
+    /** When this row should reach the rabbit. */
+    arrival: number;
+    /** How long it should take coming down. Its speed, and visibly so. */
+    approach: number;
+    /** The gap from the row before it, for the carrot rule. */
+    gap: number;
+    roomy: boolean;
+    sent: boolean;
+    carrotSent: boolean;
+  }
+
+  let worldClock = 0;
+  const booked: Booking[] = [];
 
   const sendRow = (events: RunEvent[], approachSeconds = state.tempo.approachSeconds): void => {
     const row = buildRow(rng, state.band, nextUid('row'), approachSeconds);
@@ -142,9 +159,20 @@ export function createRun(options: RunOptions = {}): Run {
   // sum to read from the first frame rather than running at nothing.
   // The first row lands a floor's worth in, so the run opens with a moment of
   // running rather than with a wall.
-  gap = state.tempo.minGap;
-  nextArrival = opened + gap;
-  nextApproach = drawApproach(rng, state.tempo).seconds;
+  /** Books the next row after whatever is already scheduled. */
+  const book = (): void => {
+    const last = booked.at(-1);
+    const drawn = drawGap(rng, state.tempo);
+    const gapFromLast = last ? drawn.seconds : state.tempo.minGap;
+    booked.push({
+      arrival: (last?.arrival ?? worldClock) + gapFromLast,
+      approach: drawApproach(rng, state.tempo).seconds,
+      gap: gapFromLast,
+      roomy: last ? drawn.shape !== 'tight' : true,
+      sent: false,
+      carrotSent: false,
+    });
+  };
 
   const step = (dt: number): readonly RunEvent[] => {
     const events: RunEvent[] = [];
@@ -167,6 +195,10 @@ export function createRun(options: RunOptions = {}): Run {
     }
     const worldDt = state.stumble > 0 ? dt * STUMBLE_SLOWDOWN : dt;
     state.distance += worldDt * PACE;
+    // Everything on the path moves on this clock, and everything is scheduled
+    // against it, so a stumble slows the world without the schedule drifting
+    // away from where the rows actually are.
+    worldClock += worldDt;
 
     state.rabbitX += (state.rabbitTarget - state.rabbitX) * (1 - Math.exp(-STEER_RATE * dt));
 
@@ -210,43 +242,36 @@ export function createRun(options: RunOptions = {}): Run {
       return events;
     }
 
-    // The cadence, scheduled by when things *land* rather than when they are
-    // sent. A row takes its approach time from the tempo at the moment it
-    // spawns, and that time shrinks as a run goes on — so spacing the spawns
-    // evenly let later rows catch the ones ahead and land far closer together
-    // than the floor promised.
-    // Each row gets its own speed, drawn when the previous one lands, so the
-    // path is not a procession of identical arrivals.
-    if (!sent && state.elapsed >= nextArrival - nextApproach) {
-      sent = true;
-      sendRow(events, Math.max(0.1, nextArrival - state.elapsed));
-    }
+    // The cadence. Everything is scheduled by when it *lands*: a row takes its
+    // approach time from the tempo at the moment it spawns, and that time
+    // shrinks over a run, so spacing the spawns evenly let later rows catch the
+    // ones ahead and land far closer together than the floor promised.
+    while (booked.length < 3) book();
 
-    // A carrot lands halfway through the gap, so there is always half a gap
-    // left to get back to whichever lane the next row wants. It only appears in
-    // a gap with room in it: a flurry is no place for a treat.
-    const carrotLands = nextArrival - gap * BERRY_LATEST_SHARE;
-    if (
-      !berryThisGap &&
-      gapIsRoomy &&
-      state.elapsed >= carrotLands - state.tempo.approachSeconds &&
-      carrotLands > state.elapsed
-    ) {
-      berryThisGap = true;
-      if (rng.next() < state.tempo.berryChance) {
-        sendBerry(events, nextArrival - carrotLands, gap, Math.max(0.1, carrotLands - state.elapsed));
+    for (const booking of booked) {
+      if (!booking.sent && worldClock >= booking.arrival - booking.approach) {
+        booking.sent = true;
+        sendRow(events, Math.max(0.1, booking.arrival - worldClock));
+      }
+      // A carrot lands halfway through the gap, so there is always half a gap
+      // left to reach whichever lane the next row wants. Only in a gap with
+      // room in it: a flurry is no place for a treat.
+      if (booking.carrotSent || !booking.roomy) continue;
+      const carrotLands = booking.arrival - booking.gap * BERRY_LATEST_SHARE;
+      if (worldClock >= carrotLands - state.tempo.approachSeconds && carrotLands > worldClock) {
+        booking.carrotSent = true;
+        if (rng.next() < state.tempo.berryChance) {
+          sendBerry(
+            events,
+            booking.arrival - carrotLands,
+            booking.gap,
+            Math.max(0.1, carrotLands - worldClock),
+          );
+        }
       }
     }
 
-    if (state.elapsed >= nextArrival) {
-      const drawn = nextGap();
-      gap = drawn.seconds;
-      gapIsRoomy = drawn.roomy;
-      nextArrival = state.elapsed + gap;
-      nextApproach = drawApproach(rng, state.tempo).seconds;
-      berryThisGap = false;
-      sent = false;
-    }
+    while (booked.length > 0 && worldClock >= booked[0]!.arrival) booked.shift();
 
     return events;
   };

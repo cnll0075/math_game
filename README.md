@@ -512,19 +512,20 @@ every number full size from the moment it appears.
 
 ### Rhythm
 
-Rows do **not** arrive on a beat, and only **one is ever on the path at a time**.
-An earlier version put up to three walls of obstacles on screen at once and it
-read as noise rather than as a choice.
+Rows do **not** arrive on a beat, and **more than one shares the path** — about
+half the time there are two or three in the air at different distances, the way
+Sky Patrol always has several planes at different heights. That overlap is the
+point: with one row at a time every row was the identical event, appear at the
+horizon and travel down, and no amount of varying the gaps showed, because there
+was never a second row to see it against.
 
 Two things vary, and both are meant to be *seen*:
 
 - **The gap**, drawn as a phrase — tight, steady, or a breather — with the
   weighting shifting towards tight as a run goes on.
-- **The speed**, drawn per row: quick, even or slow. With one fixed speed every
-  row looked exactly like the last — appear at the horizon, travel down, land —
-  and the variation in the gaps was invisible, because there was never a second
-  row on screen to compare against. Measured, a row takes anywhere from 2.0s to
-  7.1s to come down early on, and 1.8s to 4.0s five minutes in.
+- **The speed**, drawn per row: quick, even or slow. Measured, a row takes
+  anywhere from 2.7s to 8.6s to come down early on, and 2.3s to 5.0s five
+  minutes in — so a slow one drifts while a quick one closes up behind it.
 
 A breather is longer than the path is deep, so it empties the path completely:
 that emptiness is the rest, and the rabbit's sign goes away with it rather than
@@ -536,10 +537,9 @@ moment its row lands:
 
 | | Least time given | Typical |
 | --- | --- | --- |
-| 0:00 | 2.08s | 3.28s |
-| 1:30 | 1.92s | 2.85s |
-| 4:00 | 1.80s | 2.12s |
-| 10:00 | 1.80s | 2.15s |
+| 0:00 | 2.07s | 3.17s |
+| 2:00 | 1.85s | 2.40s |
+| 5:00 | 1.80s | 2.30s |
 
 Never under 1.8s, ten minutes in. The ramp is in **reading speed**, not reaction
 time: what shrinks is the room between rows, never below the time it takes a
@@ -547,11 +547,15 @@ child to read a sum and pick a lane.
 
 Two things that had to be right for that floor to be real:
 
-- **Rows are scheduled by when they land, not when they are sent.** A row takes
-  its approach speed from the tempo at the moment it spawns, and that speed
-  shrinks over a run — so evenly spaced spawns let later rows catch the ones
-  ahead and land far closer together than the floor promised. It measured 0.8s
-  at four minutes before this was fixed.
+- **Rows are scheduled by when they land, not when they are sent**, on a world
+  clock that slows with a stumble so the schedule never drifts from where the
+  rows actually are. A row takes its approach speed from the tempo at the moment
+  it spawns, and that speed shrinks over a run — so evenly spaced spawns let
+  later rows catch the ones ahead and land far closer together than the floor
+  promised. It measured 0.8s at four minutes before this was fixed.
+- **The nearest row is the one closest to the rabbit, not the one sent first.**
+  Once rows share the path, a slow row sent early is passed by a quick one sent
+  later, and the order they spawned in says nothing about the order they arrive.
 - **A carrot lands halfway through a gap**, with half a gap still to run, and
   only ever in a gap with room in it.
 

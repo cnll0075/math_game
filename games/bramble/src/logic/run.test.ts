@@ -51,7 +51,7 @@ describe('a run opening', () => {
     expect(game.state.band.id).toBe('take-aways');
   });
 
-  it('never stacks more than two rows on the path at once', () => {
+  it('keeps the path readable: never more than three rows in the air', () => {
     const game = createRun({ seed: 3, health: 99999 });
     let peak = 0;
     for (let i = 0; i < 60 * 240; i += 1) {
@@ -60,8 +60,10 @@ describe('a run opening', () => {
       game.step(FRAME);
       peak = Math.max(peak, game.state.rows.filter((entry) => !entry.resolved).length);
     }
-    // Three walls of obstacles at once read as noise rather than as a choice.
-    expect(peak).toBeLessThanOrEqual(2);
+    // Rows share the path on purpose — a second row at a different distance is
+    // the only way the varying speeds are visible — but a fourth would be noise.
+    expect(peak).toBeLessThanOrEqual(3);
+    expect(peak).toBeGreaterThanOrEqual(2);
   });
 });
 

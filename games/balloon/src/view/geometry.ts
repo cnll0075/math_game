@@ -23,7 +23,7 @@ export const LAYOUT = {
   trayLeft: 50,
   trayRight: 890,
   /** In wind, each puff in the tray gets this much of the strip's right end. */
-  puffSlot: 70,
+  puffSlot: 80,
   button: { left: 912, top: 626, width: 210, height: 116 },
   /** From the feet up to the ring the balloon strings tie to. */
   harnessHeight: 118,
@@ -39,6 +39,9 @@ export const ledgeSpot = (def: RescueDef): Point =>
   def.wind
     ? { x: LAYOUT.homeX + def.wind.ledge * LAYOUT.stepWidth, y: LAYOUT.ledgeY }
     : { x: LAYOUT.cliffEdgeX - 80, y: LAYOUT.ledgeY };
+
+/** Where the rope from a tied bunch is pegged down: beside the kit, clear of the first step post. */
+export const pegPoint = (feet: Point): Point => ({ x: feet.x + 50, y: feet.y + 6 });
 
 export const harnessPoint = (at: Point): Point => ({ x: at.x, y: at.y - LAYOUT.harnessHeight });
 

@@ -24,7 +24,8 @@ const during = (t: number, from: number, to: number): number => clamp01((t - fro
  */
 export function flightPose(def: RescueDef, outcome: Outcome, rawT: number): Pose {
   const t = clamp01(rawT);
-  const hover = LAYOUT.ledgeY - 26;
+  // Just clear of the ledge's grass: high enough to drift over it, no higher.
+  const hover = LAYOUT.ledgeY - 14;
 
   if (outcome.verdict === 'exact') {
     const spot = ledgeSpot(def);

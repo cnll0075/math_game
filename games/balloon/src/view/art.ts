@@ -1,6 +1,6 @@
 import { hand, label, type Bounds, type Point } from '@bundle/core';
 import type { Mood } from './flight.js';
-import { balloonRadius, LAYOUT, PUFF_RADIUS } from './geometry.js';
+import { balloonRadius, LAYOUT, pegPoint, PUFF_RADIUS } from './geometry.js';
 
 const INK = '#1e2a38';
 const TAU = Math.PI * 2;
@@ -134,13 +134,13 @@ export function drawWindSock(ctx: CanvasRenderingContext2D, wind: number): void 
 
 /** The rope from the harness down to a peg: tied balloons cannot float off by themselves. */
 export function drawRope(ctx: CanvasRenderingContext2D, feet: Point): void {
-  const peg = { x: feet.x + 78, y: feet.y + 6 };
+  const peg = pegPoint(feet);
   ctx.save();
   ctx.strokeStyle = '#9b7b52';
   ctx.lineWidth = 4;
   ctx.beginPath();
   ctx.moveTo(feet.x + 18, feet.y - 60);
-  ctx.quadraticCurveTo(feet.x + 70, feet.y - 20, peg.x, peg.y - 16);
+  ctx.quadraticCurveTo(feet.x + 46, feet.y - 30, peg.x, peg.y - 16);
   ctx.stroke();
   ctx.fillStyle = '#7a5a38';
   ctx.fillRect(peg.x - 6, peg.y - 22, 12, 30);

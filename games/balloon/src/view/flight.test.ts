@@ -44,6 +44,14 @@ describe('the flight', () => {
     expect(landed.parachute).toBe(true);
   });
 
+  it('drifts only just above the ledge, never up over the story line', () => {
+    for (const have of [5, 9]) {
+      for (let t = 0; t <= 1; t += 0.02) {
+        expect(flightPose(windy, judge(4, 4, { have, need: 7 }), t).at.y).toBeGreaterThanOrEqual(LAYOUT.ledgeY - 16);
+      }
+    }
+  });
+
   it('holds still outside 0..1', () => {
     expect(flightPose(still, judge(8, 8), 1.5).at).toEqual(ledgeSpot(still));
     expect(flightPose(still, judge(8, 8), -1).at).toEqual(HOME);

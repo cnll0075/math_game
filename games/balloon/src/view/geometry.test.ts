@@ -3,7 +3,7 @@ import { DESIGN } from '@bundle/core';
 import { createRescue } from '../logic/rescue.js';
 import { RESCUES } from '../logic/levels.data.js';
 import type { RescueDef } from '../logic/rescue-def.js';
-import { balloonRadius, bunchPoint, HOME, hitTest, LAYOUT, ledgeSpot, puffTrayPoint, trayPoint } from './geometry.js';
+import { balloonRadius, bunchPoint, HOME, hitTest, LAYOUT, ledgeSpot, pegPoint, PUFF_RADIUS, puffTrayPoint, trayPoint } from './geometry.js';
 
 const def: RescueDef = { id: 'g', line: '', weight: 8, tray: [5, 3, 6, 2] };
 
@@ -26,6 +26,21 @@ describe('geometry', () => {
         expect(puffTrayPoint(rescue, index).x, rescue.id).toBeLessThan(LAYOUT.button.left);
       });
     }
+  });
+
+  it('gives each puff in the tray room for its gusts, so none overlaps the next', () => {
+    for (const rescue of RESCUES) {
+      const puffs = rescue.wind?.puffs ?? [];
+      for (let index = 1; index < puffs.length; index += 1) {
+        const gap = puffTrayPoint(rescue, index).x - puffTrayPoint(rescue, index - 1).x;
+        expect(gap, rescue.id).toBeGreaterThanOrEqual(2 * PUFF_RADIUS + 24);
+      }
+    }
+  });
+
+  it('keeps the peg clear of the first step post', () => {
+    const firstPost = LAYOUT.homeX + LAYOUT.stepWidth;
+    expect(Math.abs(pegPoint(HOME).x - firstPost)).toBeGreaterThanOrEqual(16);
   });
 
   it('puts the ledge on screen, above the ground', () => {

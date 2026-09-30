@@ -138,6 +138,19 @@ describe('the maths is load-bearing', () => {
     }
   });
 
+  it('speeds up for a player who earns it, and not for one who does not', () => {
+    const skilled = createRun({ seed: 3 });
+    playWell(skilled, 240);
+    const guessing = createRun({ seed: 3 });
+    playBlind(guessing, 240, 3);
+
+    // The ramp answers to bursts, not to the clock: get good and the path
+    // answers back, struggle and it waits for you.
+    expect(skilled.state.tempo.minGap).toBeLessThan(2);
+    expect(guessing.state.tempo.minGap).toBeGreaterThan(2.5);
+    expect(skilled.state.tempo.minGap).toBeLessThan(guessing.state.tempo.minGap - 0.8);
+  });
+
   /**
    * The test this design exists to pass. Three lanes means guessing is right one
    * time in three and pays 10% on the other two, so a guesser should be finished
@@ -145,12 +158,12 @@ describe('the maths is load-bearing', () => {
    * stopped mattering — fix the game, never the test.
    */
   it('cannot be guessed: picking lanes at random empties the tank', () => {
-    // Two and a half minutes, because the path is deliberately sparse now — the
-    // floor gives a child time to read, which also means fewer rows a minute to
-    // get wrong. Measured at 64 to 97 seconds.
+    // Four minutes, because the pace is driven by bursts: a guesser earns few
+    // of them, so the path never speeds up for them and there are fewer rows a
+    // minute to get wrong. Measured at 107 to 152 seconds.
     for (const seed of SEEDS) {
       const game = createRun({ seed });
-      playBlind(game, 150, seed);
+      playBlind(game, 240, seed);
       expect(game.state.status, `seed ${seed} guessed its way through`).toBe('over');
     }
   });
@@ -158,7 +171,7 @@ describe('the maths is load-bearing', () => {
   it('cannot be ignored: never steering empties it too', () => {
     for (const seed of SEEDS) {
       const game = createRun({ seed });
-      playStill(game, 150);
+      playStill(game, 240);
       expect(game.state.status, `seed ${seed} survived without steering`).toBe('over');
     }
   });

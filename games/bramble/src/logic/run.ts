@@ -100,7 +100,7 @@ export function createRun(options: RunOptions = {}): Run {
     bestStreak: 0,
     distance: 0,
     band: bandAt(opened),
-    tempo: tempoAt(opened),
+    tempo: tempoAt(0),
     rows: [],
     berries: [],
     rabbitX: snapToLane(0.5),
@@ -179,7 +179,9 @@ export function createRun(options: RunOptions = {}): Run {
     if (state.status === 'over') return events;
 
     state.elapsed += dt;
-    state.tempo = tempoAt(state.elapsed);
+    // Keyed to bursts, not to the clock: the path answers back to how well the
+    // player is doing rather than to how long they have been sitting there.
+    state.tempo = tempoAt(state.score);
     const band = bandAt(state.elapsed);
     if (band.id !== state.band.id) {
       state.band = band;

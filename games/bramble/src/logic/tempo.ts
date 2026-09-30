@@ -18,11 +18,22 @@ export interface Tempo {
    * means mostly tight. This is what makes the cadence pick up over a run.
    */
   pressure: number;
+  /**
+   * How far the long shapes reach past the floor, 1 down to nearly 0. At 1 a
+   * breather is well over twice the floor; near 0 every shape is close to it,
+   * so the path is relentless as well as quick.
+   */
+  spread: number;
   /** Chance a long enough gap carries a carrot. */
   berryChance: number;
 }
 
-const RAMP_SECONDS = 180;
+/**
+ * Bursts to full pace. The ramp is driven by what the player has *done*, not by
+ * how long they have been sitting there: get good and the path answers back.
+ * A child who is struggling never gets rushed, and one who is flying does.
+ */
+const RAMP_BURSTS = 60;
 /**
  * How long a row takes to come down the path, as a multiple of the floor. Three
  * speeds, drawn per row.
@@ -53,14 +64,18 @@ const lerp = (from: number, to: number, t: number): number => from + (to - from)
 /** Ease out, so the first minute tightens gently and the third is brisk. */
 const ease = (t: number): number => 1 - (1 - t) * (1 - t);
 
-export function tempoAt(elapsed: number): Tempo {
-  const ramp = ease(clamp01(elapsed / RAMP_SECONDS));
-  const beyond = clamp01((elapsed - RAMP_SECONDS) / RAMP_SECONDS);
-  const minGap = lerp(3.6, 2.2, ramp) - 0.2 * beyond;
+export function tempoAt(bursts: number): Tempo {
+  const ramp = ease(clamp01(bursts / RAMP_BURSTS));
+  const beyond = clamp01((bursts - RAMP_BURSTS) / RAMP_BURSTS);
+  const minGap = lerp(3.6, 1.8, ramp) - 0.15 * beyond;
   return {
     minGap,
     approachSeconds: minGap * LOOK_AHEAD,
     pressure: clamp01(0.15 + 0.78 * ramp),
+    // The spread narrows as the pace climbs, so a late breather is shorter than
+    // an early tight gap. Without that the ranges overlapped almost completely
+    // and no amount of ramping the average could be felt.
+    spread: 1 - 0.72 * ramp,
     berryChance: lerp(0.4, 0.22, ramp),
   };
 }
@@ -89,7 +104,8 @@ export const ROOMY_GAP = GAP_SHAPES.steady;
 /** How long the next row should take to come down. */
 export function drawApproach(rng: Rng, tempo: Tempo): { seconds: number; speed: Approach } {
   const speed = rng.pick(['quick', 'quick', 'even', 'slow', 'slow'] as const);
-  return { seconds: tempo.minGap * APPROACHES[speed], speed };
+  const reach = 1 + (APPROACHES[speed] - 1) * tempo.spread;
+  return { seconds: tempo.minGap * reach, speed };
 }
 
 export function drawGap(rng: Rng, tempo: Tempo): { seconds: number; shape: GapShape } {
@@ -110,5 +126,7 @@ export function drawGap(rng: Rng, tempo: Tempo): { seconds: number; shape: GapSh
   }
   // A little wobble on top, so even two breathers in a row are not twins.
   const wobble = 1 + (rng.next() * 2 - 1) * 0.1;
-  return { seconds: tempo.minGap * GAP_SHAPES[shape] * wobble, shape };
+  // The shape's reach past the floor shrinks as the pace climbs.
+  const reach = 1 + (GAP_SHAPES[shape] - 1) * tempo.spread;
+  return { seconds: tempo.minGap * reach * wobble, shape };
 }

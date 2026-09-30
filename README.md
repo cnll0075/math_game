@@ -531,19 +531,27 @@ A breather is longer than the path is deep, so it empties the path completely:
 that emptiness is the rest, and the rabbit's sign goes away with it rather than
 hanging there blank.
 
-What never moves under the player is the **floor**: the shortest gap the game
-will ever ask for. Measured, from the moment a sum appears on the sign to the
-moment its row lands:
+**The pace is driven by bursts, not by the clock.** Every obstacle burst tightens
+the path; sixty of them reach full pace. Get good and it answers back; struggle
+and it waits for you. Measured after four minutes, a player reading the sums has
+driven the floor down to 1.67s while a guesser is still at 3.4s — the path only
+speeds up for someone earning it.
 
-| | Least time given | Typical |
+The spread narrows as the pace climbs, which is the part that makes the speed-up
+*felt*. Without it a breather late in a run was longer than a tight gap at the
+start, the ranges overlapped almost completely, and no amount of ramping the
+average showed:
+
+| Bursts | Floor | Gaps you actually see |
 | --- | --- | --- |
-| 0:00 | 2.07s | 3.17s |
-| 2:00 | 1.85s | 2.40s |
-| 5:00 | 1.80s | 2.30s |
+| 0 | 3.6s | 3.2 – 9.1s |
+| 20 | 2.6s | 2.3 – 5.1s |
+| 40 | 2.0s | 1.8 – 3.2s |
+| 60 | 1.8s | 1.6 – 2.7s |
 
-Never under 1.8s, ten minutes in. The ramp is in **reading speed**, not reaction
-time: what shrinks is the room between rows, never below the time it takes a
-child to read a sum and pick a lane.
+What never moves under the player is the **floor**: the shortest gap the game
+will ever ask for, and never under about 1.6 seconds however far a run goes. The
+ramp is in **reading speed**, not reaction time.
 
 Two things that had to be right for that floor to be real:
 

@@ -146,9 +146,9 @@ describe('the maths is load-bearing', () => {
 
     // The ramp answers to bursts, not to the clock: get good and the path
     // answers back, struggle and it waits for you.
-    expect(skilled.state.tempo.minGap).toBeLessThan(2);
-    expect(guessing.state.tempo.minGap).toBeGreaterThan(2.5);
-    expect(skilled.state.tempo.minGap).toBeLessThan(guessing.state.tempo.minGap - 0.8);
+    expect(skilled.state.tempo.minGap).toBeLessThan(1.9);
+    expect(guessing.state.tempo.minGap).toBeGreaterThan(2.1);
+    expect(skilled.state.tempo.minGap).toBeLessThan(guessing.state.tempo.minGap - 0.3);
   });
 
   /**

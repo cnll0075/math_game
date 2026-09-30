@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { createRng } from '@bundle/core';
-import { drawGap, ROOMY_GAP, tempoAt } from './tempo.js';
+import { drawApproach, drawGap, ROOMY_GAP, tempoAt } from './tempo.js';
 
 describe('tempoAt', () => {
-  it('opens with plenty of time to read a row', () => {
+  it('opens brisk but readable, not with a lull', () => {
     const tempo = tempoAt(0);
-    expect(tempo.minGap).toBeCloseTo(3.6, 5);
+    expect(tempo.minGap).toBeCloseTo(2.4, 5);
     expect(tempo.approachSeconds).toBeGreaterThan(tempo.minGap);
   });
 
@@ -23,14 +23,29 @@ describe('tempoAt', () => {
     }
   });
 
-  it('narrows the spread as the pace climbs, so the speed-up can be felt', () => {
+  it('narrows the gaps as the pace climbs, so the speed-up can be felt', () => {
     // Without this a breather late in a run was longer than a tight gap at the
     // start: the ranges overlapped and no amount of ramping the average showed.
     const early = tempoAt(0);
     const late = tempoAt(60);
-    const longest = (t: typeof early): number => t.minGap * (1 + (2.3 - 1) * t.spread);
+    const longest = (t: typeof early): number => t.minGap * (1 + (2.3 - 1) * t.gapSpread);
     expect(longest(late)).toBeLessThan(early.minGap);
-    expect(late.spread).toBeLessThan(early.spread);
+    expect(late.gapSpread).toBeLessThan(early.gapSpread);
+  });
+
+  it('keeps the opening brisk: no gap at the start is a lull', () => {
+    const early = tempoAt(0);
+    const longestOpening = early.minGap * (1 + (2.3 - 1) * early.gapSpread) * 1.1;
+    // Counted at four to five seconds once, which read as the game not having
+    // started. Nothing at the start should be near that.
+    expect(longestOpening).toBeLessThan(4);
+  });
+
+  it('keeps the speeds varied even as the gaps tighten', () => {
+    // The gaps carry the rhythm; the speeds carry the variation you can see.
+    for (const n of [0, 30, 60, 120]) {
+      expect(tempoAt(n).speedSpread).toBeGreaterThan(0.5);
+    }
   });
 
   it('only ever presses harder, and never below its floor', () => {
@@ -70,12 +85,23 @@ describe('drawGap', () => {
     expect([...shapes].sort()).toEqual(['breather', 'steady', 'tight']);
   });
 
-  it('spreads the gaps widely, not around one beat', () => {
+  it('phrases the gaps without letting any of them become a lull', () => {
     const rng = createRng(7);
     const tempo = tempoAt(5);
     const gaps = Array.from({ length: 300 }, () => drawGap(rng, tempo).seconds);
-    // Longest at least twice the shortest: that spread is the rhythm.
-    expect(Math.max(...gaps) / Math.min(...gaps)).toBeGreaterThan(2);
+    const spread = Math.max(...gaps) / Math.min(...gaps);
+    // Enough to be phrasing rather than a beat, but not so much that a breather
+    // reads as the game having stopped. The variation a player *sees* is in the
+    // speeds, not here.
+    expect(spread).toBeGreaterThan(1.4);
+    expect(spread).toBeLessThan(2.2);
+  });
+
+  it('spreads the speeds widely, which is the variation on screen', () => {
+    const rng = createRng(9);
+    const tempo = tempoAt(5);
+    const speeds = Array.from({ length: 300 }, () => drawApproach(rng, tempo).seconds);
+    expect(Math.max(...speeds) / Math.min(...speeds)).toBeGreaterThan(1.8);
   });
 
   it('crowds out the breathers as the run presses on', () => {

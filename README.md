@@ -542,15 +542,21 @@ The spread narrows as the pace climbs, which is the part that makes the speed-up
 start, the ranges overlapped almost completely, and no amount of ramping the
 average showed:
 
-| Bursts | Floor | Gaps you actually see |
-| --- | --- | --- |
-| 0 | 3.6s | 3.2 – 9.1s |
-| 20 | 2.6s | 2.3 – 5.1s |
-| 40 | 2.0s | 1.8 – 3.2s |
-| 60 | 1.8s | 1.6 – 2.7s |
+| Bursts | Floor | Gaps you actually see | Speeds you see |
+| --- | --- | --- | --- |
+| 0 | 2.4s | 2.2 – 3.8s | 2.8 – 5.8s |
+| 20 | 2.0s | 1.8 – 2.8s | 2.2 – 4.0s |
+| 40 | 1.7s | 1.5 – 2.3s | 1.8 – 3.1s |
+| 60 | 1.6s | 1.4 – 2.1s | 1.7 – 2.8s |
+
+Two spreads, doing different jobs. The **gaps** carry the rhythm and are kept
+modest even at the start — an opening full of breathers reads as a game that has
+not begun. The **speeds** carry the variation you can see, and stay wide
+throughout: one row drifting while another closes up behind it costs nothing in
+rhythm.
 
 What never moves under the player is the **floor**: the shortest gap the game
-will ever ask for, and never under about 1.6 seconds however far a run goes. The
+will ever ask for, and never under about 1.4 seconds however far a run goes. The
 ramp is in **reading speed**, not reaction time.
 
 Two things that had to be right for that floor to be real:

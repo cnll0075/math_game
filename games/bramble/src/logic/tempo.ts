@@ -19,11 +19,16 @@ export interface Tempo {
    */
   pressure: number;
   /**
-   * How far the long shapes reach past the floor, 1 down to nearly 0. At 1 a
-   * breather is well over twice the floor; near 0 every shape is close to it,
-   * so the path is relentless as well as quick.
+   * How far the long *gaps* reach past the floor. Kept modest even at the start:
+   * an opening dominated by breathers reads as a game that has not begun.
    */
-  spread: number;
+  gapSpread: number;
+  /**
+   * How far the slow *speeds* reach past the floor. Kept wide, because this is
+   * the variation a player can actually see — one row drifting while another
+   * closes up behind it — and it costs nothing in rhythm.
+   */
+  speedSpread: number;
   /** Chance a long enough gap carries a carrot. */
   berryChance: number;
 }
@@ -67,15 +72,16 @@ const ease = (t: number): number => 1 - (1 - t) * (1 - t);
 export function tempoAt(bursts: number): Tempo {
   const ramp = ease(clamp01(bursts / RAMP_BURSTS));
   const beyond = clamp01((bursts - RAMP_BURSTS) / RAMP_BURSTS);
-  const minGap = lerp(3.6, 1.8, ramp) - 0.15 * beyond;
+  const minGap = lerp(2.4, 1.6, ramp) - 0.1 * beyond;
   return {
     minGap,
     approachSeconds: minGap * LOOK_AHEAD,
-    pressure: clamp01(0.15 + 0.78 * ramp),
-    // The spread narrows as the pace climbs, so a late breather is shorter than
-    // an early tight gap. Without that the ranges overlapped almost completely
-    // and no amount of ramping the average could be felt.
-    spread: 1 - 0.72 * ramp,
+    pressure: clamp01(0.3 + 0.65 * ramp),
+    // The gap spread narrows as the pace climbs, so the slowest stretch late in
+    // a run is still brisker than the quickest stretch at the start. Without
+    // that the ranges overlapped and no amount of ramping the average showed.
+    gapSpread: lerp(0.35, 0.15, ramp),
+    speedSpread: lerp(1, 0.55, ramp),
     berryChance: lerp(0.4, 0.22, ramp),
   };
 }
@@ -104,7 +110,7 @@ export const ROOMY_GAP = GAP_SHAPES.steady;
 /** How long the next row should take to come down. */
 export function drawApproach(rng: Rng, tempo: Tempo): { seconds: number; speed: Approach } {
   const speed = rng.pick(['quick', 'quick', 'even', 'slow', 'slow'] as const);
-  const reach = 1 + (APPROACHES[speed] - 1) * tempo.spread;
+  const reach = 1 + (APPROACHES[speed] - 1) * tempo.speedSpread;
   return { seconds: tempo.minGap * reach, speed };
 }
 
@@ -127,6 +133,6 @@ export function drawGap(rng: Rng, tempo: Tempo): { seconds: number; shape: GapSh
   // A little wobble on top, so even two breathers in a row are not twins.
   const wobble = 1 + (rng.next() * 2 - 1) * 0.1;
   // The shape's reach past the floor shrinks as the pace climbs.
-  const reach = 1 + (GAP_SHAPES[shape] - 1) * tempo.spread;
+  const reach = 1 + (GAP_SHAPES[shape] - 1) * tempo.gapSpread;
   return { seconds: tempo.minGap * reach * wobble, shape };
 }

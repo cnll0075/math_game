@@ -59,6 +59,21 @@ describe('geometry', () => {
     expect(hitTest(trayPoint(def, 2), rescue.state)).toBeNull();
   });
 
+  it('clips the balloon under the finger even where a squeezed tray lets tap circles overlap', () => {
+    for (const rescue of RESCUES) {
+      const state = createRescue(rescue).state;
+      rescue.tray.forEach((value, index) => {
+        const centre = trayPoint(rescue, index);
+        const reach = balloonRadius(value) * 0.8;
+        for (let step = 0; step < 8; step += 1) {
+          const angle = (step / 8) * Math.PI * 2;
+          const point = { x: centre.x + Math.cos(angle) * reach, y: centre.y + Math.sin(angle) * reach };
+          expect(hitTest(point, state), `${rescue.id} balloon ${index}`).toEqual({ kind: 'tray', index });
+        }
+      });
+    }
+  });
+
   it('finds a clipped balloon on the harness', () => {
     const rescue = createRescue(def);
     rescue.clip(0);

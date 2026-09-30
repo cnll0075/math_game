@@ -126,18 +126,22 @@ export function hitTest(point: Point, state: RescueState): Intent | null {
     if (near(point, puffPoint(slot, HOME), PUFF_RADIUS + 8)) return { kind: 'puffSlot', slot };
   }
 
+  // A squeezed tray lets neighbouring tap circles overlap, so the nearest
+  // centre wins rather than whichever balloon happens to come first.
   const def = state.def;
-  for (let index = 0; index < def.tray.length; index += 1) {
-    if (trayTaken(state, index)) continue;
-    if (near(point, trayPoint(def, index), balloonRadius(def.tray[index]!) + 10)) return { kind: 'tray', index };
-  }
-
-  const puffs = def.wind?.puffs ?? [];
-  for (let index = 0; index < puffs.length; index += 1) {
-    if (puffTaken(state, index)) continue;
-    if (near(point, puffTrayPoint(def, index), PUFF_RADIUS + 12)) return { kind: 'puff', index };
-  }
-  return null;
+  const candidates: Array<{ intent: Intent; distance: number }> = [];
+  const consider = (intent: Intent, centre: Point, radius: number): void => {
+    const distance = Math.hypot(point.x - centre.x, point.y - centre.y);
+    if (distance <= radius) candidates.push({ intent, distance });
+  };
+  def.tray.forEach((value, index) => {
+    if (!trayTaken(state, index)) consider({ kind: 'tray', index }, trayPoint(def, index), balloonRadius(value) + 10);
+  });
+  def.wind?.puffs.forEach((_, index) => {
+    if (!puffTaken(state, index)) consider({ kind: 'puff', index }, puffTrayPoint(def, index), PUFF_RADIUS + 12);
+  });
+  candidates.sort((a, b) => a.distance - b.distance);
+  return candidates[0]?.intent ?? null;
 }
 
 /** For clamping a drift that went past the edge of the world. */

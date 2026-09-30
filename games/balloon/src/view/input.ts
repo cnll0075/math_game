@@ -41,6 +41,12 @@ export function createInput(
   const onPointerDown = (event: PointerEvent): void => {
     canvas.setPointerCapture?.(event.pointerId);
     const { phase, rescue } = current();
+    // A finger that went down mid-flight belongs to nothing; lifting it after
+    // landing must not count as the tap that moves on.
+    if (phase === 'flying') {
+      pressed = null;
+      return;
+    }
     const at = designPoint(event);
     pressed = { intent: phase === 'building' ? hitTest(at, rescue) : null, at };
   };

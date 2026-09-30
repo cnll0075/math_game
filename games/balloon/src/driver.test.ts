@@ -6,7 +6,8 @@ const FRAME = 1 / 60;
 
 const settle = (driver: Driver) => {
   const events = [];
-  for (let i = 0; i < 60 * 12 && driver.phase === 'flying'; i += 1) events.push(...driver.step(FRAME));
+  const waiting = () => driver.phase === 'flying' || (driver.phase === 'rescued' && !driver.readyForNext);
+  for (let i = 0; i < 60 * 12 && waiting(); i += 1) events.push(...driver.step(FRAME));
   return events;
 };
 
@@ -60,6 +61,19 @@ describe('the driver', () => {
     expect(driver.act({ kind: 'tray', index: 0 })).toEqual([]);
     driver.act({ kind: 'next' });
     expect(driver.phase).toBe('building');
+    expect(driver.rescue.state.def.id).toBe('first-flight-2');
+  });
+
+  it('waits for the sum and the stars before a tap moves on', () => {
+    const driver = createDriver({ book: {} });
+    driver.act({ kind: 'tray', index: 0 });
+    driver.act({ kind: 'letGo' });
+    for (let i = 0; i < 60 * 12 && driver.phase === 'flying'; i += 1) driver.step(FRAME);
+    expect(driver.phase).toBe('rescued');
+    expect(driver.act({ kind: 'next' })).toEqual([]);
+    expect(driver.rescue.state.def.id).toBe('first-flight-1');
+    for (let i = 0; i < 60 * 5 && !driver.readyForNext; i += 1) driver.step(FRAME);
+    driver.act({ kind: 'next' });
     expect(driver.rescue.state.def.id).toBe('first-flight-2');
   });
 

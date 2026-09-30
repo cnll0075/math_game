@@ -5,7 +5,7 @@ import { MAX_STARS, startIndex, totalStars } from './logic/progress.js';
 import { createRescue, liftedValues, type Rescue, type RescueEvent, type RescueState } from './logic/rescue.js';
 import type { ChapterDef } from './logic/rescue-def.js';
 import { recordStars, starsFor, type StarBook } from './logic/stars.js';
-import { countSeconds, flySeconds } from './view/timing.js';
+import { countSeconds, flySeconds, TIMING } from './view/timing.js';
 
 export type Phase = 'building' | 'flying' | 'rescued' | 'finished';
 
@@ -58,6 +58,12 @@ export interface Driver {
   /** Stars for the rescue just finished. */
   readonly earned: number | null;
   readonly book: StarBook;
+  /**
+   * Whether a tap may move on. Not until the sum and every star have been
+   * shown: a child still tapping as the kit lands would otherwise skip the
+   * teaching beat without ever seeing it.
+   */
+  readonly readyForNext: boolean;
   step(dt: number): DriverEvent[];
   act(intent: Intent): DriverEvent[];
   model(): SceneModel;
@@ -77,6 +83,8 @@ export function createDriver(options: DriverOptions): Driver {
   let flight: Flight | null = null;
   let feedback: Outcome | null = null;
   let earned: number | null = null;
+  /** Seconds since the rescue landed. */
+  let since = 0;
   let pending: DriverEvent[] = [{ type: 'chapter', chapter: chapterOf(rescue.state.def) }];
 
   const open = (next: number): DriverEvent[] => {
@@ -87,6 +95,7 @@ export function createDriver(options: DriverOptions): Driver {
     flight = null;
     feedback = null;
     earned = null;
+    since = 0;
     const chapter = chapterOf(rescue.state.def);
     return chapter === before ? [] : [{ type: 'chapter', chapter }];
   };
@@ -110,7 +119,14 @@ export function createDriver(options: DriverOptions): Driver {
     }
   };
 
+  const readyForNext = (): boolean =>
+    phase === 'finished' ||
+    (phase === 'rescued' && since >= TIMING.starsDelaySeconds + (earned ?? 0) * TIMING.starSeconds);
+
   return {
+    get readyForNext() {
+      return readyForNext();
+    },
     get phase() {
       return phase;
     },
@@ -132,7 +148,7 @@ export function createDriver(options: DriverOptions): Driver {
 
     act(intent) {
       if (phase === 'rescued' || phase === 'finished') {
-        if (intent.kind !== 'next') return [];
+        if (intent.kind !== 'next' || !readyForNext()) return [];
         if (phase === 'finished') return open(0);
         if (index + 1 >= RESCUES.length) {
           phase = 'finished';
@@ -162,6 +178,7 @@ export function createDriver(options: DriverOptions): Driver {
     step(dt) {
       const events = pending;
       pending = [];
+      if (phase === 'rescued') since += dt;
       if (phase !== 'flying' || !flight) return events;
 
       flight.t += dt;
@@ -175,6 +192,7 @@ export function createDriver(options: DriverOptions): Driver {
         earned = starsFor(rescue.state.tries);
         book = recordStars(book, id, earned);
         phase = 'rescued';
+        since = 0;
         events.push({ type: 'rescued', id, stars: earned, book });
       } else {
         phase = 'building';

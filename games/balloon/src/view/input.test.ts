@@ -92,6 +92,19 @@ describe('input', () => {
     input.dispose();
   });
 
+  it('ignores a finger pressed during the flight and lifted after landing', () => {
+    const canvas = canvasOf(1152, 768);
+    const intents: Intent[] = [];
+    let phase: Phase = 'flying';
+    const rescue = createRescue(def);
+    const input = createInput(canvas, createScene(), (intent) => intents.push(intent), () => ({ phase, rescue: rescue.state }));
+    pointer(canvas, 'pointerdown', 600, 300);
+    phase = 'rescued';
+    pointer(canvas, 'pointerup', 600, 300);
+    expect(intents).toEqual([]);
+    input.dispose();
+  });
+
   it('does nothing while the kit is flying', () => {
     const { canvas, intents, input } = setup(1152, 768, 'flying');
     const at = trayPoint(def, 0);

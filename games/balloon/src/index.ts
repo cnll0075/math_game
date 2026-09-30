@@ -19,7 +19,7 @@ export interface BalloonOptions {
 export interface BalloonTestHooks {
   step(frames?: number): void;
   act(intent: Intent): void;
-  /** Step until the kit is back on the ground or on the ledge. */
+  /** Step until the kit is back on the ground, or on the ledge with its stars shown. */
   settle(): void;
   /** Work the sum out, let go, and land. */
   answer(): void;
@@ -160,7 +160,8 @@ export const balloonGame: BalloonModule = {
     ticker.start();
 
     const settle = (): void => {
-      for (let i = 0; i < 60 * 12 && driver.phase === 'flying'; i += 1) frame(1 / 60);
+      const waiting = () => driver.phase === 'flying' || (driver.phase === 'rescued' && !driver.readyForNext);
+      for (let i = 0; i < 60 * 12 && waiting(); i += 1) frame(1 / 60);
     };
 
     return {

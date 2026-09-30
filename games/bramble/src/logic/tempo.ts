@@ -24,12 +24,12 @@ export interface Tempo {
 
 const RAMP_SECONDS = 180;
 /**
- * A row is visible for this many of its own shortest gaps before it lands. It
- * has to exceed the longest gap the game can draw (a breather, plus its
- * wobble), or a breather would leave the path empty and the rabbit with no sum
- * on its sign at all.
+ * How far ahead a row is put on the path, as a multiple of the floor. Kept low
+ * on purpose: at 2.75 there were three walls of obstacles on screen at once and
+ * it read as a wall of noise. Below the longest gap, so a breather genuinely
+ * empties the path — that emptiness is the rest.
  */
-const LOOK_AHEAD = 2.75;
+const LOOK_AHEAD = 1.7;
 
 const clamp01 = (value: number): number => Math.min(1, Math.max(0, value));
 const lerp = (from: number, to: number, t: number): number => from + (to - from) * t;
@@ -39,7 +39,7 @@ const ease = (t: number): number => 1 - (1 - t) * (1 - t);
 export function tempoAt(elapsed: number): Tempo {
   const ramp = ease(clamp01(elapsed / RAMP_SECONDS));
   const beyond = clamp01((elapsed - RAMP_SECONDS) / RAMP_SECONDS);
-  const minGap = lerp(2.4, 1.3, ramp) - 0.15 * beyond;
+  const minGap = lerp(3.6, 2.2, ramp) - 0.2 * beyond;
   return {
     minGap,
     approachSeconds: minGap * LOOK_AHEAD,
@@ -56,8 +56,8 @@ export function tempoAt(elapsed: number): Tempo {
  */
 const GAP_SHAPES = {
   tight: 1.0,
-  steady: 1.5,
-  breather: 2.35,
+  steady: 1.45,
+  breather: 2.3,
 } as const;
 
 export type GapShape = keyof typeof GAP_SHAPES;

@@ -3,7 +3,7 @@ import { bandAt, bandById, type Band, type BandId, type Sum } from '@bundle/math
 import { makeBerry, BERRY_LATEST_SHARE, type Berry } from './berries.js';
 import { laneAt, snapToLane } from './lanes.js';
 import { buildRow, type Row } from './row.js';
-import { drawGap, ROOMY_GAP, tempoAt, type Tempo } from './tempo.js';
+import { drawGap, tempoAt, type Tempo } from './tempo.js';
 
 export type RunEvent =
   | { type: 'row'; row: Row }
@@ -97,19 +97,30 @@ export function createRun(options: RunOptions = {}): Run {
     status: 'running',
   };
 
-  /** Seconds until the next row is sent, so a berry knows how much gap is left. */
-  let untilNextRow = 0;
-  /** Whether this gap has already had its berry. */
+  /**
+   * When the next row should *land*, not when it should be sent. Rows take their
+   * approach time from the tempo at the moment they spawn, and that time shrinks
+   * as a run goes on — so spacing the spawns evenly let later rows catch up the
+   * ones ahead and land far closer together than the floor promised. Scheduling
+   * the arrival and working backwards is what makes the floor real.
+   */
+  let nextArrival = 0;
+  /** The gap this arrival is from the one before, for the carrot rule. */
+  let gap = 0;
+  let gapIsRoomy = true;
+  /** Whether this gap has already had its carrot. */
   let berryThisGap = false;
+  /** Set once the row for `nextArrival` is on the path. */
+  let sent = false;
 
-  const sendRow = (events: RunEvent[]): void => {
-    const row = buildRow(rng, state.band, nextUid('row'), state.tempo.approachSeconds);
+  const sendRow = (events: RunEvent[], approachSeconds = state.tempo.approachSeconds): void => {
+    const row = buildRow(rng, state.band, nextUid('row'), approachSeconds);
     state.rows.push(row);
     events.push({ type: 'row', row });
   };
 
-  const sendBerry = (events: RunEvent[], gapLeft: number, gap: number): void => {
-    const berry = makeBerry(rng, nextUid('berry'), state.tempo.approachSeconds);
+  const sendBerry = (events: RunEvent[], gapLeft: number, gap: number, approachSeconds: number): void => {
+    const berry = makeBerry(rng, nextUid('berry'), approachSeconds);
     state.berries.push(berry);
     events.push({ type: 'berryArrived', berry, gapLeft, gap });
   };
@@ -127,10 +138,10 @@ export function createRun(options: RunOptions = {}): Run {
 
   // The first row is already on its way when the run opens, so the rabbit has a
   // sum to read from the first frame rather than running at nothing.
-  sendRow([]);
-  let gap = state.tempo.minGap * ROOMY_GAP;
-  let gapIsRoomy = true;
-  untilNextRow = gap;
+  // The first row lands a floor's worth in, so the run opens with a moment of
+  // running rather than with a wall.
+  gap = state.tempo.minGap;
+  nextArrival = opened + gap;
 
   const step = (dt: number): readonly RunEvent[] => {
     const events: RunEvent[] = [];
@@ -195,23 +206,39 @@ export function createRun(options: RunOptions = {}): Run {
       return events;
     }
 
-    // The cadence. A berry lands in the first half of a gap, so there is always
-    // time to reach any lane afterwards.
-    untilNextRow -= worldDt;
-    // Only in a gap with room in it, and only in its second half, so taking a
-    // carrot can never strand the rabbit in the wrong lane when the next row
-    // lands. A tight gap is no place for a treat.
-    if (!berryThisGap && gapIsRoomy && untilNextRow <= gap * BERRY_LATEST_SHARE && untilNextRow > 0) {
-      berryThisGap = true;
-      if (rng.next() < state.tempo.berryChance) sendBerry(events, untilNextRow, gap);
+    // The cadence, scheduled by when things *land* rather than when they are
+    // sent. A row takes its approach time from the tempo at the moment it
+    // spawns, and that time shrinks as a run goes on — so spacing the spawns
+    // evenly let later rows catch the ones ahead and land far closer together
+    // than the floor promised.
+    if (!sent && state.elapsed >= nextArrival - state.tempo.approachSeconds) {
+      sent = true;
+      sendRow(events, Math.max(0.1, nextArrival - state.elapsed));
     }
-    if (untilNextRow <= 0) {
-      sendRow(events);
+
+    // A carrot lands halfway through the gap, so there is always half a gap
+    // left to get back to whichever lane the next row wants. It only appears in
+    // a gap with room in it: a flurry is no place for a treat.
+    const carrotLands = nextArrival - gap * BERRY_LATEST_SHARE;
+    if (
+      !berryThisGap &&
+      gapIsRoomy &&
+      state.elapsed >= carrotLands - state.tempo.approachSeconds &&
+      carrotLands > state.elapsed
+    ) {
+      berryThisGap = true;
+      if (rng.next() < state.tempo.berryChance) {
+        sendBerry(events, nextArrival - carrotLands, gap, Math.max(0.1, carrotLands - state.elapsed));
+      }
+    }
+
+    if (state.elapsed >= nextArrival) {
       const drawn = nextGap();
       gap = drawn.seconds;
       gapIsRoomy = drawn.roomy;
-      untilNextRow = gap;
+      nextArrival = state.elapsed + gap;
       berryThisGap = false;
+      sent = false;
     }
 
     return events;

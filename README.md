@@ -506,26 +506,40 @@ every number full size from the moment it appears.
 
 ### Rhythm
 
-Rows do **not** arrive on a beat. A path that ticks is one long identical
-corridor however much you jitter the tick, so gaps are drawn as *phrases*: tight,
-steady, or a breather. Early on the breathers win and a run reads as
+Rows do **not** arrive on a beat, and only **one is ever on the path at a time**.
+An earlier version put up to three walls of obstacles on screen at once and it
+read as noise rather than as a choice.
 
-```
-2.5   6.1   2.9   3.4   3.9   6.0   2.9   3.0
-```
+Gaps are drawn as phrases — tight, steady, or a breather — each a multiple of a
+floor, with the weighting shifting towards tight as a run goes on. A breather is
+longer than the path is deep, so it empties the path completely: that emptiness
+is the rest, and the rabbit's sign goes away with it rather than hanging there
+blank.
 
-By four minutes the tight ones have crowded them out:
+What never moves under the player is the **floor**: the shortest gap the game
+will ever ask for. Measured, from the moment a sum appears on the sign to the
+moment its row lands:
 
-```
-2.0   1.6   1.8   1.6   1.3   1.6   2.6   2.3
-```
+| | Least time given | Typical |
+| --- | --- | --- |
+| 0:00 | 2.08s | 3.28s |
+| 1:30 | 1.92s | 2.85s |
+| 4:00 | 1.80s | 2.12s |
+| 10:00 | 1.80s | 2.15s |
 
-That is where the cadence lives. What never moves under the player is the
-**floor** — the shortest gap the game will ever ask for, 2.4s at the start and
-1.3s by three minutes. Every phrase is a multiple of it, so a flurry is still
-readable and the ramp is in reading speed rather than reaction time. The path
-always shows more than one row, so the next can be read while the current one
-closes.
+Never under 1.8s, ten minutes in. The ramp is in **reading speed**, not reaction
+time: what shrinks is the room between rows, never below the time it takes a
+child to read a sum and pick a lane.
+
+Two things that had to be right for that floor to be real:
+
+- **Rows are scheduled by when they land, not when they are sent.** A row takes
+  its approach speed from the tempo at the moment it spawns, and that speed
+  shrinks over a run — so evenly spaced spawns let later rows catch the ones
+  ahead and land far closer together than the floor promised. It measured 0.8s
+  at four minutes before this was fixed.
+- **A carrot lands halfway through a gap**, with half a gap still to run, and
+  only ever in a gap with room in it.
 
 ### The test that guards it
 

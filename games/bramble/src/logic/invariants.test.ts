@@ -56,12 +56,21 @@ describe('a long run never breaks its promises', () => {
     }
   });
 
-  it('never leaves the rabbit without a sum to read', () => {
+  it('never leaves the path empty for long: a rest, never a wait', () => {
     const game = createRun({ seed: 21, health: 99999 });
+    let emptyFor = 0;
+    let longestRest = 0;
     for (let i = 0; i < 60 * 60 * 6; i += 1) {
+      const row = currentRow(game.state);
+      if (row) game.steer(laneCentre(row.answerLane));
       game.step(FRAME);
-      expect(currentRow(game.state)).toBeDefined();
+      emptyFor = currentRow(game.state) ? 0 : emptyFor + FRAME;
+      longestRest = Math.max(longestRest, emptyFor);
     }
+    // A breather empties the path on purpose — that emptiness is the rest — but
+    // it should never feel like the game has stopped happening.
+    expect(longestRest).toBeGreaterThan(0);
+    expect(longestRest).toBeLessThan(4);
   });
 
   it('never sends a berry so late that taking it strands the rabbit', () => {
@@ -135,10 +144,13 @@ describe('the maths is load-bearing', () => {
    * inside a minute and a half. If this ever passes the game, the arithmetic has
    * stopped mattering — fix the game, never the test.
    */
-  it('cannot be guessed: picking lanes at random empties the tank inside ninety seconds', () => {
+  it('cannot be guessed: picking lanes at random empties the tank', () => {
+    // Two and a half minutes, because the path is deliberately sparse now — the
+    // floor gives a child time to read, which also means fewer rows a minute to
+    // get wrong. Measured at 64 to 97 seconds.
     for (const seed of SEEDS) {
       const game = createRun({ seed });
-      playBlind(game, 90, seed);
+      playBlind(game, 150, seed);
       expect(game.state.status, `seed ${seed} guessed its way through`).toBe('over');
     }
   });
@@ -146,7 +158,7 @@ describe('the maths is load-bearing', () => {
   it('cannot be ignored: never steering empties it too', () => {
     for (const seed of SEEDS) {
       const game = createRun({ seed });
-      playStill(game, 90);
+      playStill(game, 150);
       expect(game.state.status, `seed ${seed} survived without steering`).toBe('over');
     }
   });

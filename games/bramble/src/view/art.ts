@@ -247,7 +247,10 @@ export function drawRabbit(
   ctx.restore();
 
   // The sum rides on a sign above the rabbit, clear of its body — the lesson
-  // from Sky Patrol, where the fighter's own nose covered the operator.
+  // from Sky Patrol, where the fighter's own nose covered the operator. No sum
+  // means an empty path: the sign goes away entirely rather than hanging there
+  // blank, so a rest looks like a rest.
+  if (options.sum === '') return;
   const signWidth = Math.max(160, options.sum.length * 28);
   // Clear of the ears, which reach about 0.78 of its height above it.
   const signY = at.y - h * 1.18;

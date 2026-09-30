@@ -14,6 +14,18 @@ describe('the driver', () => {
     expect(model.run.rows.length).toBeGreaterThan(0);
   });
 
+  it('shows no sum at all while the path is clear', () => {
+    const driver = createDriver({ best: 0, seed: 1 });
+    let blanked = false;
+    for (let i = 0; i < 60 * 120 && !blanked; i += 1) {
+      driver.step(FRAME);
+      // During a breather there is nothing on the path, and the sign says so
+      // rather than holding a stale sum.
+      blanked = driver.model().sumText === '' && driver.state.stumble === 0;
+    }
+    expect(blanked, 'the path was never once clear').toBe(true);
+  });
+
   it('holds a summary once the tank empties, and reports a new best', () => {
     const driver = createDriver({ best: 0, seed: 2, health: MISS_COST });
     for (let i = 0; i < 60 * 120 && driver.state.status === 'running'; i += 1) driver.step(FRAME);

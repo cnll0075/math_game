@@ -50,3 +50,16 @@ describe('the rest of the scenery', () => {
     expect(depthOf(ctx)).toBe(0);
   });
 });
+
+describe('the rabbit with nothing to answer', () => {
+  it('carries no sign at all while the path is clear', () => {
+    const empty = recordingContext();
+    drawRabbit(empty.ctx, 0.5, { sum: '', stumbling: false, bob: 0 });
+    const asked = recordingContext();
+    drawRabbit(asked.ctx, 0.5, { sum: '6 + 9', stumbling: false, bob: 0 });
+    // A blank plaque hanging over a resting rabbit reads as a bug, not a rest.
+    expect(empty.calls.length).toBeLessThan(asked.calls.length);
+    expect(empty.texts).toHaveLength(0);
+    expect(depthOf(empty.ctx)).toBe(0);
+  });
+});

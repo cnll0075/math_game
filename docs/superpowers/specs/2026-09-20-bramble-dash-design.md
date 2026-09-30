@@ -92,22 +92,24 @@ quietly break the game — the arithmetic would lose to the eyesight. Scrolling
 the path towards the camera keeps every number at full size from the moment it
 appears.
 
-Rows are **phrased, not beaten out**. A gap is drawn as one of three shapes —
-tight, steady, or a breather — as a multiple of a floor, and the weighting shifts
-towards tight as a run goes on. An even beat reads as one long identical
-corridor however much the beat is jittered; phrasing is what makes a path feel
-like somewhere.
+Rows are **phrased, not beaten out**, and **only one is on the path at a time**.
+A gap is drawn as one of three shapes — tight, steady, or a breather — as a
+multiple of a floor, and the weighting shifts towards tight as a run goes on. A
+breather is longer than the path is deep, so it empties the path: that emptiness
+is the rest.
 
-| | Start | By ~3:00 |
-| --- | --- | --- |
-| Floor: the shortest gap ever asked for | 2.4s | 1.3s |
-| Typical spread, measured | 1.9s–6.1s | 1.1s–3.3s |
-| Carrots | about two in five roomy gaps | about one in five |
+| | Start | By ~3:00 | By 10:00 |
+| --- | --- | --- | --- |
+| Floor: the shortest gap ever asked for | 3.6s | 2.2s | 2.0s |
+| Least thinking time, measured | 2.08s | 1.80s | 1.80s |
+| Typical thinking time, measured | 3.28s | 2.12s | 2.15s |
 
-The floor is the promise: it is the least time a player is ever given to read a
-sum and pick a lane, and no phrase or wobble may go under it. The ramp is in
-**reading speed**, not reaction time — the rabbit's steering stays as quick as it
-ever was, and what shrinks is how long the numbers are on screen.
+The floor is the promise: the least time a player is ever given to read a sum
+and pick a lane, and it never drops under about 1.8 seconds however long the run
+goes on. Rows are scheduled by **when they land**, not when they are sent — a
+row's approach speed comes from the tempo at the moment it spawns, and that
+speed shrinks over a run, so evenly spaced spawns let later rows catch the ones
+ahead and land closer together than the floor promised.
 
 A carrot only ever lands in a gap with room in it, never in a flurry.
 

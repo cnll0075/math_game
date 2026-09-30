@@ -5,18 +5,26 @@ import { drawGap, ROOMY_GAP, tempoAt } from './tempo.js';
 describe('tempoAt', () => {
   it('opens with plenty of time to read a row', () => {
     const tempo = tempoAt(0);
-    expect(tempo.minGap).toBeCloseTo(2.4, 5);
+    expect(tempo.minGap).toBeCloseTo(3.6, 5);
     expect(tempo.approachSeconds).toBeGreaterThan(tempo.minGap);
   });
 
-  it('tightens the floor by three minutes', () => {
-    expect(tempoAt(180).minGap).toBeCloseTo(1.3, 5);
+  it('never asks for less than a second and a half, however long the run', () => {
+    // A six-year-old needs time to read a sum and pick a lane. This is the
+    // promise the whole pacing is built to keep.
+    for (const t of [0, 60, 180, 600, 3600]) {
+      expect(tempoAt(t).minGap).toBeGreaterThanOrEqual(1.5);
+    }
+    expect(tempoAt(180).minGap).toBeCloseTo(2.2, 5);
   });
 
-  it('always keeps more than one row on the path, so the next can be read early', () => {
+  it('keeps the path thin: a breather empties it rather than stacking rows', () => {
     for (const t of [0, 45, 120, 180, 600]) {
       const tempo = tempoAt(t);
-      expect(tempo.approachSeconds / tempo.minGap).toBeGreaterThan(2);
+      const onPath = tempo.approachSeconds / tempo.minGap;
+      // Never three walls of obstacles at once, which read as noise.
+      expect(onPath).toBeLessThan(2);
+      expect(onPath).toBeGreaterThan(1);
     }
   });
 
@@ -45,7 +53,7 @@ describe('drawGap', () => {
       for (let i = 0; i < 400; i += 1) {
         // The floor is the least time a player is ever given to read a sum, and
         // nothing — not a flurry, not the wobble — may go under it.
-        expect(drawGap(rng, tempo).seconds).toBeGreaterThanOrEqual(tempo.minGap * 0.87);
+        expect(drawGap(rng, tempo).seconds).toBeGreaterThanOrEqual(tempo.minGap * 0.89);
       }
     }
   });

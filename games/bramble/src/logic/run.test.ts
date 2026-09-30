@@ -22,7 +22,8 @@ const run = (game: Run, seconds: number): RunEvent[] => {
 /** Runs until the next row is met, steering into whichever lane is chosen. */
 const meetNextRow = (game: Run, lane: (row: Row) => number): RunEvent[] => {
   const events: RunEvent[] = [];
-  for (let i = 0; i < 60 * 30; i += 1) {
+  // Long enough to cover a breather's worth of empty path before a row appears.
+  for (let i = 0; i < 60 * 60; i += 1) {
     const row = currentRow(game.state);
     if (row) game.steer(laneCentre(lane(row)));
     const batch = game.step(FRAME);
@@ -35,11 +36,13 @@ const meetNextRow = (game: Run, lane: (row: Row) => number): RunEvent[] => {
 describe('a run opening', () => {
   it('starts full, running, and with a sum to read', () => {
     const game = createRun({ seed: 1 });
-    run(game, 1);
+    run(game, 0.5);
     expect(game.state.health).toBe(MAX_HEALTH);
     expect(game.state.status).toBe('running');
-    expect(currentRow(game.state)).toBeDefined();
     expect(game.state.band.id).toBe('easy');
+    // On the path from the first moment, and a floor's worth of running before
+    // it lands, so a child is never met by a wall the instant the game opens.
+    expect(currentRow(game.state)).toBeDefined();
   });
 
   it('can open at a band, for ?game=bramble&level=take-aways', () => {
@@ -48,29 +51,38 @@ describe('a run opening', () => {
     expect(game.state.band.id).toBe('take-aways');
   });
 
-  it('keeps more than one row on the path once it is going', () => {
-    const game = createRun({ seed: 3, health: 9999 });
-    run(game, 12);
-    expect(game.state.rows.length).toBeGreaterThanOrEqual(2);
+  it('never stacks more than two rows on the path at once', () => {
+    const game = createRun({ seed: 3, health: 99999 });
+    let peak = 0;
+    for (let i = 0; i < 60 * 240; i += 1) {
+      const row = currentRow(game.state);
+      if (row) game.steer(laneCentre(row.answerLane));
+      game.step(FRAME);
+      peak = Math.max(peak, game.state.rows.filter((entry) => !entry.resolved).length);
+    }
+    // Three walls of obstacles at once read as noise rather than as a choice.
+    expect(peak).toBeLessThanOrEqual(2);
   });
 });
 
 describe('meeting a row', () => {
   it('bursts the right one, scores, and moves on to the next sum', () => {
     const game = createRun({ seed: 4 });
-    run(game, 1);
+    run(game, 0.5);
     const asked = currentRow(game.state)!.sum;
     const events = meetNextRow(game, (row) => row.answerLane);
     expect(events.some((event) => event.type === 'burst')).toBe(true);
     expect(game.state.score).toBe(1);
     expect(game.state.streak).toBe(1);
     expect(game.state.health).toBe(MAX_HEALTH);
+    // On to whatever comes next — which may be a moment of clear path first.
+    run(game, 6);
     expect(currentRow(game.state)!.sum).not.toBe(asked);
   });
 
   it('thumps a wrong one, costs exactly a tenth, and stumbles', () => {
     const game = createRun({ seed: 5 });
-    run(game, 1);
+    run(game, 0.5);
     const events = meetNextRow(game, (row) => (row.answerLane + 1) % 3);
     expect(events.some((event) => event.type === 'thump')).toBe(true);
     expect(game.state.health).toBe(MAX_HEALTH - MISS_COST);
@@ -83,7 +95,7 @@ describe('meeting a row', () => {
 
   it('resolves each row exactly once', () => {
     const game = createRun({ seed: 6, health: 9999 });
-    const events = run(game, 40);
+    const events = run(game, 90);
     const uids = events
       .filter((event) => event.type === 'burst' || event.type === 'thump')
       .map((event) => (event.type === 'burst' || event.type === 'thump' ? event.row.uid : ''));
@@ -93,7 +105,7 @@ describe('meeting a row', () => {
 
   it('meets every row: standing still is a choice like any other', () => {
     const game = createRun({ seed: 7, health: 9999 });
-    const events = run(game, 40);
+    const events = run(game, 90);
     expect(events.some((event) => event.type === 'thump')).toBe(true);
   });
 });

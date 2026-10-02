@@ -20,9 +20,10 @@ const canvasOf = (width: number, height: number): HTMLCanvasElement => {
   return canvas;
 };
 
-const pointer = (canvas: HTMLCanvasElement, type: string, x: number, y: number) => {
+const pointer = (canvas: HTMLCanvasElement, type: string, x: number, y: number, pointerId = 1, isPrimary = false) => {
   const event = new MouseEvent(type, { clientX: x, clientY: y, bubbles: true }) as MouseEvent & { pointerId: number };
-  Object.defineProperty(event, 'pointerId', { value: 1 });
+  Object.defineProperty(event, 'pointerId', { value: pointerId });
+  Object.defineProperty(event, 'isPrimary', { value: isPrimary });
   canvas.dispatchEvent(event);
 };
 
@@ -201,6 +202,54 @@ describe('input', () => {
     pointer(canvas, 'pointermove', at.x, at.y - 200);
     pointer(canvas, 'pointercancel', at.x, at.y - 200);
     expect(drags.at(-1)).toBeNull();
+    input.dispose();
+  });
+
+  it('puts a tray balloon back when it is dragged away and brought back to its place', () => {
+    const { canvas, intents, input } = setup();
+    const at = trayPoint(def, 1);
+    pointer(canvas, 'pointerdown', at.x, at.y);
+    pointer(canvas, 'pointermove', at.x, at.y - 220);
+    pointer(canvas, 'pointerup', at.x, at.y);
+    expect(intents).toEqual([]);
+    input.dispose();
+  });
+
+  it('keeps a clipped balloon on when it is dragged away and brought back to its place', () => {
+    const { canvas, intents, input } = setup(1152, 768, 'building', (rescue) => rescue.clip(0));
+    const at = bunchPoint(0, 1, HOME);
+    pointer(canvas, 'pointerdown', at.x, at.y);
+    pointer(canvas, 'pointermove', at.x + 150, at.y + 100);
+    pointer(canvas, 'pointerup', at.x, at.y);
+    expect(intents).toEqual([]);
+    input.dispose();
+  });
+
+  it('ignores a second finger, and clears the drag when the first one lifts', () => {
+    const { canvas, intents, drags, input } = setup();
+    const at = trayPoint(def, 2);
+    pointer(canvas, 'pointerdown', at.x, at.y, 1);
+    pointer(canvas, 'pointermove', at.x, at.y - 150, 1);
+    const elsewhere = trayPoint(def, 0);
+    pointer(canvas, 'pointerdown', elsewhere.x, elsewhere.y, 2);
+    pointer(canvas, 'pointerup', elsewhere.x, elsewhere.y, 2);
+    expect(intents).toEqual([]);
+    pointer(canvas, 'pointerup', at.x, at.y - 150, 1);
+    expect(drags.at(-1)).toBeNull();
+    input.dispose();
+  });
+
+  it('starts over on a new first finger, even if the last one\'s lift was lost', () => {
+    const { canvas, intents, drags, input } = setup();
+    const lost = trayPoint(def, 2);
+    pointer(canvas, 'pointerdown', lost.x, lost.y, 1, true);
+    pointer(canvas, 'pointermove', lost.x, lost.y - 150, 1, true);
+    // No pointerup for finger 1. A fresh first touch must still work.
+    const at = trayPoint(def, 0);
+    pointer(canvas, 'pointerdown', at.x, at.y, 7, true);
+    pointer(canvas, 'pointerup', at.x, at.y, 7, true);
+    expect(drags.at(-1)).toBeNull();
+    expect(intents).toEqual([{ kind: 'tray', index: 0 }]);
     input.dispose();
   });
 });

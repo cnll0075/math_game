@@ -26,7 +26,8 @@ export function createInput(
   emit: (intent: Intent) => void,
   current: () => { phase: Phase; rescue: RescueState },
 ): InputHandle {
-  let pressed: { intent: Intent | null; at: Point; dragging: boolean } | null = null;
+  /** The one finger the game is following. A second finger is ignored, so it can never strand a drag. */
+  let pressed: { pointerId: number; intent: Intent | null; at: Point; dragging: boolean } | null = null;
 
   const screenSize = (): Size => ({
     width: canvas.clientWidth || DESIGN.width,
@@ -58,6 +59,12 @@ export function createInput(
   };
 
   const onPointerDown = (event: PointerEvent): void => {
+    if (pressed && pressed.pointerId !== event.pointerId) {
+      // A second finger joining is ignored. A new first finger means every
+      // finger lifted, so the old press is stale (its lift was lost): start over.
+      if (!event.isPrimary) return;
+      endDrag();
+    }
     canvas.setPointerCapture?.(event.pointerId);
     const { phase, rescue } = current();
     // A finger that went down mid-flight belongs to nothing; lifting it after
@@ -67,11 +74,11 @@ export function createInput(
       return;
     }
     const at = designPoint(event);
-    pressed = { intent: phase === 'building' ? hitTest(at, rescue) : null, at, dragging: false };
+    pressed = { pointerId: event.pointerId, intent: phase === 'building' ? hitTest(at, rescue) : null, at, dragging: false };
   };
 
   const onPointerMove = (event: PointerEvent): void => {
-    if (!pressed) return;
+    if (!pressed || pressed.pointerId !== event.pointerId) return;
     const { phase, rescue } = current();
     if (phase !== 'building') return;
     const at = designPoint(event);
@@ -83,6 +90,7 @@ export function createInput(
   };
 
   const onPointerUp = (event: PointerEvent): void => {
+    if (pressed && pressed.pointerId !== event.pointerId) return;
     endDrag();
     const down = pressed;
     pressed = null;
@@ -96,7 +104,8 @@ export function createInput(
     if (phase !== 'building' || !down.intent) return;
 
     const at = designPoint(event);
-    const dragged = Math.hypot(at.x - down.at.x, at.y - down.at.y) >= DRAG_PIXELS;
+    // Once it has followed the finger it was a drag, even if it ends back where it started.
+    const dragged = down.dragging || Math.hypot(at.x - down.at.x, at.y - down.at.y) >= DRAG_PIXELS;
     if (down.intent.kind === 'tray') {
       if (!dragged || inDropZone(at)) emit(down.intent);
       return;
@@ -108,7 +117,8 @@ export function createInput(
     if (same(hitTest(at, rescue), down.intent)) emit(down.intent);
   };
 
-  const onPointerCancel = (): void => {
+  const onPointerCancel = (event: PointerEvent): void => {
+    if (pressed && pressed.pointerId !== event.pointerId) return;
     endDrag();
     pressed = null;
   };

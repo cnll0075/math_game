@@ -66,8 +66,8 @@ begins.
 | 4 | **Heavy Cargo** | Past ten, with a 10-balloon | 11–20 | weight 13, tray `10 · 8 · 3 · 2` → 10 + 3 or 8 + 3 + 2 |
 | 5 | **Tiny Harness** | A hook limit forces a smart choice | 8–16 | weight 12, 2 hooks, tray `4 · 4 · 4 · 8 · 6 · 5` → 8 + 4; 4 + 4 + 4 is the bait |
 | 6 | **Pop!** | Already tied to too much; take some away | 5–15 | weight 7, tied `6 · 3 · 1` → pop the 3 |
-| 7 | **Windy Ridge** | Sideways: the wind gives some, puffs make the rest | 3–10 across | ledge `7 →`, wind `3 →`, puffs `5 · 4 · 2` → 4 |
-| 8 | **The Big Rescue** | Two ideas in every rescue | mixed | weight 15, 2 hooks, wind blowing against |
+| 7 | **Windy Ridge** | Rise exactly N layers: the difference matters | 4–17 | weight 7, ledge 3 layers up → 10; 7 alone is the bait |
+| 8 | **The Big Rescue** | Two ideas in every rescue | mixed | weight 13, 2 hooks, ledge 2 layers up → 15 |
 
 Story lines are about the rescue, not the mechanic: *"Pip's kite pulled him
 into the mud!"*, *"The ledge is where the picnic is."* No chapter title or story
@@ -76,46 +76,64 @@ line repeats one of Seesaw Park's.
 ### Pop!
 
 The character starts already tied to a bunch that is too strong, held down by a
-rope to a peg. Tapping a tied balloon pops it. A popped balloon hangs limp on
-its hook, still showing its number, and tapping it again re-inflates it — so a
-wrong pop can be taken back, and a child can never be left with a rescue that
-cannot be finished. "Let go!" unties the rope.
+rope to a peg. Tapping a tied balloon pops it. A popped balloon hangs as a limp
+scrap on its hook **with no number** — a number would read as lift it no longer
+gives — and tapping the scrap blows it back up, number and all. So a wrong pop
+can be taken back, and a child can never be left with a rescue that cannot be
+finished. "Let go!" unties the rope.
 
 The first rescue of the chapter has an empty tray, so popping is the only thing
 to try.
 
 ### Windy Ridge
 
-The ledge is no longer straight above: it is a number of steps to the side,
-marked along the ground `1 2 3 … 7`. A wind sock shows the wind's own push,
-`3 →` or `← 2`. A second tray holds **puffs** — little fans, worth 1 to 5 — that
-push sideways.
+The sky over the ridge has **wind layers**: bands of wind stacked one above the
+other, numbered 1, 2 and 3 up the left edge. The ledge is a cliff top on the
+right at the height of one layer, and only that layer blows towards it; every
+other layer blows away.
 
-- Needed sideways = ledge distance − wind, with the wind's direction counted:
-  ledge `7 →` with wind `3 →` needs 4; ledge `5 →` with wind `← 2` needs 7.
-- Too few puffs: they rise to ledge height and dangle short of it, "1 more
-  puff!". Too many: they drift past it. Either way the parachute brings them back.
-- Up is judged before across. If the lift is wrong, that is what the gauge says.
+How high the kit rises is **lift minus weight**: a kit weighing 7 on 10 of lift
+rises 3 layers. So reaching the ledge 3 layers up takes exactly 7 + 3 = 10.
 
-The chapter's first rescues come with the lift already right, so the only new
-thing is the sideways number. Wind blowing *against* the ledge arrives last.
+- **The new idea is the difference.** Until now "a bit too much" was the
+  mistake; here it is the target. The bunch that makes exactly the weight — the
+  old habit — is always in the tray, and it only lifts the kit off the ground.
+- Too little to float: the strain and hop, as before. Floating but too low, or
+  too high: the kit rises to the layer it reached, is blown the wrong way, and
+  parachutes home. Past the top layer: the whoosh off the top, as before.
+- The gauge reads `9 / 7 + 3` and "1 more!" — the target written as the sum it
+  is, the gap in the same words as every other chapter.
+- The finished sum reads `7 + 3 = 10`.
+
+The first rescue comes with the kit already floating — tied balloons that make
+exactly its weight — so the only new thing is the climb. Three layers at most,
+so a kit on the top layer is still on screen.
+
+### Wind on the ledge
+
+In every other chapter a gentle breeze blows at the ledge's height towards the
+cliff, drawn as drifting streaks and a few leaves. A kit with exactly the right
+lift rises into it and is carried onto the ledge, so the last move left has a
+visible cause. Below the ledge the air is still.
 
 ## Curriculum rules
 
 Every one of these is a test over the level data, using a brute-force solver
-that searches clips, pops and puffs:
+that searches clips and pops:
 
 - every rescue has at least one exact answer within its hook limit
 - only the very first rescue can be answered by clipping a single balloon (the
-  lift already clipped at the start of an early Windy Ridge rescue is given,
-  not an answer)
+  lift already tied at the start of the first Windy Ridge rescue is given, not
+  an answer)
 - nothing before **Pop!** needs a pop; every rescue in **Pop!** needs one
 - in **Big Bunches** no pair from the tray makes the weight
 - in **Tiny Harness** the tray holds a correct bunch that needs too many hooks,
   and a correct bunch that fits
 - in **Whoosh!** some pair from the tray overshoots by no more than 3 — the bait
+- in **Windy Ridge** the tray (with anything tied) always holds a bunch that
+  makes exactly the weight — the bait — and weight plus layers never passes 20
 - every rescue in **The Big Rescue** needs two of: past ten, a hook limit, a
-  pop, wind
+  pop, a wind layer
 - the targets of each chapter lie in the range the table above gives it
 
 ## Screen
@@ -125,22 +143,25 @@ painted past it.
 
 - The character stands bottom-left on the ground, weight tag on its chest; the
   harness and its hooks float just above.
-- The ledge is a grassy cliff top, straight above in most chapters and off to the
-  right in Windy Ridge, reached along the step marks.
-- The tray is a strip along the bottom; in Windy Ridge a second, smaller strip
-  holds the puffs.
+- The ledge is a grassy cliff top, up and to the left in most chapters; in
+  Windy Ridge it is on the right at the height of its wind layer.
+- The tray is a strip along the bottom.
 - "Let go!" is a large button bottom-right, dimmed until a balloon is clipped.
 - The chapter card top-centre, the stars for this rescue top-right.
 
 ## Controls
 
 **Tap a balloon in the tray and it floats up and clips to the next free hook.**
-Tap a clipped balloon and it floats back to the tray. Dragging works too, but
-tapping is the main path, because six-year-olds drag imprecisely — the same
-lesson Seesaw learned.
+Tap a clipped balloon and it floats back to the tray.
 
-Puffs work the same way on their own strip. A full harness bumps a balloon
-back with a wobble and a soft "no room" sound.
+**Or drag it.** A balloon picked up from the tray follows the finger; dropped
+anywhere near the kit it clips on, dropped anywhere else it goes back to its
+place. A clipped balloon dragged down into the tray comes off. Tapping stays the
+main path, because six-year-olds drag imprecisely — the same lesson Seesaw
+learned — so both always work. Tied balloons are popped by a tap and are not
+dragged.
+
+A full harness bumps a balloon back with a wobble and a soft "no room" sound.
 
 ## Feel
 
@@ -165,7 +186,7 @@ games/balloon/                  package @bundle/balloon, id 'balloon', "Balloon 
   src/driver.ts                 rules <-> scene, sound, input
   src/logic/                    pure: no DOM, no timers, no audio
     balloons.ts                 value → size; the value range
-    rescue.ts                   one rescue's state: clipped, tied, popped, puffs, hooks
+    rescue.ts                   one rescue's state: clipped, tied, popped, hooks
     outcome.ts                  lift vs weight, sideways vs distance → short / exact / over
     stars.ts                    tries → stars
     levels.data.ts              the chapters and their rescues
@@ -194,7 +215,8 @@ The logic is pure, so the rules become tests:
 - the curriculum rules above, over every rescue in the data
 - outcome is short / exact / over by exactly the sign of lift − weight, and the
   gauge's "N more" / "N too many" is that difference
-- in wind, up is judged before across, and the wind's direction is counted
+- in a wind-layer rescue, the target is weight plus layers, and the flight
+  rises lift minus weight layers
 - a full harness refuses a clip; a popped balloon can be re-inflated; a failed
   try leaves the bunch exactly as it was
 - stars: first try 3, second 2, later 1, and the stored best never goes down
@@ -220,3 +242,16 @@ levels, never the test.
   arithmetic.
 - **Painted art and recorded sound.** Vector fox kits and a synthesised pack,
   behind the same seams Seesaw used for its later painted animals.
+
+## Revisions after the first playtest (2026-10-01)
+
+- **Dragging** now moves the balloon under the finger, as above; it used to
+  clip only on release with nothing following the finger.
+- **A popped balloon shows no number**, as above. Showing it read as lift.
+- **The breeze on the ledge** explains why a rescued kit moves left.
+- **Windy Ridge was rebuilt as wind layers.** The first version pushed the kit
+  sideways with puffs that had to add up to a distance. In play, overshooting
+  sideways failing made no sense, and the chapter was addition again. Puffs, the
+  wind sock and the step marks are gone; the layers make overshooting by
+  exactly the right amount the point, which is the difference, and give the
+  wind a reason to exist.

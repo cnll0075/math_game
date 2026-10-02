@@ -3,7 +3,8 @@ import { DESIGN } from '@bundle/core';
 import { createRescue } from '../logic/rescue.js';
 import { RESCUES } from '../logic/levels.data.js';
 import type { RescueDef } from '../logic/rescue-def.js';
-import { balloonRadius, bunchCount, bunchPoint, HOME, hitTest, LAYOUT, ledgeSpot, pegPoint, PUFF_RADIUS, puffTrayPoint, trayPoint } from './geometry.js';
+import { balloonRadius, bunchCount, bunchPoint, HOME, hitTest, inDropZone, inTray, LAYOUT, layerY, ledgeSpot, pegPoint, trayPoint } from './geometry.js';
+import { layerOf } from '../logic/rescue-def.js';
 
 const def: RescueDef = { id: 'g', line: '', weight: 8, tray: [5, 3, 6, 2] };
 
@@ -22,25 +23,36 @@ describe('geometry', () => {
         const next = points[index + 1];
         if (next) expect(next.x - point.x, rescue.id).toBeGreaterThanOrEqual(radius + balloonRadius(rescue.tray[index + 1]!) - 12);
       });
-      rescue.wind?.puffs.forEach((_, index) => {
-        expect(puffTrayPoint(rescue, index).x, rescue.id).toBeLessThan(LAYOUT.button.left);
-      });
     }
   });
 
-  it('gives each puff in the tray room for its gusts, so none overlaps the next', () => {
+  it('keeps the peg beside the kit', () => {
+    expect(pegPoint(HOME).x - HOME.x).toBeGreaterThan(30);
+  });
+
+  it('puts a Windy Ridge ledge on the right, at the height of its layer', () => {
     for (const rescue of RESCUES) {
-      const puffs = rescue.wind?.puffs ?? [];
-      for (let index = 1; index < puffs.length; index += 1) {
-        const gap = puffTrayPoint(rescue, index).x - puffTrayPoint(rescue, index - 1).x;
-        expect(gap, rescue.id).toBeGreaterThanOrEqual(2 * PUFF_RADIUS + 24);
-      }
+      if (layerOf(rescue) === 0) continue;
+      expect(ledgeSpot(rescue).y, rescue.id).toBe(layerY(layerOf(rescue)));
+      expect(ledgeSpot(rescue).x, rescue.id).toBeGreaterThan(LAYOUT.rightCliffEdgeX);
     }
   });
 
-  it('keeps the peg clear of the first step post', () => {
-    const firstPost = LAYOUT.homeX + LAYOUT.stepWidth;
-    expect(Math.abs(pegPoint(HOME).x - firstPost)).toBeGreaterThanOrEqual(16);
+  it('keeps the top layer\'s kit clear of the story line', () => {
+    expect(layerY(3) - 130).toBeGreaterThan(LAYOUT.lineY);
+  });
+
+  it('takes a drop near the kit, and not one in the tray or on the button', () => {
+    expect(inDropZone({ x: HOME.x, y: HOME.y - 260 })).toBe(true);
+    expect(inDropZone({ x: HOME.x + 150, y: HOME.y - 80 })).toBe(true);
+    expect(inDropZone(trayPoint({ id: 'd', line: '', weight: 3, tray: [3] }, 0))).toBe(false);
+    expect(inDropZone({ x: LAYOUT.button.left + 40, y: LAYOUT.button.top + 40 })).toBe(false);
+    expect(inDropZone({ x: 1050, y: 200 })).toBe(false);
+  });
+
+  it('knows a drop over the tray strip', () => {
+    expect(inTray({ x: 400, y: LAYOUT.trayY })).toBe(true);
+    expect(inTray({ x: 400, y: HOME.y - 200 })).toBe(false);
   });
 
   it('puts the ledge on screen, above the ground', () => {

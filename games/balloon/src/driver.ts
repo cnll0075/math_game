@@ -108,10 +108,6 @@ export function createDriver(options: DriverOptions): Driver {
         return rescue.unclip(intent.slot);
       case 'tied':
         return rescue.togglePop(intent.index);
-      case 'puff':
-        return rescue.puff(intent.index);
-      case 'puffSlot':
-        return rescue.unpuff(intent.slot);
       case 'letGo':
         return rescue.letGo();
       case 'next':

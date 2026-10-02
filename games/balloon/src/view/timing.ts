@@ -1,4 +1,5 @@
 import type { Outcome } from '../logic/outcome.js';
+import { LAYERS } from '../logic/rescue-def.js';
 
 /**
  * How the game feels, in one place. Retuning choreography should never mean
@@ -16,8 +17,8 @@ export const TIMING = {
     exact: 2.8,
     /** Up past the ledge, a cloud, and the parachute down. */
     over: 3.8,
-    /** Up, across to where the puffs reached, and the parachute down. */
-    across: 4.0,
+    /** Up to the layer it reached, blown the wrong way, and the parachute down. */
+    blown: 4.0,
   },
   chapterAnnounceSeconds: 2.3,
   chapterSettleFraction: 0.26,
@@ -36,6 +37,7 @@ export const countSeconds = (balloons: number): number =>
 
 export const flySeconds = (outcome: Outcome): number => {
   if (outcome.verdict === 'exact') return TIMING.flight.exact;
-  if (outcome.axis === 'across') return TIMING.flight.across;
+  const rise = outcome.have - outcome.weight;
+  if (outcome.layer > 0 && rise >= 1 && rise <= LAYERS) return TIMING.flight.blown;
   return outcome.verdict === 'short' ? TIMING.flight.short : TIMING.flight.over;
 };

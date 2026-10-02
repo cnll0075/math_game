@@ -65,7 +65,7 @@ export function createInput(
 
     const at = designPoint(event);
     const moved = Math.hypot(at.x - down.at.x, at.y - down.at.y);
-    const fromTray = down.intent.kind === 'tray' || down.intent.kind === 'puff';
+    const fromTray = down.intent.kind === 'tray';
     if (fromTray) {
       if (moved < DRAG_PIXELS || at.y < LAYOUT.trayY - 90) emit(down.intent);
       return;

@@ -3,6 +3,7 @@ import { createDriver, type Driver, type DriverEvent, type Phase } from './drive
 import type { Intent } from './intent.js';
 import { feedbackLine, type Outcome } from './logic/outcome.js';
 import { readBook } from './logic/progress.js';
+import { LAYERS } from './logic/rescue-def.js';
 import { solve } from './logic/solver.js';
 import type { StarBook } from './logic/stars.js';
 import { createBalloonSoundPack } from './audio/balloon-sounds.js';
@@ -42,8 +43,10 @@ const STARS_KEY = 'stars';
 
 /** The sound the kit makes as it leaves the ground, once the count is done. */
 const liftOffSound = (outcome: Outcome): string => {
-  if (outcome.verdict === 'exact' || outcome.axis === 'across') return 'float';
-  return outcome.verdict === 'short' ? 'strain' : 'whoosh';
+  if (outcome.have < outcome.weight) return 'strain';
+  const rise = outcome.have - outcome.weight;
+  if (outcome.verdict === 'over' && (outcome.layer === 0 || rise > LAYERS)) return 'whoosh';
+  return 'float';
 };
 
 export const balloonGame: BalloonModule = {
@@ -89,10 +92,6 @@ export const balloonGame: BalloonModule = {
             break;
           case 'reinflated':
             sounds.play('reinflate');
-            break;
-          case 'puffed':
-          case 'unpuffed':
-            sounds.play('puff');
             break;
           case 'released': {
             const flight = driver.flight;
@@ -185,7 +184,6 @@ export const balloonGame: BalloonModule = {
           if (!answer) throw new Error(`no answer to ${driver.rescue.state.def.id}`);
           answer.pop.forEach((index) => act({ kind: 'tied', index }));
           answer.clip.forEach((index) => act({ kind: 'tray', index }));
-          answer.puffs.forEach((index) => act({ kind: 'puff', index }));
           act({ kind: 'letGo' });
           settle();
         },

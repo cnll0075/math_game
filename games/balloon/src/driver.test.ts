@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createDriver, type Driver } from './driver.js';
 import { RESCUES } from './logic/levels.data.js';
+import { TIMING } from './view/timing.js';
 
 const FRAME = 1 / 60;
 
@@ -24,7 +25,7 @@ describe('the driver', () => {
     driver.act({ kind: 'letGo' });
     expect(driver.phase).toBe('flying');
     const events = settle(driver);
-    expect(events).toContainEqual({ type: 'landed', outcome: { verdict: 'over', axis: 'up', have: 5, need: 3 } });
+    expect(events).toContainEqual({ type: 'landed', outcome: { verdict: 'over', have: 5, need: 3, weight: 3, layer: 0 } });
     expect(driver.phase).toBe('building');
     expect(driver.feedback?.verdict).toBe('over');
     expect(driver.rescue.state.clipped).toHaveLength(1);
@@ -90,11 +91,9 @@ describe('the driver', () => {
 
   it('finishes after the last rescue, and starts over from there', () => {
     const driver = createDriver({ book: {}, startLevel: 'big-rescue-5' });
-    // 10 + 7, and 5 + 2 across a wind of −1 to a ledge 6 steps away.
+    // 10 + 7: weight 15, two layers up.
     driver.act({ kind: 'tray', index: 0 });
     driver.act({ kind: 'tray', index: 3 });
-    driver.act({ kind: 'puff', index: 0 });
-    driver.act({ kind: 'puff', index: 1 });
     driver.act({ kind: 'letGo' });
     settle(driver);
     expect(driver.phase).toBe('rescued');
@@ -111,5 +110,13 @@ describe('the driver', () => {
     driver.act({ kind: 'letGo' });
     expect(driver.flight?.lifted).toEqual([4, 3]);
     expect(driver.flight!.count).toBeGreaterThan(0);
+  });
+
+  it('gives a kit blown the wrong way time to drift and parachute home', () => {
+    const driver = createDriver({ book: {}, startLevel: 'windy-ridge-3' });
+    driver.act({ kind: 'tray', index: 0 }); // 5
+    driver.act({ kind: 'tray', index: 3 }); // 4: 9 is three layers up, not one
+    driver.act({ kind: 'letGo' });
+    expect(driver.flight!.fly).toBe(TIMING.flight.blown);
   });
 });

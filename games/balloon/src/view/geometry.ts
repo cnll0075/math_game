@@ -26,6 +26,8 @@ export const LAYOUT = {
   button: { left: 912, top: 626, width: 210, height: 116 },
   /** From the feet up to the ring the balloon strings tie to. */
   harnessHeight: 118,
+  /** How far below its balloon's place a popped scrap hangs. */
+  limpDrop: 40,
   /** How far from the bunch a dragged balloon can be dropped and still clip on. */
   dropReach: 290,
 } as const;
@@ -54,6 +56,9 @@ export function bunchPoint(slot: number, count: number, at: Point): Point {
   const offset = slot - (count - 1) / 2;
   return { x: at.x + offset * spread, y: at.y - LAYOUT.harnessHeight - 104 - (slot % 2) * 46 };
 }
+
+/** Where a popped balloon's scrap hangs, below the place the balloon was. */
+export const limpPoint = (at: Point): Point => ({ x: at.x, y: at.y + LAYOUT.limpDrop });
 
 /**
  * How many places the bunch is laid out for. A limited harness is laid out for
@@ -107,7 +112,10 @@ export function hitTest(point: Point, state: RescueState): Intent | null {
     const tied = state.tied[slot];
     const clipped = state.clipped[slot - state.tied.length];
     const value = tied?.value ?? clipped?.value ?? 1;
-    if (!near(point, bunchPoint(slot, count, HOME), balloonRadius(value) + 8)) continue;
+    const place = bunchPoint(slot, count, HOME);
+    // A popped balloon is tapped where its scrap hangs, not where it used to float.
+    const hit = tied?.popped ? near(point, limpPoint(place), 36) : near(point, place, balloonRadius(value) + 8);
+    if (!hit) continue;
     return tied ? { kind: 'tied', index: slot } : { kind: 'clipped', slot: slot - state.tied.length };
   }
 

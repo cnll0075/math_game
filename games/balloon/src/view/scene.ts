@@ -19,7 +19,7 @@ import {
   drawWindLayers,
 } from './art.js';
 import { flightPose, type Pose } from './flight.js';
-import { bunchCount, bunchPoint, harnessPoint, HOME, LAYOUT, ledgeSpot, trayPoint } from './geometry.js';
+import { bunchCount, bunchPoint, harnessPoint, HOME, LAYOUT, ledgeSpot, limpPoint, trayPoint } from './geometry.js';
 import { drawCount, drawFinished, drawGauge, drawSolved, drawStars, drawTopBar } from './hud.js';
 import { TIMING } from './timing.js';
 
@@ -85,7 +85,7 @@ function drawBunch(
     if (slot === hide) return;
     const point = bunchPoint(slot, count, at);
     const limp = state.tied[slot]?.popped ?? false;
-    drawString(ctx, ring, limp ? { x: point.x, y: point.y + 40 } : point);
+    drawString(ctx, ring, limp ? { x: point.x, y: limpPoint(point).y - 14 } : point);
     drawBalloon(ctx, point, value, { limp, glow: slot === lit ? 1 : 0 });
   });
   if (!showFree) return;

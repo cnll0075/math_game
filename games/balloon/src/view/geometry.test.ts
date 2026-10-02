@@ -3,7 +3,7 @@ import { DESIGN } from '@bundle/core';
 import { createRescue } from '../logic/rescue.js';
 import { RESCUES } from '../logic/levels.data.js';
 import type { RescueDef } from '../logic/rescue-def.js';
-import { balloonRadius, bunchCount, bunchPoint, HOME, hitTest, inDropZone, inTray, LAYOUT, layerY, ledgeSpot, pegPoint, trayPoint } from './geometry.js';
+import { balloonRadius, bunchCount, bunchPoint, HOME, hitTest, inDropZone, inTray, LAYOUT, layerY, ledgeSpot, limpPoint, pegPoint, trayPoint } from './geometry.js';
 import { layerOf } from '../logic/rescue-def.js';
 
 const def: RescueDef = { id: 'g', line: '', weight: 8, tray: [5, 3, 6, 2] };
@@ -98,6 +98,14 @@ describe('geometry', () => {
     rescue.clip(0);
     expect(hitTest(bunchPoint(1, 4, HOME), rescue.state)).toEqual({ kind: 'tied', index: 1 });
     expect(hitTest(bunchPoint(3, 4, HOME), rescue.state)).toEqual({ kind: 'clipped', slot: 0 });
+  });
+
+  it('finds a popped balloon where its scrap hangs, so a tap can blow it back up', () => {
+    const rescue = createRescue({ id: 't', line: '', weight: 7, tray: [], tied: [6, 3, 1] });
+    rescue.togglePop(1);
+    const scrap = limpPoint(bunchPoint(1, 3, HOME));
+    expect(hitTest(scrap, rescue.state)).toEqual({ kind: 'tied', index: 1 });
+    expect(hitTest({ x: scrap.x, y: scrap.y + 22 }, rescue.state)).toEqual({ kind: 'tied', index: 1 });
   });
 
   it('lays a limited harness out by its hooks, and finds its balloons there', () => {

@@ -138,13 +138,21 @@ export function drawBalloon(
   ctx.translate(at.x, at.y);
 
   if (options.limp) {
-    // Popped: a scrap on its hook with no number, because it lifts nothing. A tap blows it back up.
-    ctx.globalAlpha = 0.75;
+    // Popped: a crumpled scrap hanging from its string, with no number because
+    // it lifts nothing. Big enough to find again, since a tap blows it back up.
+    ctx.translate(0, LAYOUT.limpDrop);
     ctx.fillStyle = balloonColour(value);
+    ctx.strokeStyle = 'rgba(30,42,56,0.45)';
+    ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.ellipse(0, radius * 0.5, radius * 0.42, radius * 0.3, 0.3, 0, TAU);
+    ctx.moveTo(-4, -14);
+    ctx.quadraticCurveTo(16, -10, 14, 4);
+    ctx.quadraticCurveTo(20, 16, 4, 18);
+    ctx.quadraticCurveTo(-6, 26, -14, 12);
+    ctx.quadraticCurveTo(-24, 2, -12, -6);
+    ctx.closePath();
     ctx.fill();
-    ctx.globalAlpha = 1;
+    ctx.stroke();
     ctx.restore();
     return;
   }

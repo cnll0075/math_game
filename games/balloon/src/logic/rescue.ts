@@ -1,7 +1,7 @@
 import { judge, type Outcome } from './outcome.js';
-import { hooksOf, tiedOf, type RescueDef } from './rescue-def.js';
+import { hooksOf, layerOf, targetOf, tiedOf, type RescueDef } from './rescue-def.js';
 
-/** A balloon or puff taken from a tray, remembering where it came from. */
+/** A balloon taken from the tray, remembering where it came from. */
 export interface Taken {
   value: number;
   from: number;
@@ -16,7 +16,6 @@ export interface RescueState {
   readonly def: RescueDef;
   tied: TiedBalloon[];
   clipped: Taken[];
-  puffs: Taken[];
   tries: number;
   rescued: boolean;
 }
@@ -27,8 +26,6 @@ export type RescueEvent =
   | { type: 'full' }
   | { type: 'popped'; index: number; value: number }
   | { type: 'reinflated'; index: number; value: number }
-  | { type: 'puffed'; value: number }
-  | { type: 'unpuffed'; value: number }
   | { type: 'released'; outcome: Outcome; tries: number };
 
 export interface Rescue {
@@ -36,8 +33,6 @@ export interface Rescue {
   clip(trayIndex: number): RescueEvent[];
   unclip(slot: number): RescueEvent[];
   togglePop(tiedIndex: number): RescueEvent[];
-  puff(puffIndex: number): RescueEvent[];
-  unpuff(slot: number): RescueEvent[];
   letGo(): RescueEvent[];
 }
 
@@ -57,55 +52,38 @@ export const liftedSlots = (state: RescueState): number[] => [
 ];
 
 export const liftOf = (state: RescueState): number => total(liftedValues(state));
-export const puffTotal = (state: RescueState): number => total(state.puffs.map((taken) => taken.value));
 /** A popped balloon still hangs on its hook. */
 export const hooksUsed = (state: RescueState): number => state.tied.length + state.clipped.length;
 export const trayTaken = (state: RescueState, index: number): boolean =>
   state.clipped.some((taken) => taken.from === index);
-export const puffTaken = (state: RescueState, index: number): boolean =>
-  state.puffs.some((taken) => taken.from === index);
 export const canLetGo = (state: RescueState): boolean => !state.rescued && hooksUsed(state) > 0;
 
-export function outcomeOf(state: RescueState): Outcome {
-  const wind = state.def.wind;
-  return judge(
-    liftOf(state),
-    state.def.weight,
-    wind ? { have: wind.wind + puffTotal(state), need: wind.ledge } : undefined,
-  );
-}
+export const outcomeOf = (state: RescueState): Outcome =>
+  judge(liftOf(state), state.def.weight, layerOf(state.def));
 
 /**
  * The sum the rescue made, written out for the moment it lands. That beat is
  * the teaching: the child sees their bunch turned into arithmetic. A pop is
- * written as taking away, because that is what it was.
+ * written as taking away, and a climb into the wind as the weight plus layers.
  */
 export function answerLines(state: RescueState): string[] {
   const popped = state.tied.filter((balloon) => balloon.popped).map((balloon) => balloon.value);
   const lifted = liftedValues(state);
+  const target = targetOf(state.def);
   const lines: string[] = [];
 
   if (popped.length > 0) {
     const whole = total(state.tied.map((balloon) => balloon.value));
     const terms = [String(whole), ...popped.map((value) => `${MINUS} ${value}`), ...state.clipped.map((taken) => `+ ${taken.value}`)];
-    lines.push(`${terms.join(' ')} = ${state.def.weight}`);
+    lines.push(`${terms.join(' ')} = ${target}`);
   } else if (lifted.length > 1) {
-    lines.push(`${lifted.join(' + ')} = ${state.def.weight}`);
+    lines.push(`${lifted.join(' + ')} = ${target}`);
   } else {
-    lines.push(String(state.def.weight));
+    lines.push(String(target));
   }
 
-  const wind = state.def.wind;
-  if (wind) {
-    const puffs = state.puffs.map((taken) => taken.value);
-    const terms =
-      wind.wind > 0
-        ? [String(wind.wind), ...puffs.map((value) => `+ ${value}`)]
-        : wind.wind < 0
-          ? [puffs.join(' + '), `${MINUS} ${-wind.wind}`]
-          : [puffs.join(' + ')];
-    lines.push(`${terms.join(' ')} = ${wind.ledge}`);
-  }
+  const layer = layerOf(state.def);
+  if (layer > 0) lines.push(`${state.def.weight} + ${layer} = ${target}`);
   return lines;
 }
 
@@ -114,7 +92,6 @@ export function createRescue(def: RescueDef): Rescue {
     def,
     tied: tiedOf(def).map((value) => ({ value, popped: false })),
     clipped: [],
-    puffs: [],
     tries: 0,
     rescued: false,
   };
@@ -142,20 +119,6 @@ export function createRescue(def: RescueDef): Rescue {
       if (state.rescued || !balloon) return [];
       balloon.popped = !balloon.popped;
       return [{ type: balloon.popped ? 'popped' : 'reinflated', index, value: balloon.value }];
-    },
-
-    puff(index) {
-      const value = def.wind?.puffs[index];
-      if (state.rescued || value === undefined || puffTaken(state, index)) return [];
-      state.puffs.push({ value, from: index });
-      return [{ type: 'puffed', value }];
-    },
-
-    unpuff(slot) {
-      const taken = state.puffs[slot];
-      if (state.rescued || !taken) return [];
-      state.puffs.splice(slot, 1);
-      return [{ type: 'unpuffed', value: taken.value }];
     },
 
     letGo() {

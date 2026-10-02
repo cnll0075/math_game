@@ -1,10 +1,9 @@
-import { hooksOf, tiedOf, type RescueDef } from './rescue-def.js';
+import { hooksOf, targetOf, tiedOf, type RescueDef } from './rescue-def.js';
 
-/** One way through a rescue: which tray balloons to clip, tied ones to pop, puffs to add. */
+/** One way through a rescue: which tray balloons to clip, and which tied ones to pop. */
 export interface Answer {
   clip: number[];
   pop: number[];
-  puffs: number[];
 }
 
 /** Every subset of `0..size-1`, smallest masks first. Trays are small enough for this. */
@@ -22,23 +21,17 @@ export const totalAt = (values: readonly number[], indices: readonly number[]): 
   indices.reduce((sum, index) => sum + (values[index] ?? 0), 0);
 
 /**
- * Brute force over clips, pops and puffs. Proof, not play: the tests use it to
- * show every rescue is answerable and to check what each chapter is for.
+ * Brute force over clips and pops. Proof, not play: the tests use it to show
+ * every rescue is answerable and to check what each chapter is for.
  */
 export function solve(def: RescueDef): Answer[] {
   const tied = tiedOf(def);
   const tiedTotal = totalAt(tied, tied.map((_, index) => index));
-  const wind = def.wind;
-  const puffSets = wind
-    ? subsetsOf(wind.puffs.length).filter((set) => wind.wind + totalAt(wind.puffs, set) === wind.ledge)
-    : [[]];
-
   const answers: Answer[] = [];
   for (const pop of subsetsOf(tied.length)) {
     for (const clip of subsetsOf(def.tray.length)) {
       if (tied.length + clip.length > hooksOf(def)) continue;
-      if (tiedTotal - totalAt(tied, pop) + totalAt(def.tray, clip) !== def.weight) continue;
-      for (const puffs of puffSets) answers.push({ clip, pop, puffs });
+      if (tiedTotal - totalAt(tied, pop) + totalAt(def.tray, clip) === targetOf(def)) answers.push({ clip, pop });
     }
   }
   return answers;

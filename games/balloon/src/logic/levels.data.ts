@@ -68,22 +68,23 @@ export const CHAPTERS: readonly ChapterDef[] = [
     { line: 'Way too much lift again', weight: 12, tray: [], tied: [7, 5, 3, 2] },
     { line: 'Pop one, then add one', weight: 10, tray: [2], tied: [9, 5, 3] },
   ]),
-  // Sideways: the wind gives some, the puffs make up the rest. The lift comes
-  // ready for the first three so the only new thing is the sideways number.
-  chapter('windy-ridge', 'Windy Ridge', [2, 10], [
-    { line: 'The wind is helping!', weight: 4, tray: [], tied: [3, 1], wind: { ledge: 7, wind: 3, puffs: [5, 4, 2] } },
-    { line: 'A few puffs more', weight: 5, tray: [], tied: [2, 3], wind: { ledge: 8, wind: 3, puffs: [4, 3, 2, 1] } },
-    { line: 'Blow Pip across to the ledge', weight: 6, tray: [], tied: [4, 2], wind: { ledge: 6, wind: 1, puffs: [3, 3, 2, 4] } },
-    { line: 'Up first, then across', weight: 8, tray: [5, 3, 6], wind: { ledge: 9, wind: 4, puffs: [5, 3, 2] } },
-    { line: 'Oh no, the wind is blowing back!', weight: 6, tray: [], tied: [3, 3], wind: { ledge: 5, wind: -2, puffs: [5, 4, 3, 2] } },
+  // Rise exactly the right number of wind layers: lift minus weight. The bunch
+  // that makes exactly the weight — the old habit — is always there, and only
+  // gets the kit off the ground. The first comes already floating.
+  chapter('windy-ridge', 'Windy Ridge', [4, 17], [
+    { line: 'The wind is helping!', weight: 5, tray: [1, 2, 4], tied: [3, 2], layer: 2 },
+    { line: 'The top wind blows home', weight: 7, tray: [5, 4, 3, 2], layer: 3 },
+    { line: 'Just one layer up', weight: 6, tray: [5, 1, 3, 4], layer: 1 },
+    { line: 'Catch the middle wind', weight: 9, tray: [8, 6, 5, 3, 1], layer: 2 },
+    { line: 'All the way to the top wind', weight: 12, tray: [10, 7, 5, 2, 3], layer: 3 },
   ]),
   // Two ideas in every rescue.
   chapter('big-rescue', 'The Big Rescue', [5, 20], [
-    { line: 'Two hooks, and the wind against you', weight: 15, hooks: 2, tray: [10, 5, 6, 7, 4, 3], wind: { ledge: 4, wind: -2, puffs: [4, 3, 2, 1] } },
+    { line: 'Two hooks, and the wind up high', weight: 13, hooks: 2, tray: [10, 5, 6, 7, 4, 3], layer: 2 },
     { line: 'A heavy load and too much lift', weight: 13, tray: [3], tied: [10, 6] },
     { line: 'Big load, little harness', weight: 18, hooks: 3, tray: [10, 9, 8, 6, 5, 3, 2] },
-    { line: 'Pop, puff and up!', weight: 12, tray: [], tied: [7, 6, 4, 1], wind: { ledge: 8, wind: 5, puffs: [4, 3, 2, 1] } },
-    { line: 'The last kit to rescue!', weight: 17, hooks: 2, tray: [10, 9, 8, 7, 6, 4, 3], wind: { ledge: 6, wind: -1, puffs: [5, 2, 3, 4] } },
+    { line: 'Pop, then up one wind', weight: 12, tray: [], tied: [7, 6, 4, 1], layer: 1 },
+    { line: 'The last kit to rescue!', weight: 15, hooks: 2, tray: [10, 9, 8, 7, 6, 4, 3], layer: 2 },
   ]),
 ];
 

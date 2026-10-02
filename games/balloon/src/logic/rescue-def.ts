@@ -1,20 +1,9 @@
 export const BALLOON_MIN = 1;
 export const BALLOON_MAX = 10;
-export const PUFF_MIN = 1;
-export const PUFF_MAX = 5;
 export const WEIGHT_MAX = 20;
 export const DEFAULT_HOOKS = 6;
-
-/**
- * The sideways half of a rescue. The ledge is `ledge` steps to the right; the
- * wind pushes `wind` steps by itself (negative blows away from the ledge), and
- * the puffs have to make up the rest.
- */
-export interface WindDef {
-  ledge: number;
-  wind: number;
-  puffs: readonly number[];
-}
+/** Wind layers over Windy Ridge. Three, so a kit on the top one is still on screen. */
+export const LAYERS = 3;
 
 /** One rescue is one question. */
 export interface RescueDef {
@@ -27,21 +16,26 @@ export interface RescueDef {
   /** Balloons already on the harness when the rescue opens. Tapping one pops it. */
   tied?: readonly number[];
   hooks?: number;
-  wind?: WindDef;
+  /**
+   * Windy Ridge: the ledge is this many wind layers up. The kit rises lift minus
+   * weight layers, so the lift it needs is the weight plus this.
+   */
+  layer?: number;
 }
 
 export interface ChapterDef {
   id: string;
   title: string;
-  /** The weights this chapter's rescues may ask for. */
+  /** The lift this chapter's rescues may ask for: weight, plus any layers. */
   targets: readonly [number, number];
   rescues: readonly RescueDef[];
 }
 
 export const hooksOf = (def: RescueDef): number => def.hooks ?? DEFAULT_HOOKS;
 export const tiedOf = (def: RescueDef): readonly number[] => def.tied ?? [];
-/** How many steps the puffs must supply. */
-export const acrossNeed = (wind: WindDef): number => wind.ledge - wind.wind;
+export const layerOf = (def: RescueDef): number => def.layer ?? 0;
+/** The lift that rescues: the weight, plus one for every layer up. */
+export const targetOf = (def: RescueDef): number => def.weight + layerOf(def);
 
 const whole = (value: number, low: number, high: number): boolean =>
   Number.isInteger(value) && value >= low && value <= high;
@@ -55,12 +49,7 @@ export function problemsWith(def: RescueDef): string[] {
   }
   if (!whole(hooksOf(def), 1, DEFAULT_HOOKS)) problems.push(`hooks ${hooksOf(def)}`);
   if (tiedOf(def).length > hooksOf(def)) problems.push('more tied balloons than hooks');
-  if (def.wind) {
-    for (const value of def.wind.puffs) {
-      if (!whole(value, PUFF_MIN, PUFF_MAX)) problems.push(`puff ${value}`);
-    }
-    if (!whole(def.wind.ledge, 1, 10)) problems.push(`ledge ${def.wind.ledge}`);
-    if (acrossNeed(def.wind) < 1) problems.push('the wind reaches the ledge by itself');
-  }
+  if (def.layer !== undefined && !whole(def.layer, 1, LAYERS)) problems.push(`layer ${def.layer}`);
+  if (targetOf(def) > WEIGHT_MAX) problems.push(`target ${targetOf(def)}`);
   return problems;
 }

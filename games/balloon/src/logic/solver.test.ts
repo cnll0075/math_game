@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createRescue } from './rescue.js';
-import { needsPop, solve, subsetsOf } from './solver.js';
+import { needsPop, solve, subsetsOf, totalAt } from './solver.js';
 import type { RescueDef } from './rescue-def.js';
 
 describe('the solver', () => {
@@ -28,14 +28,16 @@ describe('the solver', () => {
 
   it('pops tied balloons when it must', () => {
     const def: RescueDef = { id: 'p', line: '', weight: 7, tray: [], tied: [6, 3, 1] };
-    expect(solve(def)).toEqual([{ clip: [], pop: [1], puffs: [] }]);
+    expect(solve(def)).toEqual([{ clip: [], pop: [1] }]);
     expect(needsPop(def)).toBe(true);
     expect(needsPop({ id: 'n', line: '', weight: 3, tray: [3] })).toBe(false);
   });
 
-  it('only accepts puffs that land on the ledge', () => {
-    const def: RescueDef = { id: 'w', line: '', weight: 4, tray: [], tied: [3, 1], wind: { ledge: 7, wind: 3, puffs: [5, 4, 2] } };
-    expect(solve(def)).toEqual([{ clip: [], pop: [], puffs: [1] }]);
+  it('aims at weight plus layers', () => {
+    const def: RescueDef = { id: 'w', line: '', weight: 7, tray: [5, 4, 3, 2], layer: 3 };
+    const answers = solve(def);
+    expect(answers.length).toBeGreaterThan(0);
+    for (const answer of answers) expect(totalAt(def.tray, answer.clip)).toBe(10);
   });
 
   it('gives answers that really do rescue', () => {
@@ -44,7 +46,6 @@ describe('the solver', () => {
       const rescue = createRescue(def);
       answer.pop.forEach((index) => rescue.togglePop(index));
       answer.clip.forEach((index) => rescue.clip(index));
-      answer.puffs.forEach((index) => rescue.puff(index));
       rescue.letGo();
       expect(rescue.state.rescued).toBe(true);
     }

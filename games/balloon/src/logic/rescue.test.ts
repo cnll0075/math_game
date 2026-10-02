@@ -43,7 +43,6 @@ describe('a rescue', () => {
     expect(rescue.unclip(0)).toEqual([]);
     expect(rescue.unclip(-1)).toEqual([]);
     expect(rescue.togglePop(0)).toEqual([]);
-    expect(rescue.puff(0)).toEqual([]);
   });
 
   it('refuses a clip once every hook is used', () => {
@@ -81,7 +80,11 @@ describe('a rescue', () => {
     rescue.clip(0);
     rescue.clip(2);
     const [event] = rescue.letGo();
-    expect(event).toEqual({ type: 'released', outcome: { verdict: 'over', axis: 'up', have: 11, need: 8 }, tries: 1 });
+    expect(event).toEqual({
+      type: 'released',
+      outcome: { verdict: 'over', have: 11, need: 8, weight: 8, layer: 0 },
+      tries: 1,
+    });
     expect(rescue.state.clipped).toEqual([{ value: 5, from: 0 }, { value: 6, from: 2 }]);
     expect(rescue.state.rescued).toBe(false);
   });
@@ -98,14 +101,21 @@ describe('a rescue', () => {
     expect(rescue.letGo()).toEqual([]);
   });
 
-  it('judges the wind: its push plus the puffs must reach the ledge', () => {
-    const def: RescueDef = { id: 'w', line: '', weight: 4, tray: [], tied: [3, 1], wind: { ledge: 7, wind: 3, puffs: [5, 4, 2] } };
-    const short = createRescue(def);
-    short.puff(2);
-    expect(short.letGo()[0]).toEqual({ type: 'released', outcome: { verdict: 'short', axis: 'across', have: 5, need: 7 }, tries: 1 });
+  it('asks for weight plus layers when the ledge is up in the wind', () => {
+    const def: RescueDef = { id: 'w', line: '', weight: 7, tray: [5, 3, 2, 4], layer: 3 };
+    const floatsOnly = createRescue(def);
+    floatsOnly.clip(0);
+    floatsOnly.clip(2); // 5 + 2: exactly the weight, the old habit
+    expect(floatsOnly.letGo()[0]).toEqual({
+      type: 'released',
+      outcome: { verdict: 'short', have: 7, need: 10, weight: 7, layer: 3 },
+      tries: 1,
+    });
 
     const right = createRescue(def);
-    right.puff(1);
+    right.clip(0);
+    right.clip(1);
+    right.clip(2);
     expect(right.letGo()[0]).toMatchObject({ outcome: { verdict: 'exact' } });
   });
 
@@ -132,15 +142,12 @@ describe('the finished sum', () => {
     expect(answerLines(rescue.state)).toEqual(['17 − 9 + 2 = 10']);
   });
 
-  it('writes the sideways sum with the wind in it, either way it blows', () => {
-    const helping = createRescue({ id: 'w', line: '', weight: 4, tray: [], tied: [3, 1], wind: { ledge: 7, wind: 3, puffs: [4] } });
-    helping.puff(0);
-    expect(answerLines(helping.state)).toEqual(['3 + 1 = 4', '3 + 4 = 7']);
-
-    const against = createRescue({ id: 'w', line: '', weight: 6, tray: [], tied: [3, 3], wind: { ledge: 5, wind: -2, puffs: [5, 2] } });
-    against.puff(0);
-    against.puff(1);
-    expect(answerLines(against.state)[1]).toBe('5 + 2 − 2 = 5');
+  it('writes the bunch, then the weight and the layers, when the ledge is up in the wind', () => {
+    const rescue = createRescue({ id: 'w', line: '', weight: 7, tray: [5, 3, 2], layer: 3 });
+    rescue.clip(0);
+    rescue.clip(1);
+    rescue.clip(2);
+    expect(answerLines(rescue.state)).toEqual(['5 + 3 + 2 = 10', '7 + 3 = 10']);
   });
 
   it('says just the number when one balloon did it', () => {

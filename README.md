@@ -599,9 +599,11 @@ Sky Patrol and Bramble Dash ask a child to *recall* an answer. This one asks
 them to *build* one: 8 is on the screen, and 5 + 3, 4 + 4 and 6 + 1 + 1 are all
 theirs to find.
 
-**Tap a balloon to clip it on; tap it again to send it back.** Dragging works
-too. "Let go!" is the only way to find out, and a wrong try leaves the bunch as
-it was, with the gap in words — "2 more!", "3 too many!".
+**Tap a balloon to clip it on; tap it again to send it back.** Or drag it: it
+follows the finger, clips on when dropped near the kit, and comes off when a
+clipped one is dragged down into the tray. "Let go!" is the only way to find
+out, and a wrong try leaves the bunch as it was, with the gap in words — "2
+more!", "3 too many!".
 
 **No running total while building.** The kit wears its weight; nothing adds up
 the bunch until it is let go, and then the balloons light one by one as the
@@ -612,9 +614,9 @@ climb.
 second, one after that. A rescue is never failed.
 
 **Eight chapters**: First Flight, Whoosh!, Big Bunches, Heavy Cargo (past ten),
-Tiny Harness (a hook limit), Pop! (taking away), Windy Ridge (the wind gives
-some steps and the puffs make up the rest) and The Big Rescue (two ideas at
-once). `?game=balloon&level=pop-1` opens any rescue by id, or
+Tiny Harness (a hook limit), Pop! (taking away), Windy Ridge (wind layers: the
+kit rises lift minus weight layers, so a ledge three layers up takes the weight
+plus three) and The Big Rescue (two ideas at once). `?game=balloon&level=pop-1` opens any rescue by id, or
 `&level=windy-ridge` any chapter.
 
 ### The test that guards it

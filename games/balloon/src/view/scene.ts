@@ -1,8 +1,10 @@
 import { drawArrivingBanner, fitToScreen, visibleBounds, type Point, type Size } from '@bundle/core';
 import type { DriverEvent, SceneModel } from '../driver.js';
-import { answerLines, canLetGo, liftedSlots, puffTaken, trayTaken, type RescueState } from '../logic/rescue.js';
+import { layerOf } from '../logic/rescue-def.js';
+import { answerLines, canLetGo, liftedSlots, trayTaken, type RescueState } from '../logic/rescue.js';
 import {
   drawBalloon,
+  drawBreeze,
   drawButton,
   drawCliff,
   drawEmptyClip,
@@ -10,16 +12,14 @@ import {
   drawGround,
   drawParachute,
   drawPopBurst,
-  drawPuff,
   drawRope,
   drawSky,
-  drawStepMarks,
   drawString,
   drawTrayShelf,
-  drawWindSock,
+  drawWindLayers,
 } from './art.js';
 import { flightPose, type Pose } from './flight.js';
-import { bunchCount, bunchPoint, harnessPoint, HOME, LAYOUT, ledgeSpot, puffPoint, puffTrayPoint, trayPoint } from './geometry.js';
+import { bunchCount, bunchPoint, harnessPoint, HOME, LAYOUT, ledgeSpot, trayPoint } from './geometry.js';
 import { drawCount, drawFinished, drawGauge, drawSolved, drawStars, drawTopBar } from './hud.js';
 import { TIMING } from './timing.js';
 
@@ -29,6 +29,15 @@ export interface Scene {
   observe(events: readonly DriverEvent[]): void;
   render(ctx: CanvasRenderingContext2D, screen: Size): void;
   toDesign(point: Point, screen: Size): Point;
+  /** A balloon being dragged, drawn under the finger; null when nothing is. */
+  setDrag(drag: Drag | null): void;
+}
+
+/** A balloon being dragged: where it came from, its value, and where the finger is. */
+export interface Drag {
+  from: { kind: 'tray'; index: number } | { kind: 'clipped'; slot: number };
+  value: number;
+  at: Point;
 }
 
 interface Burst {
@@ -61,11 +70,19 @@ function countNow(model: SceneModel): { slot: number; text: string } | null {
   return { slot: liftedSlots(model.rescue)[index] ?? -1, text: last ? `${sum}!` : `${sum}…` };
 }
 
-function drawBunch(ctx: CanvasRenderingContext2D, state: RescueState, at: Point, lit: number, showFree: boolean): void {
+function drawBunch(
+  ctx: CanvasRenderingContext2D,
+  state: RescueState,
+  at: Point,
+  lit: number,
+  showFree: boolean,
+  hide: number,
+): void {
   const count = bunchCount(state);
   const ring = harnessPoint(at);
   const values = [...state.tied.map((balloon) => balloon.value), ...state.clipped.map((taken) => taken.value)];
   values.forEach((value, slot) => {
+    if (slot === hide) return;
     const point = bunchPoint(slot, count, at);
     const limp = state.tied[slot]?.popped ?? false;
     drawString(ctx, ring, limp ? { x: point.x, y: point.y + 40 } : point);
@@ -79,7 +96,8 @@ export function createScene(): Scene {
   let model: SceneModel | null = null;
   let banner: { title: string; life: number } | null = null;
   let rescuedFor = 0;
-  let bob = 0;
+  let clock = 0;
+  let drag: Drag | null = null;
   const bursts: Burst[] = [];
 
   return {
@@ -95,7 +113,7 @@ export function createScene(): Scene {
 
     update(dt, next) {
       model = next;
-      bob += dt * 0.8;
+      clock += dt;
       if (next.phase === 'rescued') rescuedFor += dt;
       if (banner) {
         banner.life += dt;
@@ -121,38 +139,38 @@ export function createScene(): Scene {
       ctx.scale(transform.scale, transform.scale);
 
       drawSky(ctx, bounds);
-      if (def.wind) {
-        drawCliff(ctx, bounds, 'right', ledgeSpot(def).x - 50);
-        drawWindSock(ctx, def.wind.wind);
+      const layer = layerOf(def);
+      if (layer > 0) {
+        drawCliff(ctx, bounds, 'right', LAYOUT.rightCliffEdgeX, ledgeSpot(def).y);
+        drawWindLayers(ctx, bounds, layer, clock);
       } else {
         drawCliff(ctx, bounds, 'left', LAYOUT.cliffEdgeX);
+        drawBreeze(ctx, bounds, clock);
       }
       drawGround(ctx, bounds);
-      if (def.wind) drawStepMarks(ctx, def.wind.ledge);
 
       if (building && state.tied.length > 0) drawRope(ctx, HOME);
-      state.puffs.forEach((taken, slot) => drawPuff(ctx, puffPoint(slot, pose.at), taken.value));
       if (pose.parachute) {
         drawParachute(ctx, pose.at);
       } else if (current.phase === 'rescued' || current.phase === 'finished') {
         // Safe on the ledge, the kit lets the bunch go: it rises away rather
         // than sitting over the top bar, which is where it would be otherwise.
         const rise = rescuedFor * TIMING.releaseRise;
-        if (rise < TIMING.releaseGone) drawBunch(ctx, state, { x: pose.at.x, y: pose.at.y - rise }, -1, false);
+        if (rise < TIMING.releaseGone) drawBunch(ctx, state, { x: pose.at.x, y: pose.at.y - rise }, -1, false, -1);
       } else {
-        drawBunch(ctx, state, pose.at, countNow(current)?.slot ?? -1, building);
+        const hiddenSlot = drag?.from.kind === 'clipped' ? state.tied.length + drag.from.slot : -1;
+        drawBunch(ctx, state, pose.at, countNow(current)?.slot ?? -1, building, hiddenSlot);
       }
-      drawFox(ctx, pose.at, { weight: def.weight, mood: pose.mood, bob });
+      drawFox(ctx, pose.at, { weight: def.weight, mood: pose.mood, bob: clock * 0.8 });
       for (const burst of bursts) drawPopBurst(ctx, burst.at, burst.value, burst.life / TIMING.popSeconds);
 
       drawTrayShelf(ctx);
       def.tray.forEach((value, index) => {
-        if (!trayTaken(state, index)) drawBalloon(ctx, trayPoint(def, index), value);
-      });
-      def.wind?.puffs.forEach((value, index) => {
-        if (!puffTaken(state, index)) drawPuff(ctx, puffTrayPoint(def, index), value);
+        const lifted = drag?.from.kind === 'tray' && drag.from.index === index;
+        if (!trayTaken(state, index) && !lifted) drawBalloon(ctx, trayPoint(def, index), value);
       });
       drawButton(ctx, building && canLetGo(state));
+      if (drag && building) drawBalloon(ctx, drag.at, drag.value);
 
       drawTopBar(ctx, {
         title: current.chapter.title,
@@ -181,6 +199,10 @@ export function createScene(): Scene {
 
     toDesign(point, screen) {
       return fitToScreen(screen).toDesign(point);
+    },
+
+    setDrag(next) {
+      drag = next;
     },
   };
 }

@@ -99,11 +99,34 @@ describe('the scene', () => {
     expect(render(roomy).calls).not.toContain('setLineDash');
   });
 
-  it('draws the wind, the steps and the puffs in Windy Ridge', () => {
-    const driver = createDriver({ book: {}, startLevel: 'windy-ridge-1' });
-    const { texts } = render(driver);
-    expect(texts).toContain('3 →');
-    for (const value of [5, 4, 2]) expect(texts).toContain(String(value));
+  it('draws the wind layers in Windy Ridge, and no layers anywhere else', () => {
+    const windy = render(createDriver({ book: {}, startLevel: 'windy-ridge-2' }));
+    expect(windy.texts.filter((text) => text === '→')).toHaveLength(1);
+    expect(windy.texts.filter((text) => text === '←')).toHaveLength(2);
+    const plain = render(createDriver({ book: {}, startLevel: 'whoosh-1' }));
+    expect(plain.texts).not.toContain('→');
+  });
+
+  it('shows a popped balloon without its number', () => {
+    const driver = createDriver({ book: {}, startLevel: 'pop-1' });
+    driver.act({ kind: 'tied', index: 1 }); // the 3
+    expect(render(driver).texts).not.toContain('3');
+  });
+
+  it('draws a dragged balloon under the finger, and not in its old place', () => {
+    const driver = createDriver({ book: {}, startLevel: 'whoosh-1' });
+    const scene = createScene();
+    scene.observe(driver.step(FRAME));
+    scene.update(FRAME, driver.model());
+    scene.setDrag({ from: { kind: 'tray', index: 0 }, value: 6, at: { x: 500, y: 300 } });
+    const recording = recordingContext();
+    scene.render(recording.ctx, SCREEN);
+    expect(recording.translations).toContainEqual({ x: 500, y: 300 });
+    expect(recording.texts.filter((text) => text === '6')).toHaveLength(1);
+    scene.setDrag(null);
+    const after = recordingContext();
+    scene.render(after.ctx, SCREEN);
+    expect(after.translations).not.toContainEqual({ x: 500, y: 300 });
   });
 
   it('paints past the design rect, so an odd-shaped screen has no bars', () => {

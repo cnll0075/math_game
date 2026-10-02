@@ -1,12 +1,12 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach } from 'vitest';
 import type { Intent } from '../intent.js';
-import { createRescue } from '../logic/rescue.js';
+import { createRescue, type Rescue } from '../logic/rescue.js';
 import type { RescueDef } from '../logic/rescue-def.js';
 import type { Phase } from '../driver.js';
-import { LAYOUT, trayPoint } from './geometry.js';
+import { bunchPoint, HOME, LAYOUT, trayPoint } from './geometry.js';
 import { createInput } from './input.js';
-import { createScene } from './scene.js';
+import { createScene, type Drag } from './scene.js';
 
 const def: RescueDef = { id: 'i', line: '', weight: 8, tray: [5, 3, 6, 2] };
 
@@ -26,12 +26,15 @@ const pointer = (canvas: HTMLCanvasElement, type: string, x: number, y: number) 
   canvas.dispatchEvent(event);
 };
 
-const setup = (width = 1152, height = 768, phase: Phase = 'building') => {
+const setup = (width = 1152, height = 768, phase: Phase = 'building', prepare: (rescue: Rescue) => void = () => {}) => {
   const canvas = canvasOf(width, height);
   const intents: Intent[] = [];
+  const drags: Array<Drag | null> = [];
   const rescue = createRescue(def);
-  const input = createInput(canvas, createScene(), (intent) => intents.push(intent), () => ({ phase, rescue: rescue.state }));
-  return { canvas, intents, input };
+  prepare(rescue);
+  const scene = { ...createScene(), setDrag: (drag: Drag | null) => void drags.push(drag) };
+  const input = createInput(canvas, scene, (intent) => intents.push(intent), () => ({ phase, rescue: rescue.state }));
+  return { canvas, intents, drags, input, rescue };
 };
 
 afterEach(() => document.body.replaceChildren());
@@ -121,5 +124,83 @@ describe('input', () => {
     input.dispose();
     globalThis.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
     expect(intents).toHaveLength(1);
+  });
+
+  it('shows the balloon under the finger while it is dragged, and stops when it is dropped', () => {
+    const { canvas, drags, input } = setup();
+    const at = trayPoint(def, 2);
+    pointer(canvas, 'pointerdown', at.x, at.y);
+    pointer(canvas, 'pointermove', at.x + 30, at.y - 120);
+    expect(drags.at(-1)).toEqual({ from: { kind: 'tray', index: 2 }, value: 6, at: { x: at.x + 30, y: at.y - 120 } });
+    pointer(canvas, 'pointerup', at.x + 30, at.y - 120);
+    expect(drags.at(-1)).toBeNull();
+    input.dispose();
+  });
+
+  it('does not show a drag for a finger that has barely moved', () => {
+    const { canvas, drags, input } = setup();
+    const at = trayPoint(def, 2);
+    pointer(canvas, 'pointerdown', at.x, at.y);
+    pointer(canvas, 'pointermove', at.x + 4, at.y);
+    expect(drags.filter(Boolean)).toEqual([]);
+    input.dispose();
+  });
+
+  it('does not clip a balloon dropped on the button', () => {
+    const { canvas, intents, input } = setup();
+    const at = trayPoint(def, 3);
+    pointer(canvas, 'pointerdown', at.x, at.y);
+    pointer(canvas, 'pointerup', LAYOUT.button.left + 40, LAYOUT.button.top + 40);
+    expect(intents).toEqual([]);
+    input.dispose();
+  });
+
+  it('takes a clipped balloon off when it is dragged down into the tray', () => {
+    const { canvas, intents, input } = setup(1152, 768, 'building', (rescue) => {
+      rescue.clip(0);
+      rescue.clip(1);
+    });
+    const at = bunchPoint(1, 2, HOME);
+    pointer(canvas, 'pointerdown', at.x, at.y);
+    pointer(canvas, 'pointermove', 500, LAYOUT.trayY);
+    pointer(canvas, 'pointerup', 500, LAYOUT.trayY);
+    expect(intents).toEqual([{ kind: 'clipped', slot: 1 }]);
+    input.dispose();
+  });
+
+  it('leaves a clipped balloon on when it is dragged and dropped back in the sky', () => {
+    const { canvas, intents, input } = setup(1152, 768, 'building', (rescue) => rescue.clip(0));
+    const at = bunchPoint(0, 1, HOME);
+    pointer(canvas, 'pointerdown', at.x, at.y);
+    pointer(canvas, 'pointerup', at.x + 120, at.y + 60);
+    expect(intents).toEqual([]);
+    input.dispose();
+  });
+
+  it('does not drag a tied balloon: a tied one is popped by a tap', () => {
+    const tiedDef: RescueDef = { id: 't', line: '', weight: 7, tray: [], tied: [6, 3, 1] };
+    const canvas = canvasOf(1152, 768);
+    const intents: Intent[] = [];
+    const drags: Array<Drag | null> = [];
+    const rescue = createRescue(tiedDef);
+    const scene = { ...createScene(), setDrag: (drag: Drag | null) => void drags.push(drag) };
+    const input = createInput(canvas, scene, (intent) => intents.push(intent), () => ({ phase: 'building', rescue: rescue.state }));
+    const at = bunchPoint(1, 3, HOME);
+    pointer(canvas, 'pointerdown', at.x, at.y);
+    pointer(canvas, 'pointermove', at.x + 100, at.y + 200);
+    pointer(canvas, 'pointerup', at.x + 100, at.y + 200);
+    expect(drags.filter(Boolean)).toEqual([]);
+    expect(intents).toEqual([]);
+    input.dispose();
+  });
+
+  it('stops drawing the drag when the pointer is cancelled', () => {
+    const { canvas, drags, input } = setup();
+    const at = trayPoint(def, 0);
+    pointer(canvas, 'pointerdown', at.x, at.y);
+    pointer(canvas, 'pointermove', at.x, at.y - 200);
+    pointer(canvas, 'pointercancel', at.x, at.y - 200);
+    expect(drags.at(-1)).toBeNull();
+    input.dispose();
   });
 });

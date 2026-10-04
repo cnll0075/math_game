@@ -95,4 +95,19 @@ describe('a board in play', () => {
     expect(game.state.pads[4]!.up).toBe(true);
     expect(game.flip(4)).toEqual([]);
   });
+
+  it('lets a tap on the ★ during the hold put a missed pair back, and do nothing else', () => {
+    const board3 = boardById('board-3')!;
+    const cards: Card[] = [
+      sum(1, '+', 1), sum(3, '−', 1), sum(1, '+', 2), sum(4, '−', 1),
+      { sum: null },
+      sum(1, '+', 3), sum(5, '−', 1), sum(1, '+', 4), sum(6, '−', 1),
+    ];
+    const game = createGame(board3, cards);
+    game.flip(0); // 2
+    game.flip(2); // 3: a miss
+    expect(game.flip(4)).toEqual([{ type: 'hidden', a: 0, b: 2 }]);
+    expect(game.state.first).toBeNull();
+    expect(game.state.misses).toBe(1);
+  });
 });

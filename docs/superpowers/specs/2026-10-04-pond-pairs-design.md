@@ -71,7 +71,7 @@ board, rather than by hand over a fixed set.
 | — the two are equal | Both stay up and bloom into flowers. The match is written out — `3 + 4 = 7 = 9 − 2` — for a beat. That beat is the teaching |
 | — the two are not equal | Both stay visible for about 1.3 seconds, then flip back. No numbers are shown: the working out stays the child's |
 | Taps a pad during those 1.3 seconds | The two flip back at once and the new tap counts, so a quick child is never made to wait |
-| Taps a pad already up, or the ★ | Nothing |
+| Taps a pad already up, or the ★ | Nothing — apart from putting a held missed pair back |
 
 No clock, no lives, no way to fail. A board ends when every pad but the ★ is
 up.
@@ -100,7 +100,8 @@ The design space is 1152×768, as the other games, scenery past it.
   still read at 27px; on 2×2 pads are capped so they do not become posters.
 - Face down, a pad is a green lily pad. Face up, it is a pale pad with the sum
   in large hand lettering. Matched, it carries a small flower.
-- The finished sum floats over the pond, centred, as each match is made.
+- The finished match is written in the top bar, over the board's name, as each
+  match is made — up there it never covers a pad the child may want next.
 - The end of a board: a card with the stars, misses and pairs, and "Next
   board" (or "Play again" on 9×9).
 

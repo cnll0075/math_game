@@ -61,11 +61,11 @@ export function createGame(board: BoardDef, cards: Card[]): Game {
 
     flip(index) {
       const pad = state.pads[index];
-      if (state.cleared || !pad || pad.card.sum === null) return [];
-      // A tap during the hold puts the missed pair back first, so a quick
-      // child is never made to wait.
+      if (state.cleared || !pad) return [];
+      // Any tap on a pad during the hold — the ★ included — puts the missed
+      // pair back first, so a quick child is never made to wait.
       const events = hide();
-      if (pad.up) return events;
+      if (pad.up || pad.card.sum === null) return events;
 
       pad.up = true;
       events.push({ type: 'flipped', index });

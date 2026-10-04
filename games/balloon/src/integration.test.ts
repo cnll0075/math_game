@@ -42,7 +42,7 @@ describe('a game played through the module', () => {
     expect(session.__test.phase()).toBe('building');
     expect(session.__test.feedback()).toBe('2 too many!');
 
-    session.__test.act({ kind: 'clipped', slot: 0 });
+    session.__test.act({ kind: 'clipped', kit: 0, slot: 0 });
     session.__test.act({ kind: 'tray', index: 0 });
     session.__test.act({ kind: 'letGo' });
     session.__test.settle();

@@ -5,7 +5,7 @@ import { noiseBurst, tone, type AudioBus, type SoundPack } from '@bundle/core';
  * samples implements the same names and swaps in with one line of setup.
  */
 export const SOUND_EVENTS: readonly string[] = [
-  'clip', 'unclip', 'full', 'pop', 'reinflate',
+  'clip', 'unclip', 'full', 'pop', 'reinflate', 'reset', 'select',
   'count', 'float', 'strain', 'whoosh', 'land', 'cheer', 'star', 'chapter',
 ];
 
@@ -45,7 +45,15 @@ const chapter: Voice = (bus, delay) => {
   [523.25, 659.25, 830.61].forEach((freq, index) => tone(bus, { freq, duration: 0.26, type: 'triangle', gain: 0.15, delay: delay + index * 0.11 }));
 };
 
-const VOICES: Record<string, Voice> = { clip, unclip, full, pop, reinflate, count, float, strain, whoosh, land, cheer, star, chapter };
+/** Start over: everything whisking back, a quick fall. */
+const reset: Voice = (bus, delay) => {
+  noiseBurst(bus, { duration: 0.25, gain: 0.07, filterHz: 1800, sweepTo: 600, delay });
+  tone(bus, { freq: 660, duration: 0.18, type: 'triangle', gain: 0.1, sweepTo: 440, delay });
+};
+/** A kit chosen: a soft knock. */
+const select: Voice = (bus, delay) => tone(bus, { freq: 520, duration: 0.08, type: 'sine', gain: 0.1, delay });
+
+const VOICES: Record<string, Voice> = { clip, unclip, full, pop, reinflate, reset, select, count, float, strain, whoosh, land, cheer, star, chapter };
 
 export function createBalloonSoundPack(bus: AudioBus): SoundPack {
   return {

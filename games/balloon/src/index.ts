@@ -3,7 +3,6 @@ import { createDriver, type Driver, type DriverEvent, type Phase } from './drive
 import type { Intent } from './intent.js';
 import { feedbackLine, type Outcome } from './logic/outcome.js';
 import { readBook } from './logic/progress.js';
-import { LAYERS } from './logic/rescue-def.js';
 import { solve } from './logic/solver.js';
 import type { StarBook } from './logic/stars.js';
 import { createBalloonSoundPack } from './audio/balloon-sounds.js';
@@ -41,13 +40,9 @@ export interface BalloonModule extends GameModule<BalloonOptions> {
 
 const STARS_KEY = 'stars';
 
-/** The sound the kit makes as it leaves the ground, once the count is done. */
-const liftOffSound = (outcome: Outcome): string => {
-  if (outcome.have < outcome.weight) return 'strain';
-  const rise = outcome.have - outcome.weight;
-  if (outcome.verdict === 'over' && (outcome.layer === 0 || rise > LAYERS)) return 'whoosh';
-  return 'float';
-};
+/** The sound a kit makes as it leaves the ground, once the count is done. */
+const liftOffSound = (outcome: Outcome): string =>
+  outcome.verdict === 'exact' ? 'float' : outcome.verdict === 'short' ? 'strain' : 'whoosh';
 
 export const balloonGame: BalloonModule = {
   id: 'balloon',
@@ -96,13 +91,14 @@ export const balloonGame: BalloonModule = {
           case 'released': {
             const flight = driver.flight;
             if (!flight) break;
-            const beat = flight.count / Math.max(1, flight.lifted.length);
-            flight.lifted.forEach((_, step) => sounds.play('count', { delay: step * beat, step }));
-            sounds.play(liftOffSound(event.outcome), { delay: flight.count });
+            const counted = flight.lifted.flat();
+            const beat = flight.count / Math.max(1, counted.length);
+            counted.forEach((_, step) => sounds.play('count', { delay: step * beat, step }));
+            event.outcomes.forEach((outcome, kit) => sounds.play(liftOffSound(outcome), { delay: flight.count + kit * 0.15 }));
             break;
           }
           case 'landed':
-            if (event.outcome.verdict !== 'exact') sounds.play('land');
+            if (event.outcomes.some((outcome) => outcome.verdict !== 'exact')) sounds.play('land');
             break;
           case 'rescued':
             sounds.play('cheer');
@@ -110,6 +106,12 @@ export const balloonGame: BalloonModule = {
               sounds.play('star', { delay: TIMING.starsDelaySeconds + step * TIMING.starSeconds, step });
             }
             host.storage.set(STARS_KEY, event.book);
+            break;
+          case 'reset':
+            sounds.play('reset');
+            break;
+          case 'selected':
+            sounds.play('select');
             break;
           case 'chapter':
             sounds.play('chapter');
@@ -183,14 +185,15 @@ export const balloonGame: BalloonModule = {
           const answer = solve(driver.rescue.state.def)[0];
           if (!answer) throw new Error(`no answer to ${driver.rescue.state.def.id}`);
           answer.pop.forEach((index) => act({ kind: 'tied', index }));
-          answer.clip.forEach((index) => act({ kind: 'tray', index }));
+          answer.clip.forEach((index) => act({ kind: 'tray', index, kit: 0 }));
+          answer.friend.forEach((index) => act({ kind: 'tray', index, kit: 1 }));
           act({ kind: 'letGo' });
           settle();
         },
         rescueId: () => driver.rescue.state.def.id,
         phase: () => driver.phase,
         tries: () => driver.rescue.state.tries,
-        feedback: () => (driver.feedback ? feedbackLine(driver.feedback) : null),
+        feedback: () => (driver.feedback ? driver.feedback.map(feedbackLine).join(' / ') : null),
         stars: () => driver.book,
       },
     };

@@ -119,7 +119,8 @@ export function drawPad(ctx: CanvasRenderingContext2D, rect: Rect, look: PadLook
     ctx.font = hand(700, look.font);
     const font = fitFont(look.font, ctx.measureText(text).width, rect.w * 0.78);
     label(ctx, text, 0, 2, font, 'center');
-    if (look.bloom > 0) drawFlower(ctx, rect.w / 2 - rect.h * 0.22, -rect.h / 2 + rect.h * 0.18, rect.h * 0.32, look.bloom);
+    // On the pad's top edge, clear of the lettering.
+    if (look.bloom > 0) drawFlower(ctx, rect.w * 0.3, -rect.h / 2, rect.h * 0.3, look.bloom);
   }
   ctx.restore();
 }

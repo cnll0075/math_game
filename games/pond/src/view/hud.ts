@@ -36,8 +36,10 @@ export function drawTopBar(ctx: CanvasRenderingContext2D, model: { title: string
 export function drawMatchLine(ctx: CanvasRenderingContext2D, text: string, progress: number): void {
   ctx.save();
   ctx.globalAlpha = progress > 0.8 ? Math.max(0, (1 - progress) / 0.2) : 1;
-  panel(ctx, DESIGN.width / 2 - 300, DESIGN.height / 2 - 50, 600, 100, 'rgba(255,255,255,0.92)');
-  label(ctx, text, DESIGN.width / 2, DESIGN.height / 2, 50, 'center');
+  // In the top bar, over the board's name, so it never covers a pad the child
+  // may want next.
+  panel(ctx, DESIGN.width / 2 - 300, LAYOUT.hudY - 40, 600, 80, 'rgba(255,255,255,0.96)');
+  label(ctx, text, DESIGN.width / 2, LAYOUT.hudY, 44, 'center');
   ctx.restore();
 }
 

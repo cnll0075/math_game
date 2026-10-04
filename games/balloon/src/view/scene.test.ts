@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { DESIGN, depthOf, recordingContext } from '@bundle/core';
 import { createDriver, type Driver } from '../driver.js';
-import { createScene } from './scene.js';
+import { createScene, kitPose } from './scene.js';
 import { HOME } from './geometry.js';
 
 const FRAME = 1 / 60;
@@ -173,5 +173,21 @@ describe('the scene', () => {
     const { ctx, calls } = recordingContext();
     createScene().render(ctx, SCREEN);
     expect(calls).toHaveLength(0);
+  });
+
+  it('never jumps a right kit from the ledge to the ground when its friend was wrong', () => {
+    const driver = createDriver({ book: {}, startLevel: 'two-at-once-1' });
+    driver.act({ kind: 'tray', index: 0 }); // 3
+    driver.act({ kind: 'tray', index: 1 }); // 1: the left kit's 4, exactly
+    driver.act({ kind: 'select', kit: 1 });
+    driver.act({ kind: 'tray', index: 3 }); // 3 of the right kit's 5
+    driver.act({ kind: 'letGo' });
+    let lastFlying = kitPose(driver.model(), 0).at;
+    while (driver.phase === 'flying') {
+      lastFlying = kitPose(driver.model(), 0).at;
+      driver.step(FRAME);
+    }
+    const settled = kitPose(driver.model(), 0).at;
+    expect(Math.hypot(settled.x - lastFlying.x, settled.y - lastFlying.y)).toBeLessThan(6);
   });
 });

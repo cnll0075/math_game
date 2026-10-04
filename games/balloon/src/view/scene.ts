@@ -79,7 +79,7 @@ function countNow(model: SceneModel): CountNow | null {
 const countLift = (total: number, weight: number): number => COUNT_RISE * Math.min(1, total / Math.max(1, weight));
 
 /** Where a kit is and how it looks, from the model alone. */
-function poseOf(model: SceneModel, kit: number): Pose {
+export function kitPose(model: SceneModel, kit: number): Pose {
   const def = model.rescue.def;
   const home = homeOf(def, kit);
   const spot = ledgeSpot(def, kit);
@@ -94,8 +94,11 @@ function poseOf(model: SceneModel, kit: number): Pose {
     }
     const outcome = flight.outcomes[kit];
     if (!outcome) return { at: home, parachute: false, mood: 'calm' };
-    const flyT = (flight.t - flight.count) / flight.fly;
-    const pose = flightPose(outcome, flyT, home, spot);
+    // Each kit flies on its own clock and then holds still, rather than every
+    // flight being stretched to the longest one.
+    const flyT = (flight.t - flight.count) / TIMING.flight[outcome.verdict];
+    const land = flight.outcomes.every((each) => each.verdict === 'exact');
+    const pose = flightPose(outcome, flyT, home, spot, land);
     // Carry on from where the count left the kit, rather than snapping back to the ground.
     const carried = countLift(sum(flight.lifted[kit] ?? []), weight) * Math.max(0, 1 - flyT / 0.25);
     return { ...pose, at: { x: pose.at.x, y: pose.at.y - carried } };
@@ -184,7 +187,7 @@ export function createScene(): Scene {
 
       for (let kit = 0; kit < kits; kit += 1) {
         const home = homeOf(def, kit);
-        const pose = poseOf(current, kit);
+        const pose = kitPose(current, kit);
         if (building && kit === 0 && state.tied.length > 0) drawRope(ctx, home);
         if (building && kits > 1 && kit === current.selected) drawSelectRing(ctx, home);
         if (pose.parachute) {

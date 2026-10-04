@@ -49,4 +49,13 @@ describe('the flight', () => {
     expect(flightPose(judge(8, 8), 1.5, HOME, spot).at).toEqual(spot);
     expect(flightPose(judge(8, 8), -1, HOME, spot).at).toEqual(HOME);
   });
+
+  it('shows a right kit off at ledge height, then brings it home, when its friend is not right yet', () => {
+    const mid = flightPose(judge(8, 8), 0.5, HOME, spot, false);
+    expect(mid.at.y).toBeLessThanOrEqual(LAYOUT.ledgeY);
+    expect(mid.at.x).toBe(HOME.x);
+    const end = flightPose(judge(8, 8), 1, HOME, spot, false);
+    expect(end.at).toEqual(HOME);
+    expect(end.parachute).toBe(false);
+  });
 });

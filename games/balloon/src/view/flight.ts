@@ -20,9 +20,10 @@ const during = (t: number, from: number, to: number): number => clamp01((t - fro
  * Where a kit is, `t` of the way through its flight, given where it stands and
  * where it would land. A function of the outcome and nothing else, so the flight
  * is drawn from state rather than simulated — a flight can never disagree with
- * the verdict it shows.
+ * the verdict it shows. `land` is false when another kit was wrong, so a right
+ * kit is shown off and brought home rather than left on the ledge alone.
  */
-export function flightPose(outcome: Outcome, rawT: number, home: Point, spot: Point): Pose {
+export function flightPose(outcome: Outcome, rawT: number, home: Point, spot: Point, land = true): Pose {
   const t = clamp01(rawT);
 
   if (outcome.verdict === 'short') {
@@ -42,9 +43,17 @@ export function flightPose(outcome: Outcome, rawT: number, home: Point, spot: Po
     return { at: { x: home.x, y: lerp(-150, home.y, down) }, parachute: true, mood: 'calm' };
   }
 
+  const hover = LAYOUT.ledgeY - 14;
+  if (!land) {
+    // Just right, but its friend is not: up to the ledge's height to show it,
+    // then gently down again to wait, rather than landing alone.
+    const up = ease(during(t, 0, 0.45));
+    const down = ease(during(t, 0.6, 1));
+    return { at: { x: home.x, y: t < 0.6 ? lerp(home.y, hover, up) : lerp(hover, home.y, down) }, parachute: false, mood: 'calm' };
+  }
+
   // Just right: up to the ledge's height, where the breeze carries the kit
   // across onto the cliff.
-  const hover = LAYOUT.ledgeY - 14;
   const rise = ease(during(t, 0, 0.62));
   const carry = ease(during(t, 0.64, 1));
   return {

@@ -4,7 +4,7 @@ import type { Intent } from '../intent.js';
 import { createRescue, type Rescue } from '../logic/rescue.js';
 import type { RescueDef } from '../logic/rescue-def.js';
 import type { Phase } from '../driver.js';
-import { bunchPoint, HOME, LAYOUT, trayPoint } from './geometry.js';
+import { bunchPoint, HOME, homeOf, LAYOUT, trayPoint } from './geometry.js';
 import { createInput } from './input.js';
 import { createScene, type Drag } from './scene.js';
 
@@ -27,11 +27,17 @@ const pointer = (canvas: HTMLCanvasElement, type: string, x: number, y: number, 
   canvas.dispatchEvent(event);
 };
 
-const setup = (width = 1152, height = 768, phase: Phase = 'building', prepare: (rescue: Rescue) => void = () => {}) => {
+const setup = (
+  width = 1152,
+  height = 768,
+  phase: Phase = 'building',
+  prepare: (rescue: Rescue) => void = () => {},
+  rescueDef: RescueDef = def,
+) => {
   const canvas = canvasOf(width, height);
   const intents: Intent[] = [];
   const drags: Array<Drag | null> = [];
-  const rescue = createRescue(def);
+  const rescue = createRescue(rescueDef);
   prepare(rescue);
   const scene = { ...createScene(), setDrag: (drag: Drag | null) => void drags.push(drag) };
   const input = createInput(canvas, scene, (intent) => intents.push(intent), () => ({ phase, rescue: rescue.state }));
@@ -55,7 +61,7 @@ describe('input', () => {
     const at = trayPoint(def, 1);
     pointer(canvas, 'pointerdown', at.x, at.y);
     pointer(canvas, 'pointerup', at.x + 40, at.y - 260);
-    expect(intents).toEqual([{ kind: 'tray', index: 1 }]);
+    expect(intents).toEqual([{ kind: 'tray', index: 1, kit: 0 }]);
     input.dispose();
   });
 
@@ -165,7 +171,7 @@ describe('input', () => {
     pointer(canvas, 'pointerdown', at.x, at.y);
     pointer(canvas, 'pointermove', 500, LAYOUT.trayY);
     pointer(canvas, 'pointerup', 500, LAYOUT.trayY);
-    expect(intents).toEqual([{ kind: 'clipped', slot: 1 }]);
+    expect(intents).toEqual([{ kind: 'clipped', kit: 0, slot: 1 }]);
     input.dispose();
   });
 
@@ -250,6 +256,46 @@ describe('input', () => {
     pointer(canvas, 'pointerup', at.x, at.y, 7, true);
     expect(drags.at(-1)).toBeNull();
     expect(intents).toEqual([{ kind: 'tray', index: 0 }]);
+    input.dispose();
+  });
+
+  const pairDef: RescueDef = { id: 'p', line: '', weight: 4, friend: 5, tray: [3, 1, 2, 3] };
+
+  it('clips a dropped balloon to whichever kit it lands nearest', () => {
+    const { canvas, intents, input } = setup(1152, 768, 'building', () => {}, pairDef);
+    const at = trayPoint(pairDef, 0);
+    const second = homeOf(pairDef, 1);
+    pointer(canvas, 'pointerdown', at.x, at.y);
+    pointer(canvas, 'pointermove', second.x, 330);
+    pointer(canvas, 'pointerup', second.x, 330);
+    expect(intents).toEqual([{ kind: 'tray', index: 0, kit: 1 }]);
+    input.dispose();
+  });
+
+  it('selects a kit with a tap', () => {
+    const { canvas, intents, input } = setup(1152, 768, 'building', () => {}, pairDef);
+    const second = homeOf(pairDef, 1);
+    pointer(canvas, 'pointerdown', second.x, second.y - 55);
+    pointer(canvas, 'pointerup', second.x, second.y - 55);
+    expect(intents).toEqual([{ kind: 'select', kit: 1 }]);
+    input.dispose();
+  });
+
+  it('takes a balloon off the second kit when it is dragged into the tray', () => {
+    const { canvas, intents, input } = setup(1152, 768, 'building', (rescue) => rescue.clip(0, 1), pairDef);
+    const at = bunchPoint(0, 1, homeOf(pairDef, 1));
+    pointer(canvas, 'pointerdown', at.x, at.y);
+    pointer(canvas, 'pointermove', 500, LAYOUT.trayY);
+    pointer(canvas, 'pointerup', 500, LAYOUT.trayY);
+    expect(intents).toEqual([{ kind: 'clipped', kit: 1, slot: 0 }]);
+    input.dispose();
+  });
+
+  it('presses start over', () => {
+    const { canvas, intents, input } = setup();
+    pointer(canvas, 'pointerdown', LAYOUT.reset.x, LAYOUT.reset.y);
+    pointer(canvas, 'pointerup', LAYOUT.reset.x, LAYOUT.reset.y);
+    expect(intents).toEqual([{ kind: 'reset' }]);
     input.dispose();
   });
 });

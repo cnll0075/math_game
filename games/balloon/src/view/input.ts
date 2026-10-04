@@ -1,8 +1,8 @@
 import { DESIGN, type Point, type Size } from '@bundle/core';
 import type { Phase } from '../driver.js';
 import type { Intent } from '../intent.js';
-import type { RescueState } from '../logic/rescue.js';
-import { hitTest, inDropZone, inTray } from './geometry.js';
+import { clippedOn, type RescueState } from '../logic/rescue.js';
+import { dropKit, hitTest, inTray } from './geometry.js';
 import type { Drag, Scene } from './scene.js';
 
 export interface InputHandle {
@@ -48,8 +48,8 @@ export function createInput(
       return value === undefined ? null : { from: { kind: 'tray', index: intent.index }, value, at };
     }
     if (intent?.kind === 'clipped') {
-      const value = rescue.clipped[intent.slot]?.value;
-      return value === undefined ? null : { from: { kind: 'clipped', slot: intent.slot }, value, at };
+      const value = clippedOn(rescue, intent.kit)[intent.slot]?.value;
+      return value === undefined ? null : { from: { kind: 'clipped', kit: intent.kit, slot: intent.slot }, value, at };
     }
     return null;
   };
@@ -107,7 +107,12 @@ export function createInput(
     // Once it has followed the finger it was a drag, even if it ends back where it started.
     const dragged = down.dragging || Math.hypot(at.x - down.at.x, at.y - down.at.y) >= DRAG_PIXELS;
     if (down.intent.kind === 'tray') {
-      if (!dragged || inDropZone(at)) emit(down.intent);
+      if (!dragged) {
+        emit(down.intent);
+        return;
+      }
+      const kit = dropKit(at, rescue.def);
+      if (kit !== null) emit({ kind: 'tray', index: down.intent.index, kit });
       return;
     }
     if (down.intent.kind === 'clipped' && dragged) {

@@ -68,23 +68,23 @@ export const CHAPTERS: readonly ChapterDef[] = [
     { line: 'Way too much lift again', weight: 12, tray: [], tied: [7, 5, 3, 2] },
     { line: 'Pop one, then add one', weight: 10, tray: [2], tied: [9, 5, 3] },
   ]),
-  // Rise exactly the right number of wind layers: lift minus weight. The bunch
-  // that makes exactly the weight — the old habit — is always there, and only
-  // gets the kit off the ground. The first comes already floating.
-  chapter('windy-ridge', 'Windy Ridge', [4, 17], [
-    { line: 'The wind is helping!', weight: 5, tray: [1, 2, 4], tied: [3, 2], layer: 2 },
-    { line: 'The top wind blows home', weight: 7, tray: [5, 4, 3, 2], layer: 3 },
-    { line: 'Just one layer up', weight: 6, tray: [5, 1, 3, 4], layer: 1 },
-    { line: 'Catch the middle wind', weight: 9, tray: [8, 6, 5, 3, 1], layer: 2 },
-    { line: 'All the way to the top wind', weight: 12, tray: [10, 7, 5, 2, 3], layer: 3 },
+  // Two kits, one tray, and a split: the tray adds up to both weights together,
+  // so every balloon is used. The last two carry one spare, so the split has
+  // to be chosen rather than forced.
+  chapter('two-at-once', 'Two at Once', [4, 10], [
+    { line: 'Pip and Bo both need a lift', weight: 4, friend: 5, tray: [3, 1, 2, 3] },
+    { line: 'Two friends, one bunch of balloons', weight: 6, friend: 7, tray: [5, 4, 2, 1, 1] },
+    { line: 'A big kit and a little kit', weight: 5, friend: 9, tray: [6, 4, 3, 1] },
+    { line: 'One balloon will be left over', weight: 8, friend: 6, tray: [5, 4, 3, 2, 1] },
+    { line: 'Tilly and Juno, side by side', weight: 10, friend: 7, tray: [6, 5, 4, 3, 2] },
   ]),
   // Two ideas in every rescue.
   chapter('big-rescue', 'The Big Rescue', [5, 20], [
-    { line: 'Two hooks, and the wind up high', weight: 13, hooks: 2, tray: [10, 5, 6, 7, 4, 3], layer: 2 },
+    { line: 'Two heavy kits this time', weight: 12, friend: 5, tray: [10, 2, 3, 2] },
     { line: 'A heavy load and too much lift', weight: 13, tray: [3], tied: [10, 6] },
     { line: 'Big load, little harness', weight: 18, hooks: 3, tray: [10, 9, 8, 6, 5, 3, 2] },
-    { line: 'Pop, then up one wind', weight: 12, tray: [], tied: [7, 6, 4, 1], layer: 1 },
-    { line: 'The last kit to rescue!', weight: 15, hooks: 2, tray: [10, 9, 8, 7, 6, 4, 3], layer: 2 },
+    { line: 'Pop for one kit, share for the other', weight: 13, friend: 5, tray: [3, 2], tied: [7, 6, 4] },
+    { line: 'The last two kits to rescue!', weight: 15, friend: 9, hooks: 2, tray: [10, 5, 6, 3] },
   ]),
 ];
 

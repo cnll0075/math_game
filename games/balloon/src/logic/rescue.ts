@@ -1,10 +1,11 @@
 import { judge, type Outcome } from './outcome.js';
-import { hooksOf, layerOf, targetOf, tiedOf, type RescueDef } from './rescue-def.js';
+import { hooksOf, kitsOf, tiedOf, weightsOf, type RescueDef } from './rescue-def.js';
 
-/** A balloon taken from the tray, remembering where it came from. */
+/** A balloon taken from the tray: where it came from, and which kit it is on. */
 export interface Taken {
   value: number;
   from: number;
+  kit: number;
 }
 
 export interface TiedBalloon {
@@ -14,6 +15,7 @@ export interface TiedBalloon {
 
 export interface RescueState {
   readonly def: RescueDef;
+  /** Tied balloons are always on the left kit. */
   tied: TiedBalloon[];
   clipped: Taken[];
   tries: number;
@@ -21,70 +23,76 @@ export interface RescueState {
 }
 
 export type RescueEvent =
-  | { type: 'clipped'; value: number }
+  | { type: 'clipped'; value: number; kit: number }
   | { type: 'unclipped'; value: number }
   | { type: 'full' }
   | { type: 'popped'; index: number; value: number }
   | { type: 'reinflated'; index: number; value: number }
-  | { type: 'released'; outcome: Outcome; tries: number };
+  | { type: 'reset' }
+  | { type: 'released'; outcomes: Outcome[]; tries: number };
 
 export interface Rescue {
   readonly state: RescueState;
-  clip(trayIndex: number): RescueEvent[];
-  unclip(slot: number): RescueEvent[];
+  clip(trayIndex: number, kit?: number): RescueEvent[];
+  unclip(kit: number, slot: number): RescueEvent[];
   togglePop(tiedIndex: number): RescueEvent[];
+  startOver(): RescueEvent[];
   letGo(): RescueEvent[];
 }
 
 const MINUS = '−';
 const total = (values: readonly number[]): number => values.reduce((sum, value) => sum + value, 0);
 
-/** Every value still lifting, tied first, in the order they hang on the harness. */
-export const liftedValues = (state: RescueState): number[] => [
-  ...state.tied.filter((balloon) => !balloon.popped).map((balloon) => balloon.value),
-  ...state.clipped.map((taken) => taken.value),
+const tiedOn = (state: RescueState, kit: number): TiedBalloon[] => (kit === 0 ? state.tied : []);
+
+/** The clipped balloons on one kit, in the order they hang. */
+export const clippedOn = (state: RescueState, kit: number): Taken[] => state.clipped.filter((taken) => taken.kit === kit);
+
+/** Every value still lifting one kit, tied first, in the order they hang on the harness. */
+export const liftedValues = (state: RescueState, kit = 0): number[] => [
+  ...tiedOn(state, kit).filter((balloon) => !balloon.popped).map((balloon) => balloon.value),
+  ...clippedOn(state, kit).map((taken) => taken.value),
 ];
 
 /** The bunch slots of those same balloons: tied first, then clipped. */
-export const liftedSlots = (state: RescueState): number[] => [
-  ...state.tied.flatMap((balloon, index) => (balloon.popped ? [] : [index])),
-  ...state.clipped.map((_, index) => state.tied.length + index),
-];
+export const liftedSlots = (state: RescueState, kit = 0): number[] => {
+  const tied = tiedOn(state, kit);
+  return [
+    ...tied.flatMap((balloon, index) => (balloon.popped ? [] : [index])),
+    ...clippedOn(state, kit).map((_, index) => tied.length + index),
+  ];
+};
 
-export const liftOf = (state: RescueState): number => total(liftedValues(state));
+export const liftOf = (state: RescueState, kit = 0): number => total(liftedValues(state, kit));
 /** A popped balloon still hangs on its hook. */
-export const hooksUsed = (state: RescueState): number => state.tied.length + state.clipped.length;
-export const trayTaken = (state: RescueState, index: number): boolean =>
-  state.clipped.some((taken) => taken.from === index);
-export const canLetGo = (state: RescueState): boolean => !state.rescued && hooksUsed(state) > 0;
+export const hooksUsed = (state: RescueState, kit = 0): number => tiedOn(state, kit).length + clippedOn(state, kit).length;
+export const trayTaken = (state: RescueState, index: number): boolean => state.clipped.some((taken) => taken.from === index);
+export const canLetGo = (state: RescueState): boolean =>
+  !state.rescued && weightsOf(state.def).some((_, kit) => hooksUsed(state, kit) > 0);
+/** Anything to undo: a popped balloon, or a clipped one. */
+export const canStartOver = (state: RescueState): boolean =>
+  !state.rescued && (state.clipped.length > 0 || state.tied.some((balloon) => balloon.popped));
 
-export const outcomeOf = (state: RescueState): Outcome =>
-  judge(liftOf(state), state.def.weight, layerOf(state.def));
+export const outcomesOf = (state: RescueState): Outcome[] =>
+  weightsOf(state.def).map((weight, kit) => judge(liftOf(state, kit), weight));
 
 /**
- * The sum the rescue made, written out for the moment it lands. That beat is
- * the teaching: the child sees their bunch turned into arithmetic. A pop is
- * written as taking away, and a climb into the wind as the weight plus layers.
+ * The sums the rescue made, one per kit, written out for the moment it lands.
+ * That beat is the teaching: the child sees their bunch turned into
+ * arithmetic. A pop is written as taking away, because that is what it was.
  */
 export function answerLines(state: RescueState): string[] {
-  const popped = state.tied.filter((balloon) => balloon.popped).map((balloon) => balloon.value);
-  const lifted = liftedValues(state);
-  const target = targetOf(state.def);
-  const lines: string[] = [];
-
-  if (popped.length > 0) {
-    const whole = total(state.tied.map((balloon) => balloon.value));
-    const terms = [String(whole), ...popped.map((value) => `${MINUS} ${value}`), ...state.clipped.map((taken) => `+ ${taken.value}`)];
-    lines.push(`${terms.join(' ')} = ${target}`);
-  } else if (lifted.length > 1) {
-    lines.push(`${lifted.join(' + ')} = ${target}`);
-  } else {
-    lines.push(String(target));
-  }
-
-  const layer = layerOf(state.def);
-  if (layer > 0) lines.push(`${state.def.weight} + ${layer} = ${target}`);
-  return lines;
+  return weightsOf(state.def).map((weight, kit) => {
+    const tied = tiedOn(state, kit);
+    const popped = tied.filter((balloon) => balloon.popped).map((balloon) => balloon.value);
+    const lifted = liftedValues(state, kit);
+    if (popped.length > 0) {
+      const whole = total(tied.map((balloon) => balloon.value));
+      const terms = [String(whole), ...popped.map((value) => `${MINUS} ${value}`), ...clippedOn(state, kit).map((taken) => `+ ${taken.value}`)];
+      return `${terms.join(' ')} = ${weight}`;
+    }
+    return lifted.length > 1 ? `${lifted.join(' + ')} = ${weight}` : String(weight);
+  });
 }
 
 export function createRescue(def: RescueDef): Rescue {
@@ -99,18 +107,19 @@ export function createRescue(def: RescueDef): Rescue {
   return {
     state,
 
-    clip(index) {
+    clip(index, kit = 0) {
       const value = def.tray[index];
       if (state.rescued || value === undefined || trayTaken(state, index)) return [];
-      if (hooksUsed(state) >= hooksOf(def)) return [{ type: 'full' }];
-      state.clipped.push({ value, from: index });
-      return [{ type: 'clipped', value }];
+      if (kit < 0 || kit >= kitsOf(def)) return [];
+      if (hooksUsed(state, kit) >= hooksOf(def)) return [{ type: 'full' }];
+      state.clipped.push({ value, from: index, kit });
+      return [{ type: 'clipped', value, kit }];
     },
 
-    unclip(slot) {
-      const taken = state.clipped[slot];
+    unclip(kit, slot) {
+      const taken = clippedOn(state, kit)[slot];
       if (state.rescued || !taken) return [];
-      state.clipped.splice(slot, 1);
+      state.clipped.splice(state.clipped.indexOf(taken), 1);
       return [{ type: 'unclipped', value: taken.value }];
     },
 
@@ -121,12 +130,19 @@ export function createRescue(def: RescueDef): Rescue {
       return [{ type: balloon.popped ? 'popped' : 'reinflated', index, value: balloon.value }];
     },
 
+    startOver() {
+      if (!canStartOver(state)) return [];
+      for (const balloon of state.tied) balloon.popped = false;
+      state.clipped.length = 0;
+      return [{ type: 'reset' }];
+    },
+
     letGo() {
       if (!canLetGo(state)) return [];
       state.tries += 1;
-      const outcome = outcomeOf(state);
-      if (outcome.verdict === 'exact') state.rescued = true;
-      return [{ type: 'released', outcome, tries: state.tries }];
+      const outcomes = outcomesOf(state);
+      if (outcomes.every((outcome) => outcome.verdict === 'exact')) state.rescued = true;
+      return [{ type: 'released', outcomes, tries: state.tries }];
     },
   };
 }

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { CHAPTERS, RESCUES, chapterOf, numberInChapter } from './levels.data.js';
-import { DEFAULT_HOOKS, hooksOf, layerOf, LAYERS, problemsWith, targetOf, tiedOf, type RescueDef } from './rescue-def.js';
+import { DEFAULT_HOOKS, hooksOf, problemsWith, tiedOf, weightsOf, type RescueDef } from './rescue-def.js';
 import { needsPop, solve, subsetsOf, totalAt } from './solver.js';
 
 const chapter = (id: string) => {
@@ -11,6 +11,8 @@ const chapter = (id: string) => {
 };
 const indexOfChapter = (id: string) => CHAPTERS.findIndex((each) => each.id === id);
 const pairs = (tray: readonly number[]) => subsetsOf(tray.length).filter((set) => set.length === 2);
+const trayTotal = (rescue: RescueDef) => totalAt(rescue.tray, rescue.tray.map((_, index) => index));
+const spareOf = (rescue: RescueDef) => trayTotal(rescue) - weightsOf(rescue).reduce((sum, weight) => sum + weight, 0);
 
 describe('the chapters', () => {
   it('are the eight the spec names, in order', () => {
@@ -21,7 +23,7 @@ describe('the chapters', () => {
       'Heavy Cargo',
       'Tiny Harness',
       'Pop!',
-      'Windy Ridge',
+      'Two at Once',
       'The Big Rescue',
     ]);
   });
@@ -48,17 +50,20 @@ describe('every rescue', () => {
     for (const rescue of RESCUES) expect(solve(rescue).length, rescue.id).toBeGreaterThan(0);
   });
 
-  it('asks for a target in its chapter\'s range', () => {
+  it('gives every kit a weight in its chapter\'s range', () => {
     for (const each of CHAPTERS) {
       for (const rescue of each.rescues) {
-        expect(targetOf(rescue), rescue.id).toBeGreaterThanOrEqual(each.targets[0]);
-        expect(targetOf(rescue), rescue.id).toBeLessThanOrEqual(each.targets[1]);
+        for (const weight of weightsOf(rescue)) {
+          expect(weight, rescue.id).toBeGreaterThanOrEqual(each.targets[0]);
+          expect(weight, rescue.id).toBeLessThanOrEqual(each.targets[1]);
+        }
       }
     }
   });
 
   it('can be answered by one matching balloon only in the very first rescue', () => {
-    const matches = (rescue: RescueDef) => tiedOf(rescue).length === 0 && rescue.tray.includes(targetOf(rescue));
+    const matches = (rescue: RescueDef) =>
+      tiedOf(rescue).length === 0 && weightsOf(rescue).some((weight) => rescue.tray.includes(weight));
     expect(matches(RESCUES[0]!)).toBe(true);
     for (const rescue of RESCUES.slice(1)) expect(matches(rescue), rescue.id).toBe(false);
   });
@@ -107,29 +112,30 @@ describe('what each chapter is for', () => {
     expect(chapter('pop').rescues[0]!.tray).toEqual([]);
   });
 
-  it('Windy Ridge is all wind layers, and uses every one of them', () => {
-    const rescues = chapter('windy-ridge').rescues;
-    for (const rescue of rescues) expect(layerOf(rescue), rescue.id).toBeGreaterThan(0);
-    const used = new Set(rescues.map(layerOf));
-    for (let layer = 1; layer <= LAYERS; layer += 1) expect(used.has(layer), `layer ${layer}`).toBe(true);
-  });
-
-  it('Windy Ridge always offers the bunch that makes exactly the weight — the old habit, as bait', () => {
-    for (const rescue of chapter('windy-ridge').rescues) {
-      const tied = totalAt(tiedOf(rescue), tiedOf(rescue).map((_, index) => index));
-      const bait = subsetsOf(rescue.tray.length).some((set) => tied + totalAt(rescue.tray, set) === rescue.weight);
-      expect(bait, rescue.id).toBe(true);
+  it('nothing before Two at Once has a second kit', () => {
+    for (const rescue of CHAPTERS.slice(0, indexOfChapter('two-at-once')).flatMap((each) => each.rescues)) {
+      expect(weightsOf(rescue), rescue.id).toHaveLength(1);
     }
   });
 
-  it('Windy Ridge opens with the kit already floating, so the climb is the only new thing', () => {
-    const first = chapter('windy-ridge').rescues[0]!;
-    expect(totalAt(tiedOf(first), tiedOf(first).map((_, index) => index))).toBe(first.weight);
+  it('Two at Once always has two kits, and uses every balloon bar at most one spare', () => {
+    for (const rescue of chapter('two-at-once').rescues) {
+      expect(weightsOf(rescue), rescue.id).toHaveLength(2);
+      const spare = spareOf(rescue);
+      expect(spare === 0 || rescue.tray.includes(spare), rescue.id).toBe(true);
+    }
+  });
+
+  it('Two at Once saves the spare balloon for its last two rescues', () => {
+    const rescues = chapter('two-at-once').rescues;
+    for (const rescue of rescues.slice(0, -2)) expect(spareOf(rescue), rescue.id).toBe(0);
+    for (const rescue of rescues.slice(-2)) expect(spareOf(rescue), rescue.id).toBeGreaterThan(0);
   });
 
   it('every rescue in The Big Rescue needs two ideas at once', () => {
     for (const rescue of chapter('big-rescue').rescues) {
-      const ideas = [rescue.weight > 10, hooksOf(rescue) < DEFAULT_HOOKS, needsPop(rescue), layerOf(rescue) > 0];
+      const weights = weightsOf(rescue);
+      const ideas = [Math.max(...weights) > 10, hooksOf(rescue) < DEFAULT_HOOKS, needsPop(rescue), weights.length > 1];
       expect(ideas.filter(Boolean).length, rescue.id).toBeGreaterThanOrEqual(2);
     }
   });

@@ -21,7 +21,7 @@ describe('progress', () => {
 
   it('opens a named rescue, or the first rescue of a named chapter', () => {
     expect(startIndex({}, 'pop-3')).toBe(indexOf('pop-3'));
-    expect(startIndex({}, 'windy-ridge')).toBe(indexOf('windy-ridge-1'));
+    expect(startIndex({}, 'two-at-once')).toBe(indexOf('two-at-once-1'));
   });
 
   it('ignores a level it does not know and opens where the player left off', () => {

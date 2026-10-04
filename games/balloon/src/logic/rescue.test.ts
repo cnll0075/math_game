@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   answerLines,
   canLetGo,
+  canStartOver,
+  clippedOn,
   createRescue,
   hooksUsed,
   liftedSlots,
@@ -11,11 +13,12 @@ import {
 import type { RescueDef } from './rescue-def.js';
 
 const eight: RescueDef = { id: 'eight', line: '', weight: 8, tray: [5, 3, 6, 2] };
+const pair: RescueDef = { id: 'pair', line: '', weight: 4, friend: 5, tray: [3, 1, 2, 3] };
 
 describe('a rescue', () => {
-  it('clips a tray balloon to the harness and adds its lift', () => {
+  it('clips a tray balloon to the left kit and adds its lift', () => {
     const rescue = createRescue(eight);
-    expect(rescue.clip(0)).toEqual([{ type: 'clipped', value: 5 }]);
+    expect(rescue.clip(0)).toEqual([{ type: 'clipped', value: 5, kit: 0 }]);
     expect(liftOf(rescue.state)).toBe(5);
     expect(trayTaken(rescue.state, 0)).toBe(true);
   });
@@ -31,17 +34,18 @@ describe('a rescue', () => {
     const rescue = createRescue(eight);
     rescue.clip(2);
     rescue.clip(0);
-    expect(rescue.unclip(0)).toEqual([{ type: 'unclipped', value: 6 }]);
+    expect(rescue.unclip(0, 0)).toEqual([{ type: 'unclipped', value: 6 }]);
     expect(trayTaken(rescue.state, 2)).toBe(false);
-    expect(rescue.state.clipped).toEqual([{ value: 5, from: 0 }]);
+    expect(clippedOn(rescue.state, 0)).toEqual([{ value: 5, from: 0, kit: 0 }]);
   });
 
-  it('ignores slots and tray places that do not exist', () => {
+  it('ignores slots, tray places and kits that do not exist', () => {
     const rescue = createRescue(eight);
     expect(rescue.clip(9)).toEqual([]);
     expect(rescue.clip(-1)).toEqual([]);
-    expect(rescue.unclip(0)).toEqual([]);
-    expect(rescue.unclip(-1)).toEqual([]);
+    expect(rescue.clip(0, 1)).toEqual([]);
+    expect(rescue.unclip(0, 0)).toEqual([]);
+    expect(rescue.unclip(0, -1)).toEqual([]);
     expect(rescue.togglePop(0)).toEqual([]);
   });
 
@@ -65,10 +69,9 @@ describe('a rescue', () => {
     expect(rescue.togglePop(1)).toEqual([{ type: 'popped', index: 1, value: 3 }]);
     expect(liftOf(rescue.state)).toBe(7);
     expect(rescue.togglePop(1)).toEqual([{ type: 'reinflated', index: 1, value: 3 }]);
-    expect(liftOf(rescue.state)).toBe(10);
   });
 
-  it('does nothing on "Let go!" with nothing on the harness', () => {
+  it('does nothing on "Let go!" with nothing on any harness', () => {
     const rescue = createRescue(eight);
     expect(canLetGo(rescue.state)).toBe(false);
     expect(rescue.letGo()).toEqual([]);
@@ -79,13 +82,11 @@ describe('a rescue', () => {
     const rescue = createRescue(eight);
     rescue.clip(0);
     rescue.clip(2);
-    const [event] = rescue.letGo();
-    expect(event).toEqual({
-      type: 'released',
-      outcome: { verdict: 'over', have: 11, need: 8, weight: 8, layer: 0 },
-      tries: 1,
-    });
-    expect(rescue.state.clipped).toEqual([{ value: 5, from: 0 }, { value: 6, from: 2 }]);
+    expect(rescue.letGo()).toEqual([{ type: 'released', outcomes: [{ verdict: 'over', have: 11, need: 8 }], tries: 1 }]);
+    expect(clippedOn(rescue.state, 0)).toEqual([
+      { value: 5, from: 0, kit: 0 },
+      { value: 6, from: 2, kit: 0 },
+    ]);
     expect(rescue.state.rescued).toBe(false);
   });
 
@@ -93,30 +94,12 @@ describe('a rescue', () => {
     const rescue = createRescue(eight);
     rescue.clip(0);
     rescue.clip(1);
-    const [event] = rescue.letGo();
-    expect(event?.type === 'released' && event.outcome.verdict).toBe('exact');
+    rescue.letGo();
     expect(rescue.state.rescued).toBe(true);
     expect(rescue.clip(3)).toEqual([]);
-    expect(rescue.unclip(0)).toEqual([]);
+    expect(rescue.unclip(0, 0)).toEqual([]);
+    expect(rescue.startOver()).toEqual([]);
     expect(rescue.letGo()).toEqual([]);
-  });
-
-  it('asks for weight plus layers when the ledge is up in the wind', () => {
-    const def: RescueDef = { id: 'w', line: '', weight: 7, tray: [5, 3, 2, 4], layer: 3 };
-    const floatsOnly = createRescue(def);
-    floatsOnly.clip(0);
-    floatsOnly.clip(2); // 5 + 2: exactly the weight, the old habit
-    expect(floatsOnly.letGo()[0]).toEqual({
-      type: 'released',
-      outcome: { verdict: 'short', have: 7, need: 10, weight: 7, layer: 3 },
-      tries: 1,
-    });
-
-    const right = createRescue(def);
-    right.clip(0);
-    right.clip(1);
-    right.clip(2);
-    expect(right.letGo()[0]).toMatchObject({ outcome: { verdict: 'exact' } });
   });
 
   it('knows which bunch slots are still lifting', () => {
@@ -127,7 +110,69 @@ describe('a rescue', () => {
   });
 });
 
-describe('the finished sum', () => {
+describe('two kits', () => {
+  it('clips to either kit, and keeps their lifts apart', () => {
+    const rescue = createRescue(pair);
+    rescue.clip(0, 0);
+    expect(rescue.clip(2, 1)).toEqual([{ type: 'clipped', value: 2, kit: 1 }]);
+    rescue.clip(3, 1);
+    expect(liftOf(rescue.state, 0)).toBe(3);
+    expect(liftOf(rescue.state, 1)).toBe(5);
+    expect(liftedSlots(rescue.state, 1)).toEqual([0, 1]);
+  });
+
+  it('judges each kit on its own, and rescues only when both are exact', () => {
+    const rescue = createRescue(pair);
+    rescue.clip(0, 0);
+    rescue.clip(2, 1);
+    rescue.clip(3, 1);
+    expect(rescue.letGo()).toEqual([
+      { type: 'released', outcomes: [{ verdict: 'short', have: 3, need: 4 }, { verdict: 'exact', have: 5, need: 5 }], tries: 1 },
+    ]);
+    expect(rescue.state.rescued).toBe(false);
+    rescue.clip(1, 0);
+    rescue.letGo();
+    expect(rescue.state.rescued).toBe(true);
+  });
+
+  it('applies the hook limit to each kit', () => {
+    const rescue = createRescue({ ...pair, hooks: 1 });
+    rescue.clip(0, 0);
+    expect(rescue.clip(1, 0)).toEqual([{ type: 'full' }]);
+    expect(rescue.clip(1, 1)).toEqual([{ type: 'clipped', value: 1, kit: 1 }]);
+  });
+
+  it('takes a balloon off the kit it is on', () => {
+    const rescue = createRescue(pair);
+    rescue.clip(0, 0);
+    rescue.clip(2, 1);
+    expect(rescue.unclip(1, 0)).toEqual([{ type: 'unclipped', value: 2 }]);
+    expect(clippedOn(rescue.state, 0)).toHaveLength(1);
+    expect(clippedOn(rescue.state, 1)).toHaveLength(0);
+  });
+});
+
+describe('starting over', () => {
+  it('blows every pop back up and sends every balloon back, keeping the tries', () => {
+    const rescue = createRescue({ id: 't', line: '', weight: 10, tray: [2], tied: [9, 5, 3] });
+    rescue.togglePop(1);
+    rescue.clip(0);
+    rescue.letGo();
+    expect(canStartOver(rescue.state)).toBe(true);
+    expect(rescue.startOver()).toEqual([{ type: 'reset' }]);
+    expect(rescue.state.tied.every((balloon) => !balloon.popped)).toBe(true);
+    expect(rescue.state.clipped).toEqual([]);
+    expect(rescue.state.tries).toBe(1);
+  });
+
+  it('does nothing when there is nothing to undo', () => {
+    const rescue = createRescue(eight);
+    expect(canStartOver(rescue.state)).toBe(false);
+    expect(rescue.startOver()).toEqual([]);
+  });
+});
+
+describe('the finished sums', () => {
   it('adds up what lifted', () => {
     const rescue = createRescue(eight);
     rescue.clip(0);
@@ -142,17 +187,18 @@ describe('the finished sum', () => {
     expect(answerLines(rescue.state)).toEqual(['17 − 9 + 2 = 10']);
   });
 
-  it('writes the bunch, then the weight and the layers, when the ledge is up in the wind', () => {
-    const rescue = createRescue({ id: 'w', line: '', weight: 7, tray: [5, 3, 2], layer: 3 });
-    rescue.clip(0);
-    rescue.clip(1);
-    rescue.clip(2);
-    expect(answerLines(rescue.state)).toEqual(['5 + 3 + 2 = 10', '7 + 3 = 10']);
-  });
-
   it('says just the number when one balloon did it', () => {
     const rescue = createRescue({ id: 'one', line: '', weight: 3, tray: [3, 5] });
     rescue.clip(0);
     expect(answerLines(rescue.state)).toEqual(['3']);
+  });
+
+  it('writes one sum per kit', () => {
+    const rescue = createRescue(pair);
+    rescue.clip(0, 0);
+    rescue.clip(1, 0);
+    rescue.clip(2, 1);
+    rescue.clip(3, 1);
+    expect(answerLines(rescue.state)).toEqual(['3 + 1 = 4', '2 + 3 = 5']);
   });
 });

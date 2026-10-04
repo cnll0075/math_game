@@ -1,10 +1,10 @@
-import { hooksOf, tiedOf, type RescueDef } from './rescue-def.js';
+import { hooksOf, tiedOf, weightsOf, type RescueDef } from './rescue-def.js';
 
-/** One way through a rescue: which tray balloons to clip, tied ones to pop, puffs to add. */
+/** One way through a rescue: tray balloons for each kit, and tied ones to pop. */
 export interface Answer {
   clip: number[];
+  friend: number[];
   pop: number[];
-  puffs: number[];
 }
 
 /** Every subset of `0..size-1`, smallest masks first. Trays are small enough for this. */
@@ -22,23 +22,32 @@ export const totalAt = (values: readonly number[], indices: readonly number[]): 
   indices.reduce((sum, index) => sum + (values[index] ?? 0), 0);
 
 /**
- * Brute force over clips, pops and puffs. Proof, not play: the tests use it to
- * show every rescue is answerable and to check what each chapter is for.
+ * Brute force: every tray balloon stays in the tray or goes to one of the kits,
+ * every tied balloon is popped or not. Proof, not play: the tests use it to show
+ * every rescue is answerable and to check what each chapter is for.
  */
 export function solve(def: RescueDef): Answer[] {
   const tied = tiedOf(def);
+  const weights = weightsOf(def);
+  const choices = weights.length + 1;
   const tiedTotal = totalAt(tied, tied.map((_, index) => index));
-  const wind = def.wind;
-  const puffSets = wind
-    ? subsetsOf(wind.puffs.length).filter((set) => wind.wind + totalAt(wind.puffs, set) === wind.ledge)
-    : [[]];
-
   const answers: Answer[] = [];
   for (const pop of subsetsOf(tied.length)) {
-    for (const clip of subsetsOf(def.tray.length)) {
-      if (tied.length + clip.length > hooksOf(def)) continue;
-      if (tiedTotal - totalAt(tied, pop) + totalAt(def.tray, clip) !== def.weight) continue;
-      for (const puffs of puffSets) answers.push({ clip, pop, puffs });
+    const base = tiedTotal - totalAt(tied, pop);
+    for (let code = 0; code < choices ** def.tray.length; code += 1) {
+      const clip: number[] = [];
+      const friend: number[] = [];
+      let rest = code;
+      for (let index = 0; index < def.tray.length; index += 1) {
+        const choice = rest % choices;
+        rest = (rest - choice) / choices;
+        if (choice === 1) clip.push(index);
+        else if (choice === 2) friend.push(index);
+      }
+      if (tied.length + clip.length > hooksOf(def) || friend.length > hooksOf(def)) continue;
+      if (base + totalAt(def.tray, clip) !== weights[0]) continue;
+      if (weights.length > 1 && totalAt(def.tray, friend) !== weights[1]) continue;
+      answers.push({ clip, friend, pop });
     }
   }
   return answers;

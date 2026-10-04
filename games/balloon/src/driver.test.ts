@@ -24,9 +24,9 @@ describe('the driver', () => {
     driver.act({ kind: 'letGo' });
     expect(driver.phase).toBe('flying');
     const events = settle(driver);
-    expect(events).toContainEqual({ type: 'landed', outcome: { verdict: 'over', axis: 'up', have: 5, need: 3 } });
+    expect(events).toContainEqual({ type: 'landed', outcomes: [{ verdict: 'over', have: 5, need: 3 }] });
     expect(driver.phase).toBe('building');
-    expect(driver.feedback?.verdict).toBe('over');
+    expect(driver.feedback?.[0]?.verdict).toBe('over');
     expect(driver.rescue.state.clipped).toHaveLength(1);
   });
 
@@ -35,7 +35,7 @@ describe('the driver', () => {
     driver.act({ kind: 'tray', index: 1 });
     driver.act({ kind: 'letGo' });
     settle(driver);
-    driver.act({ kind: 'clipped', slot: 0 });
+    driver.act({ kind: 'clipped', kit: 0, slot: 0 });
     expect(driver.feedback).toBeNull();
   });
 
@@ -90,11 +90,12 @@ describe('the driver', () => {
 
   it('finishes after the last rescue, and starts over from there', () => {
     const driver = createDriver({ book: {}, startLevel: 'big-rescue-5' });
-    // 10 + 7, and 5 + 2 across a wind of −1 to a ledge 6 steps away.
+    // 10 + 5 for the 15, 6 + 3 for the 9.
     driver.act({ kind: 'tray', index: 0 });
+    driver.act({ kind: 'tray', index: 1 });
+    driver.act({ kind: 'select', kit: 1 });
+    driver.act({ kind: 'tray', index: 2 });
     driver.act({ kind: 'tray', index: 3 });
-    driver.act({ kind: 'puff', index: 0 });
-    driver.act({ kind: 'puff', index: 1 });
     driver.act({ kind: 'letGo' });
     settle(driver);
     expect(driver.phase).toBe('rescued');
@@ -109,7 +110,74 @@ describe('the driver', () => {
     driver.act({ kind: 'tray', index: 1 });
     driver.act({ kind: 'tray', index: 2 });
     driver.act({ kind: 'letGo' });
-    expect(driver.flight?.lifted).toEqual([4, 3]);
+    expect(driver.flight?.lifted).toEqual([[4, 3]]);
     expect(driver.flight!.count).toBeGreaterThan(0);
+  });
+
+
+  it('clips a tapped balloon to the selected kit, and judges each kit on its own', () => {
+    const driver = createDriver({ book: {}, startLevel: 'two-at-once-1' });
+    driver.act({ kind: 'tray', index: 0 }); // 3 on the 4
+    expect(driver.act({ kind: 'select', kit: 1 })).toEqual([{ type: 'selected', kit: 1 }]);
+    driver.act({ kind: 'tray', index: 2 }); // 2 on the 5
+    driver.act({ kind: 'tray', index: 3 }); // 3 on the 5
+    driver.act({ kind: 'letGo' });
+    const events = settle(driver);
+    expect(events).toContainEqual({
+      type: 'landed',
+      outcomes: [
+        { verdict: 'short', have: 3, need: 4 },
+        { verdict: 'exact', have: 5, need: 5 },
+      ],
+    });
+    expect(driver.phase).toBe('building');
+    expect(driver.feedback).toHaveLength(2);
+  });
+
+  it('clips a dropped balloon to the kit it was dropped on, whichever is selected', () => {
+    const driver = createDriver({ book: {}, startLevel: 'two-at-once-1' });
+    driver.act({ kind: 'tray', index: 1, kit: 1 });
+    expect(driver.selected).toBe(0);
+    expect(driver.rescue.state.clipped).toEqual([{ value: 1, from: 1, kit: 1 }]);
+  });
+
+  it('will not select a kit that is not there', () => {
+    const driver = createDriver({ book: {}, startLevel: 'whoosh-1' });
+    expect(driver.act({ kind: 'select', kit: 1 })).toEqual([]);
+    expect(driver.selected).toBe(0);
+  });
+
+  it('starts over: every balloon back, every pop undone, the tries kept', () => {
+    const driver = createDriver({ book: {}, startLevel: 'pop-1' });
+    driver.act({ kind: 'tied', index: 0 });
+    driver.act({ kind: 'letGo' });
+    settle(driver);
+    expect(driver.act({ kind: 'reset' })).toEqual([{ type: 'reset' }]);
+    expect(driver.rescue.state.tied.every((balloon) => !balloon.popped)).toBe(true);
+    expect(driver.rescue.state.tries).toBe(1);
+    expect(driver.feedback).toBeNull();
+  });
+
+  it('ignores start over while the kit is in the air', () => {
+    const driver = createDriver({ book: {}, startLevel: 'pop-1' });
+    driver.act({ kind: 'tied', index: 1 });
+    driver.act({ kind: 'letGo' });
+    driver.step(FRAME);
+    expect(driver.act({ kind: 'reset' })).toEqual([]);
+  });
+
+  it('goes back to the left kit for each new rescue', () => {
+    const driver = createDriver({ book: {}, startLevel: 'two-at-once-1' });
+    driver.act({ kind: 'select', kit: 1 });
+    driver.act({ kind: 'tray', index: 2 });
+    driver.act({ kind: 'tray', index: 3 });
+    driver.act({ kind: 'select', kit: 0 });
+    driver.act({ kind: 'tray', index: 0 });
+    driver.act({ kind: 'tray', index: 1 });
+    driver.act({ kind: 'select', kit: 1 });
+    driver.act({ kind: 'letGo' });
+    settle(driver);
+    driver.act({ kind: 'next' });
+    expect(driver.selected).toBe(0);
   });
 });

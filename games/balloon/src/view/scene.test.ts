@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { DESIGN, depthOf, recordingContext } from '@bundle/core';
 import { createDriver, type Driver } from '../driver.js';
-import { createScene } from './scene.js';
+import { createScene, kitPose } from './scene.js';
+import { HOME } from './geometry.js';
 
 const FRAME = 1 / 60;
 const SCREEN = { width: 1152, height: 768 };
@@ -99,11 +100,57 @@ describe('the scene', () => {
     expect(render(roomy).calls).not.toContain('setLineDash');
   });
 
-  it('draws the wind, the steps and the puffs in Windy Ridge', () => {
-    const driver = createDriver({ book: {}, startLevel: 'windy-ridge-1' });
+  it('draws both kits in Two at Once, and gives each its own gauge', () => {
+    const driver = createDriver({ book: {}, startLevel: 'two-at-once-1' });
+    driver.act({ kind: 'tray', index: 0 }); // 3 on the 4
+    driver.act({ kind: 'select', kit: 1 });
+    driver.act({ kind: 'tray', index: 3 }); // 3 on the 5
+    driver.act({ kind: 'letGo' });
+    while (driver.phase === 'flying') driver.step(FRAME);
     const { texts } = render(driver);
-    expect(texts).toContain('3 →');
-    for (const value of [5, 4, 2]) expect(texts).toContain(String(value));
+    expect(texts).toEqual(expect.arrayContaining(['4', '5', '3 / 4', '1 more!', '3 / 5', '2 more!']));
+  });
+
+  it('lifts the kit as the count climbs towards its weight', () => {
+    const driver = createDriver({ book: {}, startLevel: 'whoosh-1' });
+    driver.act({ kind: 'tray', index: 1 }); // 4
+    driver.act({ kind: 'tray', index: 2 }); // 3: 7, the weight
+    driver.act({ kind: 'letGo' });
+    const count = driver.flight!.count;
+    const scene = createScene();
+    while (driver.flight && driver.flight.t < count * 0.9) {
+      scene.observe(driver.step(FRAME));
+      scene.update(FRAME, driver.model());
+    }
+    const recording = recordingContext();
+    scene.render(recording.ctx, SCREEN);
+    expect(recording.translations.some((at) => at.x === HOME.x && at.y < HOME.y - 30)).toBe(true);
+  });
+
+  it('draws the start-over button', () => {
+    expect(render(createDriver({ book: {}, startLevel: 'whoosh-1' })).texts).toContain('↺');
+  });
+
+  it('shows a popped balloon without its number', () => {
+    const driver = createDriver({ book: {}, startLevel: 'pop-1' });
+    driver.act({ kind: 'tied', index: 1 }); // the 3
+    expect(render(driver).texts).not.toContain('3');
+  });
+
+  it('draws a dragged balloon under the finger, and not in its old place', () => {
+    const driver = createDriver({ book: {}, startLevel: 'whoosh-1' });
+    const scene = createScene();
+    scene.observe(driver.step(FRAME));
+    scene.update(FRAME, driver.model());
+    scene.setDrag({ from: { kind: 'tray', index: 0 }, value: 6, at: { x: 500, y: 300 } });
+    const recording = recordingContext();
+    scene.render(recording.ctx, SCREEN);
+    expect(recording.translations).toContainEqual({ x: 500, y: 300 });
+    expect(recording.texts.filter((text) => text === '6')).toHaveLength(1);
+    scene.setDrag(null);
+    const after = recordingContext();
+    scene.render(after.ctx, SCREEN);
+    expect(after.translations).not.toContainEqual({ x: 500, y: 300 });
   });
 
   it('paints past the design rect, so an odd-shaped screen has no bars', () => {
@@ -126,5 +173,21 @@ describe('the scene', () => {
     const { ctx, calls } = recordingContext();
     createScene().render(ctx, SCREEN);
     expect(calls).toHaveLength(0);
+  });
+
+  it('never jumps a right kit from the ledge to the ground when its friend was wrong', () => {
+    const driver = createDriver({ book: {}, startLevel: 'two-at-once-1' });
+    driver.act({ kind: 'tray', index: 0 }); // 3
+    driver.act({ kind: 'tray', index: 1 }); // 1: the left kit's 4, exactly
+    driver.act({ kind: 'select', kit: 1 });
+    driver.act({ kind: 'tray', index: 3 }); // 3 of the right kit's 5
+    driver.act({ kind: 'letGo' });
+    let lastFlying = kitPose(driver.model(), 0).at;
+    while (driver.phase === 'flying') {
+      lastFlying = kitPose(driver.model(), 0).at;
+      driver.step(FRAME);
+    }
+    const settled = kitPose(driver.model(), 0).at;
+    expect(Math.hypot(settled.x - lastFlying.x, settled.y - lastFlying.y)).toBeLessThan(6);
   });
 });

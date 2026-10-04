@@ -599,9 +599,16 @@ Sky Patrol and Bramble Dash ask a child to *recall* an answer. This one asks
 them to *build* one: 8 is on the screen, and 5 + 3, 4 + 4 and 6 + 1 + 1 are all
 theirs to find.
 
-**Tap a balloon to clip it on; tap it again to send it back.** Dragging works
-too. "Let go!" is the only way to find out, and a wrong try leaves the bunch as
-it was, with the gap in words — "2 more!", "3 too many!".
+**Tap a balloon to clip it on; tap it again to send it back.** Or drag it: it
+follows the finger, clips on when dropped near the kit, and comes off when a
+clipped one is dragged down into the tray. "Let go!" is the only way to find
+out, and a wrong try leaves the bunch as it was, with the gap in words — "2
+more!", "3 too many!".
+
+**↺ Start over** puts the rescue back as it opened — every popped balloon
+blown back up, every clipped one back in the tray — keeping the tries. A
+popped balloon shows no number, so after a wrong pop a child cannot always tell
+which to undo.
 
 **No running total while building.** The kit wears its weight; nothing adds up
 the bunch until it is let go, and then the balloons light one by one as the
@@ -612,10 +619,10 @@ climb.
 second, one after that. A rescue is never failed.
 
 **Eight chapters**: First Flight, Whoosh!, Big Bunches, Heavy Cargo (past ten),
-Tiny Harness (a hook limit), Pop! (taking away), Windy Ridge (the wind gives
-some steps and the puffs make up the rest) and The Big Rescue (two ideas at
-once). `?game=balloon&level=pop-1` opens any rescue by id, or
-`&level=windy-ridge` any chapter.
+Tiny Harness (a hook limit), Pop! (taking away), Two at Once (two kits share
+one tray, and every balloon is used) and The Big Rescue (two ideas at once).
+`?game=balloon&level=pop-1` opens any rescue by id, or `&level=two-at-once` any
+chapter.
 
 ### The test that guards it
 

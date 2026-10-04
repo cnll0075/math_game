@@ -3,25 +3,26 @@ import { RESCUES, chapterOf, numberInChapter } from './logic/levels.data.js';
 import type { Outcome } from './logic/outcome.js';
 import { MAX_STARS, startIndex, totalStars } from './logic/progress.js';
 import { createRescue, liftedValues, type Rescue, type RescueEvent, type RescueState } from './logic/rescue.js';
-import type { ChapterDef } from './logic/rescue-def.js';
+import { kitsOf, weightsOf, type ChapterDef } from './logic/rescue-def.js';
 import { recordStars, starsFor, type StarBook } from './logic/stars.js';
 import { countSeconds, flySeconds, TIMING } from './view/timing.js';
 
 export type Phase = 'building' | 'flying' | 'rescued' | 'finished';
 
-/** One "Let go!": the count, then the flight. `t` runs across both. */
+/** One "Let go!": the count, then the flight. `t` runs across both. One entry per kit. */
 export interface Flight {
-  outcome: Outcome;
+  outcomes: readonly Outcome[];
   t: number;
   count: number;
   fly: number;
-  lifted: readonly number[];
+  lifted: readonly (readonly number[])[];
 }
 
 export type DriverEvent =
   | RescueEvent
+  | { type: 'selected'; kit: number }
   | { type: 'chapter'; chapter: ChapterDef }
-  | { type: 'landed'; outcome: Outcome }
+  | { type: 'landed'; outcomes: readonly Outcome[] }
   | { type: 'rescued'; id: string; stars: number; book: StarBook }
   | { type: 'finished' };
 
@@ -32,10 +33,13 @@ export interface SceneModel {
   number: number;
   phase: Phase;
   flight: Flight | null;
-  feedback: Outcome | null;
+  /** The last wrong try, one outcome per kit, until the bunch changes. */
+  feedback: readonly Outcome[] | null;
   earned: number | null;
   totalStars: number;
   maxStars: number;
+  /** The kit a tapped balloon goes to. */
+  selected: number;
 }
 
 export interface DriverOptions {
@@ -53,11 +57,10 @@ export interface Driver {
   readonly phase: Phase;
   readonly rescue: Rescue;
   readonly flight: Flight | null;
-  /** The last wrong try, until the bunch changes. */
-  readonly feedback: Outcome | null;
-  /** Stars for the rescue just finished. */
+  readonly feedback: readonly Outcome[] | null;
   readonly earned: number | null;
   readonly book: StarBook;
+  readonly selected: number;
   /**
    * Whether a tap may move on. Not until the sum and every star have been
    * shown: a child still tapping as the kit lands would otherwise skip the
@@ -81,8 +84,9 @@ export function createDriver(options: DriverOptions): Driver {
   let rescue = rescueAt(index);
   let phase: Phase = 'building';
   let flight: Flight | null = null;
-  let feedback: Outcome | null = null;
+  let feedback: readonly Outcome[] | null = null;
   let earned: number | null = null;
+  let selected = 0;
   /** Seconds since the rescue landed. */
   let since = 0;
   let pending: DriverEvent[] = [{ type: 'chapter', chapter: chapterOf(rescue.state.def) }];
@@ -95,23 +99,26 @@ export function createDriver(options: DriverOptions): Driver {
     flight = null;
     feedback = null;
     earned = null;
+    selected = 0;
     since = 0;
     const chapter = chapterOf(rescue.state.def);
     return chapter === before ? [] : [{ type: 'chapter', chapter }];
   };
 
-  const build = (intent: Intent): RescueEvent[] => {
+  const build = (intent: Intent): DriverEvent[] => {
     switch (intent.kind) {
       case 'tray':
-        return rescue.clip(intent.index);
+        return rescue.clip(intent.index, intent.kit ?? selected);
       case 'clipped':
-        return rescue.unclip(intent.slot);
+        return rescue.unclip(intent.kit, intent.slot);
       case 'tied':
         return rescue.togglePop(intent.index);
-      case 'puff':
-        return rescue.puff(intent.index);
-      case 'puffSlot':
-        return rescue.unpuff(intent.slot);
+      case 'select':
+        if (intent.kit < 0 || intent.kit >= kitsOf(rescue.state.def) || intent.kit === selected) return [];
+        selected = intent.kit;
+        return [{ type: 'selected', kit: selected }];
+      case 'reset':
+        return rescue.startOver();
       case 'letGo':
         return rescue.letGo();
       case 'next':
@@ -145,6 +152,9 @@ export function createDriver(options: DriverOptions): Driver {
     get book() {
       return book;
     },
+    get selected() {
+      return selected;
+    },
 
     act(intent) {
       if (phase === 'rescued' || phase === 'finished') {
@@ -159,15 +169,15 @@ export function createDriver(options: DriverOptions): Driver {
       if (phase !== 'building') return [];
 
       const events = build(intent);
-      if (events.length > 0) feedback = null;
+      if (events.some((event) => event.type !== 'selected')) feedback = null;
       for (const event of events) {
         if (event.type !== 'released') continue;
-        const lifted = liftedValues(rescue.state);
+        const lifted = weightsOf(rescue.state.def).map((_, kit) => liftedValues(rescue.state, kit));
         flight = {
-          outcome: event.outcome,
+          outcomes: event.outcomes,
           t: 0,
-          count: countSeconds(lifted.length),
-          fly: flySeconds(event.outcome),
+          count: countSeconds(lifted.flat().length),
+          fly: flySeconds(event.outcomes),
           lifted,
         };
         phase = 'flying';
@@ -184,10 +194,10 @@ export function createDriver(options: DriverOptions): Driver {
       flight.t += dt;
       if (flight.t < flight.count + flight.fly) return events;
 
-      const outcome = flight.outcome;
+      const outcomes = flight.outcomes;
       flight = null;
-      events.push({ type: 'landed', outcome });
-      if (outcome.verdict === 'exact') {
+      events.push({ type: 'landed', outcomes });
+      if (outcomes.every((outcome) => outcome.verdict === 'exact')) {
         const id = rescue.state.def.id;
         earned = starsFor(rescue.state.tries);
         book = recordStars(book, id, earned);
@@ -196,7 +206,7 @@ export function createDriver(options: DriverOptions): Driver {
         events.push({ type: 'rescued', id, stars: earned, book });
       } else {
         phase = 'building';
-        feedback = outcome;
+        feedback = outcomes;
       }
       return events;
     },
@@ -211,6 +221,7 @@ export function createDriver(options: DriverOptions): Driver {
       earned,
       totalStars: totalStars(book),
       maxStars: MAX_STARS,
+      selected,
     }),
   };
 }

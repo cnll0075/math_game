@@ -1,7 +1,7 @@
-import { DESIGN, type Point } from '@bundle/core';
+import type { Point } from '@bundle/core';
 import type { Intent } from '../intent.js';
-import { DEFAULT_HOOKS, hooksOf, type RescueDef } from '../logic/rescue-def.js';
-import { puffTaken, trayTaken, type RescueState } from '../logic/rescue.js';
+import { DEFAULT_HOOKS, hooksOf, kitsOf, type RescueDef } from '../logic/rescue-def.js';
+import { clippedOn, hooksUsed, trayTaken, type RescueState } from '../logic/rescue.js';
 
 /** Where everything sits, in design coordinates. */
 export const LAYOUT = {
@@ -9,38 +9,50 @@ export const LAYOUT = {
   hudY: 46,
   /** The story line, under the chapter. */
   lineY: 104,
-  /** Where the kit's feet stand. */
+  /** Where the kits' feet stand. */
   groundY: 560,
   homeX: 300,
-  /** The top of the ledge the kit is trying to reach. */
+  /** Two at Once: where the two kits stand. */
+  pairX: [250, 600],
+  /** The top of the ledge, up and to the left. */
   ledgeY: 262,
-  /** One step of wind. Ten of them still reach the ledge on screen. */
-  stepWidth: 72,
-  /** The left cliff's edge, in the chapters where the ledge is straight up. */
+  /** That cliff's edge. */
   cliffEdgeX: 220,
+  /** How far apart two kits stand once they are on the ledge. */
+  ledgeGap: 95,
   /** Centre line of the tray strip along the bottom. */
   trayY: 690,
   trayLeft: 50,
   trayRight: 890,
-  /** In wind, each puff in the tray gets this much of the strip's right end. */
-  puffSlot: 80,
   button: { left: 912, top: 626, width: 210, height: 116 },
+  /** ↺ Start over: a smaller round button above "Let go!". */
+  reset: { x: 1017, y: 574, radius: 36 },
   /** From the feet up to the ring the balloon strings tie to. */
   harnessHeight: 118,
+  /** How far below its balloon's place a popped scrap hangs. */
+  limpDrop: 40,
+  /** How far from a bunch a dragged balloon can be dropped and still clip on. */
+  dropReach: 290,
+  /** How near the middle of a kit a tap must be to select it. */
+  kitReach: 56,
 } as const;
 
 export const HOME: Point = { x: LAYOUT.homeX, y: LAYOUT.groundY };
-export const PUFF_RADIUS = 26;
 
 /** A 1 is small and a 10 is big; a 6 and a 7 are nearly the same, so read the number. */
 export const balloonRadius = (value: number): number => 20 + (Math.min(10, Math.max(1, value)) - 1) * 2.8;
 
-export const ledgeSpot = (def: RescueDef): Point =>
-  def.wind
-    ? { x: LAYOUT.homeX + def.wind.ledge * LAYOUT.stepWidth, y: LAYOUT.ledgeY }
-    : { x: LAYOUT.cliffEdgeX - 80, y: LAYOUT.ledgeY };
+/** Where a kit stands: home for a lone kit, side by side for two. */
+export const homeOf = (def: RescueDef, kit: number): Point =>
+  kitsOf(def) > 1 ? { x: LAYOUT.pairX[kit] ?? LAYOUT.homeX, y: LAYOUT.groundY } : HOME;
 
-/** Where the rope from a tied bunch is pegged down: beside the kit, clear of the first step post. */
+/** Where a kit stands on the ledge once rescued: the second beside the first. */
+export const ledgeSpot = (_def: RescueDef, kit = 0): Point => ({
+  x: LAYOUT.cliffEdgeX - 80 - kit * LAYOUT.ledgeGap,
+  y: LAYOUT.ledgeY,
+});
+
+/** Where the rope from a tied bunch is pegged down, beside the kit. */
 export const pegPoint = (feet: Point): Point => ({ x: feet.x + 50, y: feet.y + 6 });
 
 export const harnessPoint = (at: Point): Point => ({ x: at.x, y: at.y - LAYOUT.harnessHeight });
@@ -52,32 +64,16 @@ export function bunchPoint(slot: number, count: number, at: Point): Point {
   return { x: at.x + offset * spread, y: at.y - LAYOUT.harnessHeight - 104 - (slot % 2) * 46 };
 }
 
+/** Where a popped balloon's scrap hangs, below the place the balloon was. */
+export const limpPoint = (at: Point): Point => ({ x: at.x, y: at.y + LAYOUT.limpDrop });
+
 /**
- * How many places the bunch is laid out for. A limited harness is laid out for
- * all its hooks from the start, so the free ones can be drawn as empty clips and
- * the limit is seen rather than discovered.
+ * How many places a kit's bunch is laid out for. A limited harness is laid out
+ * for all its hooks from the start, so the free ones can be drawn as empty clips
+ * and the limit is seen rather than discovered.
  */
-export const bunchCount = (state: RescueState): number => {
-  const used = state.tied.length + state.clipped.length;
-  return hooksOf(state.def) < DEFAULT_HOOKS ? hooksOf(state.def) : used;
-};
-
-/** Puffs gather behind the kit, on the side away from the ledge. */
-export const puffPoint = (slot: number, at: Point): Point => ({ x: at.x - 96, y: at.y - 34 - slot * 54 });
-
-interface Region {
-  left: number;
-  right: number;
-}
-
-/** In wind the puffs take the right end of the strip, just as much as they need. */
-const regions = (def: RescueDef): { balloons: Region; puffs: Region } => {
-  if (!def.wind) {
-    return { balloons: { left: LAYOUT.trayLeft, right: LAYOUT.trayRight }, puffs: { left: LAYOUT.trayRight, right: LAYOUT.trayRight } };
-  }
-  const puffLeft = LAYOUT.trayRight - LAYOUT.puffSlot * def.wind.puffs.length;
-  return { balloons: { left: LAYOUT.trayLeft, right: puffLeft - 24 }, puffs: { left: puffLeft, right: LAYOUT.trayRight } };
-};
+export const bunchCount = (state: RescueState, kit = 0): number =>
+  hooksOf(state.def) < DEFAULT_HOOKS ? hooksOf(state.def) : hooksUsed(state, kit);
 
 /**
  * Tray balloons are packed by their own widths rather than spaced evenly, so a
@@ -85,64 +81,77 @@ const regions = (def: RescueDef): { balloons: Region; puffs: Region } => {
  * short tray is spread a little, never more than half again.
  */
 export function trayPoint(def: RescueDef, index: number): Point {
-  const region = regions(def).balloons;
   const widths = def.tray.map((value) => 2 * balloonRadius(value) + 10);
   const total = widths.reduce((sum, width) => sum + width, 0);
-  const room = region.right - region.left;
+  const room = LAYOUT.trayRight - LAYOUT.trayLeft;
   const scale = Math.min(1.5, room / Math.max(1, total));
   const before = widths.slice(0, index).reduce((sum, width) => sum + width, 0);
-  const start = region.left + (room - total * scale) / 2;
+  const start = LAYOUT.trayLeft + (room - total * scale) / 2;
   return { x: start + scale * (before + (widths[index] ?? 0) / 2), y: LAYOUT.trayY - 10 };
 }
 
-export const puffTrayPoint = (def: RescueDef, index: number): Point => ({
-  x: regions(def).puffs.left + LAYOUT.puffSlot * (index + 0.5),
-  y: LAYOUT.trayY,
-});
+/** The kit a dragged balloon dropped here clips to: the nearer bunch within reach, above the tray. */
+export function dropKit(point: Point, def: RescueDef): number | null {
+  if (point.y >= LAYOUT.trayY - 80) return null;
+  let best: { kit: number; distance: number } | null = null;
+  for (let kit = 0; kit < kitsOf(def); kit += 1) {
+    const home = homeOf(def, kit);
+    const distance = Math.hypot(point.x - home.x, point.y - (home.y - LAYOUT.harnessHeight - 120));
+    if (distance <= LAYOUT.dropReach && (best === null || distance < best.distance)) best = { kit, distance };
+  }
+  return best?.kit ?? null;
+}
+
+/** Over the tray strip, where a clipped balloon dropped comes off. */
+export const inTray = (point: Point): boolean =>
+  point.y >= LAYOUT.trayY - 80 && point.x >= LAYOUT.trayLeft - 20 && point.x <= LAYOUT.trayRight + 20;
 
 const near = (point: Point, centre: Point, radius: number): boolean =>
   (point.x - centre.x) ** 2 + (point.y - centre.y) ** 2 <= radius * radius;
 
 /**
  * What a tap at `point` means while building. Generous circles, because a
- * six-year-old's finger is not a mouse; the harness is searched first because
- * it is drawn on top.
+ * six-year-old's finger is not a mouse; the bunches are searched before the
+ * kits and the tray because they are drawn on top.
  */
 export function hitTest(point: Point, state: RescueState): Intent | null {
   const { left, top, width, height } = LAYOUT.button;
   if (point.x >= left && point.x <= left + width && point.y >= top && point.y <= top + height) return { kind: 'letGo' };
+  if (near(point, LAYOUT.reset, LAYOUT.reset.radius + 6)) return { kind: 'reset' };
 
-  const used = state.tied.length + state.clipped.length;
-  const count = bunchCount(state);
-  for (let slot = used - 1; slot >= 0; slot -= 1) {
-    const tied = state.tied[slot];
-    const clipped = state.clipped[slot - state.tied.length];
-    const value = tied?.value ?? clipped?.value ?? 1;
-    if (!near(point, bunchPoint(slot, count, HOME), balloonRadius(value) + 8)) continue;
-    return tied ? { kind: 'tied', index: slot } : { kind: 'clipped', slot: slot - state.tied.length };
+  const def = state.def;
+  for (let kit = kitsOf(def) - 1; kit >= 0; kit -= 1) {
+    const home = homeOf(def, kit);
+    const tied = kit === 0 ? state.tied : [];
+    const clipped = clippedOn(state, kit);
+    const count = bunchCount(state, kit);
+    for (let slot = tied.length + clipped.length - 1; slot >= 0; slot -= 1) {
+      const balloon = tied[slot];
+      const value = balloon?.value ?? clipped[slot - tied.length]?.value ?? 1;
+      const place = bunchPoint(slot, count, home);
+      // A popped balloon is tapped where its scrap hangs, not where it used to float.
+      const hit = balloon?.popped ? near(point, limpPoint(place), 36) : near(point, place, balloonRadius(value) + 8);
+      if (!hit) continue;
+      return balloon ? { kind: 'tied', index: slot } : { kind: 'clipped', kit, slot: slot - tied.length };
+    }
   }
 
-  for (let slot = state.puffs.length - 1; slot >= 0; slot -= 1) {
-    if (near(point, puffPoint(slot, HOME), PUFF_RADIUS + 8)) return { kind: 'puffSlot', slot };
+  if (kitsOf(def) > 1) {
+    for (let kit = 0; kit < kitsOf(def); kit += 1) {
+      const home = homeOf(def, kit);
+      if (near(point, { x: home.x, y: home.y - 55 }, LAYOUT.kitReach)) return { kind: 'select', kit };
+    }
   }
 
   // A squeezed tray lets neighbouring tap circles overlap, so the nearest
   // centre wins rather than whichever balloon happens to come first.
-  const def = state.def;
   const candidates: Array<{ intent: Intent; distance: number }> = [];
-  const consider = (intent: Intent, centre: Point, radius: number): void => {
-    const distance = Math.hypot(point.x - centre.x, point.y - centre.y);
-    if (distance <= radius) candidates.push({ intent, distance });
-  };
   def.tray.forEach((value, index) => {
-    if (!trayTaken(state, index)) consider({ kind: 'tray', index }, trayPoint(def, index), balloonRadius(value) + 10);
-  });
-  def.wind?.puffs.forEach((_, index) => {
-    if (!puffTaken(state, index)) consider({ kind: 'puff', index }, puffTrayPoint(def, index), PUFF_RADIUS + 12);
+    if (trayTaken(state, index)) return;
+    const centre = trayPoint(def, index);
+    const distance = Math.hypot(point.x - centre.x, point.y - centre.y);
+    if (distance <= balloonRadius(value) + 10) candidates.push({ intent: { kind: 'tray', index }, distance });
   });
   candidates.sort((a, b) => a.distance - b.distance);
   return candidates[0]?.intent ?? null;
 }
-
-/** For clamping a drift that went past the edge of the world. */
-export const WORLD_RIGHT = DESIGN.width - 50;

@@ -1,6 +1,6 @@
 import { hand, label, type Bounds, type Point } from '@bundle/core';
 import type { Mood } from './flight.js';
-import { balloonRadius, LAYOUT, pegPoint, PUFF_RADIUS } from './geometry.js';
+import { balloonRadius, LAYOUT, pegPoint } from './geometry.js';
 
 const INK = '#1e2a38';
 const TAU = Math.PI * 2;
@@ -62,10 +62,16 @@ export function drawGround(ctx: CanvasRenderingContext2D, bounds: Bounds): void 
 }
 
 /** A grassy cliff whose top is the ledge. `edgeX` is where its lip is. */
-export function drawCliff(ctx: CanvasRenderingContext2D, bounds: Bounds, side: 'left' | 'right', edgeX: number): void {
+export function drawCliff(
+  ctx: CanvasRenderingContext2D,
+  bounds: Bounds,
+  side: 'left' | 'right',
+  edgeX: number,
+  topY: number = LAYOUT.ledgeY,
+): void {
   const from = side === 'left' ? bounds.left : edgeX;
   const to = side === 'left' ? edgeX : bounds.right;
-  const top = LAYOUT.ledgeY;
+  const top = topY;
   ctx.save();
   ctx.fillStyle = '#d9a66c';
   ctx.strokeStyle = 'rgba(120,72,30,0.35)';
@@ -91,44 +97,6 @@ export function drawCliff(ctx: CanvasRenderingContext2D, bounds: Bounds, side: '
   ctx.beginPath();
   ctx.roundRect?.(from - 10, top - 8, to - from + 20, 26, 13);
   ctx.fill();
-  ctx.restore();
-}
-
-/** Numbered posts along the ground, one per step of wind, so distance can be read. */
-export function drawStepMarks(ctx: CanvasRenderingContext2D, count: number): void {
-  ctx.save();
-  for (let step = 1; step <= count; step += 1) {
-    const x = LAYOUT.homeX + step * LAYOUT.stepWidth;
-    ctx.fillStyle = '#8a6a48';
-    ctx.fillRect(x - 3, LAYOUT.groundY - 4, 6, 22);
-    label(ctx, String(step), x, LAYOUT.groundY + 32, 20, 'center');
-  }
-  ctx.restore();
-}
-
-/** A pole with a sock pointing downwind, and the wind's own push written on it. */
-export function drawWindSock(ctx: CanvasRenderingContext2D, wind: number): void {
-  const x = 780;
-  const y = 150;
-  const direction = wind >= 0 ? 1 : -1;
-  ctx.save();
-  ctx.strokeStyle = '#6b5a48';
-  ctx.lineWidth = 6;
-  ctx.beginPath();
-  ctx.moveTo(x, y - 20);
-  ctx.lineTo(x, y + 90);
-  ctx.stroke();
-  ctx.fillStyle = '#f08a6a';
-  ctx.beginPath();
-  ctx.moveTo(x, y - 20);
-  ctx.lineTo(x + direction * 110, y - 6);
-  ctx.lineTo(x + direction * 110, y + 10);
-  ctx.lineTo(x, y + 24);
-  ctx.closePath();
-  ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,0.8)';
-  ctx.fillRect(x + direction * 40 - (direction < 0 ? 22 : 0), y - 14, 22, 32);
-  label(ctx, wind >= 0 ? `${wind} →` : `← ${-wind}`, x + direction * 60, y + 64, 36, 'center');
   ctx.restore();
 }
 
@@ -169,15 +137,21 @@ export function drawBalloon(
   ctx.translate(at.x, at.y);
 
   if (options.limp) {
-    // Popped, but still on its hook and still wearing its number, so a tap can
-    // put it back.
-    ctx.globalAlpha = 0.75;
+    // Popped: a crumpled scrap hanging from its string, with no number because
+    // it lifts nothing. Big enough to find again, since a tap blows it back up.
+    ctx.translate(0, LAYOUT.limpDrop);
     ctx.fillStyle = balloonColour(value);
+    ctx.strokeStyle = 'rgba(30,42,56,0.45)';
+    ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.ellipse(0, radius * 0.5, radius * 0.42, radius * 0.3, 0.3, 0, TAU);
+    ctx.moveTo(-4, -14);
+    ctx.quadraticCurveTo(16, -10, 14, 4);
+    ctx.quadraticCurveTo(20, 16, 4, 18);
+    ctx.quadraticCurveTo(-6, 26, -14, 12);
+    ctx.quadraticCurveTo(-24, 2, -12, -6);
+    ctx.closePath();
     ctx.fill();
-    ctx.globalAlpha = 1;
-    label(ctx, String(value), 0, radius * 0.5, 22, 'center');
+    ctx.stroke();
     ctx.restore();
     return;
   }
@@ -223,30 +197,6 @@ export function drawEmptyClip(ctx: CanvasRenderingContext2D, ring: Point, at: Po
   ctx.beginPath();
   ctx.ellipse(at.x, at.y, 23, 26, 0, 0, TAU);
   ctx.stroke();
-  ctx.restore();
-}
-
-/** A little cloud of breath that pushes sideways. */
-export function drawPuff(ctx: CanvasRenderingContext2D, at: Point, value: number): void {
-  ctx.save();
-  ctx.translate(at.x, at.y);
-  ctx.fillStyle = '#eef8ff';
-  ctx.strokeStyle = '#7fb8e0';
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.arc(-12, 4, PUFF_RADIUS * 0.7, 0, TAU);
-  ctx.arc(8, -6, PUFF_RADIUS * 0.8, 0, TAU);
-  ctx.arc(14, 10, PUFF_RADIUS * 0.6, 0, TAU);
-  ctx.fill();
-  ctx.stroke();
-  ctx.strokeStyle = 'rgba(127,184,224,0.9)';
-  for (const dy of [-10, 4, 18]) {
-    ctx.beginPath();
-    ctx.moveTo(PUFF_RADIUS + 4, dy);
-    ctx.lineTo(PUFF_RADIUS + 20, dy);
-    ctx.stroke();
-  }
-  label(ctx, String(value), 2, 2, 26, 'center');
   ctx.restore();
 }
 
@@ -418,5 +368,66 @@ export function drawPopBurst(ctx: CanvasRenderingContext2D, at: Point, value: nu
     ctx.arc(at.x + Math.cos(angle) * reach, at.y + Math.sin(angle) * reach, 5, 0, TAU);
     ctx.fill();
   }
+  ctx.restore();
+}
+
+/** Streaks of moving air across a band, drifting with `time`; `direction` 1 blows right. */
+function drawStreaks(ctx: CanvasRenderingContext2D, bounds: Bounds, y: number, direction: number, time: number, alpha: number): void {
+  const span = bounds.right - bounds.left;
+  ctx.save();
+  ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
+  ctx.lineWidth = 4;
+  ctx.lineCap = 'round';
+  for (let index = 0; index < 9; index += 1) {
+    const x = bounds.left + ((((index * 137 + time * 160 * direction) % span) + span) % span);
+    const dy = (index % 3) * 18 - 18;
+    ctx.beginPath();
+    ctx.moveTo(x, y + dy);
+    ctx.lineTo(x + 70, y + dy);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/** The breeze at the ledge's height that carries a rescued kit across onto the cliff. */
+export function drawBreeze(ctx: CanvasRenderingContext2D, bounds: Bounds, time: number): void {
+  drawStreaks(ctx, bounds, LAYOUT.ledgeY - 60, -1, time, 0.75);
+  const span = bounds.right - bounds.left;
+  ctx.save();
+  ctx.fillStyle = '#8cc56a';
+  for (let index = 0; index < 3; index += 1) {
+    const x = bounds.right - ((((index * 311 + time * 120) % span) + span) % span);
+    ctx.beginPath();
+    ctx.ellipse(x, LAYOUT.ledgeY - 70 + Math.sin(time * 3 + index) * 10, 9, 5, 0.6, 0, TAU);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/** The ring at a kit's feet that says a tapped balloon will go to this one. */
+export function drawSelectRing(ctx: CanvasRenderingContext2D, feet: Point): void {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,206,80,0.95)';
+  ctx.lineWidth = 6;
+  ctx.beginPath();
+  ctx.ellipse(feet.x, feet.y + 4, 60, 16, 0, 0, TAU);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** ↺ Start over: puts the rescue back as it opened. Dimmed when there is nothing to undo. */
+export function drawResetButton(ctx: CanvasRenderingContext2D, enabled: boolean): void {
+  const { x, y, radius } = LAYOUT.reset;
+  ctx.save();
+  ctx.globalAlpha = enabled ? 1 : 0.45;
+  ctx.fillStyle = enabled ? '#5a9fd6' : '#b9c2cc';
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, TAU);
+  ctx.fill();
+  ctx.font = hand(700, 40);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText('↺', x, y + 2);
   ctx.restore();
 }

@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { createRng } from '@bundle/core';
 import { CHAPTERS, RESCUES } from './levels.data.js';
-import { createRescue, liftOf, puffTotal, type Rescue } from './rescue.js';
-import { acrossNeed, type RescueDef } from './rescue-def.js';
+import { createRescue, liftOf, type Rescue } from './rescue.js';
+import { weightsOf, type RescueDef } from './rescue-def.js';
 import { solve } from './solver.js';
 import { starsFor } from './stars.js';
 
@@ -11,42 +11,35 @@ const biggestFirst = (values: readonly number[]) =>
 
 const exactOnLetGo = (rescue: Rescue): boolean => {
   const [event] = rescue.letGo();
-  return event?.type === 'released' && event.outcome.verdict === 'exact';
+  return event?.type === 'released' && event.outcomes.every((outcome) => outcome.verdict === 'exact');
 };
 
-/** Grabs the biggest balloons until there is enough, reading nothing but size. */
+/** Grabs the biggest balloons for each kit in turn until it has enough, reading nothing but size. */
 const sizeOnlyFirstTry = (def: RescueDef): boolean => {
   const rescue = createRescue(def);
+  const weights = weightsOf(def);
+  let kit = 0;
   for (const { index } of biggestFirst(def.tray)) {
-    if (liftOf(rescue.state) >= def.weight) break;
-    if (rescue.clip(index).some((event) => event.type === 'full')) break;
-  }
-  if (def.wind) {
-    for (const { index } of biggestFirst(def.wind.puffs)) {
-      if (puffTotal(rescue.state) >= acrossNeed(def.wind)) break;
-      rescue.puff(index);
-    }
+    while (kit < weights.length && liftOf(rescue.state, kit) >= weights[kit]!) kit += 1;
+    if (kit >= weights.length) break;
+    if (rescue.clip(index, kit).some((event) => event.type === 'full')) kit += 1;
   }
   return exactOnLetGo(rescue);
 };
 
-/** Clips, pops and puffs at random and lets go, over and over. */
+/** Clips to random kits and pops at random, and lets go, over and over. */
 const randomStars = (def: RescueDef, seed: number): number => {
   const rng = createRng(seed);
   const rescue = createRescue(def);
-  const wind = def.wind;
+  const kits = weightsOf(def).length;
   for (let attempt = 0; attempt < 60 && !rescue.state.rescued; attempt += 1) {
-    while (rescue.state.clipped.length > 0) rescue.unclip(0);
-    while (rescue.state.puffs.length > 0) rescue.unpuff(0);
-    rescue.state.tied.forEach((balloon, index) => {
-      if (balloon.popped) rescue.togglePop(index);
+    rescue.startOver();
+    rescue.state.tied.forEach((_, index) => {
       if (rng.next() < 0.5) rescue.togglePop(index);
     });
     def.tray.forEach((_, index) => {
-      if (rng.next() < 0.5) rescue.clip(index);
-    });
-    wind?.puffs.forEach((_, index) => {
-      if (rng.next() < 0.5) rescue.puff(index);
+      const choice = rng.int(kits + 1);
+      if (choice < kits) rescue.clip(index, choice);
     });
     if (rescue.state.clipped.length + rescue.state.tied.length === 0) rescue.clip(0);
     rescue.letGo();
@@ -78,8 +71,8 @@ describe('the arithmetic is load-bearing', () => {
       const answer = solve(def)[0]!;
       const rescue = createRescue(def);
       answer.pop.forEach((index) => rescue.togglePop(index));
-      answer.clip.forEach((index) => rescue.clip(index));
-      answer.puffs.forEach((index) => rescue.puff(index));
+      answer.clip.forEach((index) => rescue.clip(index, 0));
+      answer.friend.forEach((index) => rescue.clip(index, 1));
       expect(exactOnLetGo(rescue), def.id).toBe(true);
       expect(starsFor(rescue.state.tries)).toBe(3);
     }

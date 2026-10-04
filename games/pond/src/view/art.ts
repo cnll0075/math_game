@@ -1,7 +1,11 @@
-import { label, type Bounds } from '@bundle/core';
+import { hand, label, type Bounds } from '@bundle/core';
 import type { Rect } from './geometry.js';
 
 const TAU = Math.PI * 2;
+
+/** The lettering size that fits a sum measured `measured` wide at `font` into `room`. */
+export const fitFont = (font: number, measured: number, room: number): number =>
+  measured > room ? font * (room / measured) : font;
 
 export interface PadLook {
   face: 'down' | 'up' | 'star';
@@ -109,7 +113,12 @@ export function drawPad(ctx: CanvasRenderingContext2D, rect: Rect, look: PadLook
     ctx.ellipse(0, 0, rect.w / 2, rect.h / 2, 0, 0, TAU);
     ctx.fill();
     ctx.stroke();
-    label(ctx, look.face === 'star' ? '★' : look.text, 0, 2, look.font, 'center');
+    const text = look.face === 'star' ? '★' : look.text;
+    // Sized to the pad, then shrunk if this particular sum is too wide for it:
+    // `20 − 11` needs more room than `2 + 3`.
+    ctx.font = hand(700, look.font);
+    const font = fitFont(look.font, ctx.measureText(text).width, rect.w * 0.78);
+    label(ctx, text, 0, 2, font, 'center');
     if (look.bloom > 0) drawFlower(ctx, rect.w / 2 - rect.h * 0.22, -rect.h / 2 + rect.h * 0.18, rect.h * 0.32, look.bloom);
   }
   ctx.restore();

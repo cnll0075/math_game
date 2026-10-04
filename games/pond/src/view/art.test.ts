@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { depthOf, recordingContext } from '@bundle/core';
-import { drawPad, drawPond, type PadLook } from './art.js';
+import { drawPad, drawPond, fitFont, type PadLook } from './art.js';
 
 const rect = { x: 100, y: 100, w: 200, h: 120 };
 const look = (overrides: Partial<PadLook>): PadLook => ({ face: 'down', text: '3 + 4', font: 40, turn: 1, bloom: 0, cursor: false, ...overrides });
@@ -26,5 +26,10 @@ describe('the art', () => {
     const star = recordingContext();
     drawPad(star.ctx, rect, look({ face: 'star', text: '' }));
     expect(star.texts).toContain('★');
+  });
+
+  it('shrinks the lettering of a sum too wide for its pad, and leaves a short one alone', () => {
+    expect(fitFont(55, 190, 176)).toBeCloseTo(55 * (176 / 190), 5);
+    expect(fitFont(55, 120, 176)).toBe(55);
   });
 });

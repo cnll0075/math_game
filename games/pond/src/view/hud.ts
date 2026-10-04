@@ -3,6 +3,12 @@ import type { BoardDef } from '../logic/boards.data.js';
 import type { StarBook } from '../logic/stars.js';
 import { LAYOUT, pickerRect } from './geometry.js';
 
+/** Darkens everything behind an overlay — past the design rect too, so a wide screen has no bright edges. */
+function dim(ctx: CanvasRenderingContext2D): void {
+  ctx.fillStyle = 'rgba(12,24,38,0.45)';
+  ctx.fillRect(-DESIGN.width, -DESIGN.height, DESIGN.width * 3, DESIGN.height * 3);
+}
+
 function panel(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, fill: string): void {
   const radius = 24;
   ctx.fillStyle = fill;
@@ -52,8 +58,7 @@ export function drawEndCard(
   model: { stars: number; progress: number; misses: number; pairs: number; last: boolean },
 ): void {
   ctx.save();
-  ctx.fillStyle = 'rgba(12,24,38,0.45)';
-  ctx.fillRect(0, 0, DESIGN.width, DESIGN.height);
+  dim(ctx);
   panel(ctx, DESIGN.width / 2 - 320, 180, 640, 420, '#f7fbff');
   label(ctx, 'Pond cleared!', DESIGN.width / 2, 250, 52, 'center');
   stars(ctx, DESIGN.width / 2, 340, model.stars, model.progress);
@@ -69,8 +74,7 @@ export function drawPicker(
   model: { boards: readonly BoardDef[]; book: StarBook; open: readonly boolean[]; current: number },
 ): void {
   ctx.save();
-  ctx.fillStyle = 'rgba(12,24,38,0.45)';
-  ctx.fillRect(0, 0, DESIGN.width, DESIGN.height);
+  dim(ctx);
   const { left, top, width, height } = LAYOUT.picker;
   panel(ctx, left - 20, top - 70, width + 40, height + 90, '#f7fbff');
   label(ctx, 'Choose a board', DESIGN.width / 2, top - 32, 36, 'center');

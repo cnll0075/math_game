@@ -588,13 +588,59 @@ other two:
 If either guesser survives, the arithmetic has stopped mattering. Fix the game,
 never the test.
 
+## Balloon Rescue
+
+A fox kit is stuck on the ground and a ledge waits above it. Clip numbered
+balloons to its harness until the lift is exactly its weight, then let go. Too
+little and it strains and stays put; too much and it whooshes past the ledge
+and parachutes home; exactly right and it floats up and steps off.
+
+Sky Patrol and Bramble Dash ask a child to *recall* an answer. This one asks
+them to *build* one: 8 is on the screen, and 5 + 3, 4 + 4 and 6 + 1 + 1 are all
+theirs to find.
+
+**Tap a balloon to clip it on; tap it again to send it back.** Or drag it: it
+follows the finger, clips on when dropped near the kit, and comes off when a
+clipped one is dragged down into the tray. "Let go!" is the only way to find
+out, and a wrong try leaves the bunch as it was, with the gap in words — "2
+more!", "3 too many!".
+
+**↺ Start over** puts the rescue back as it opened — every popped balloon
+blown back up, every clipped one back in the tray — keeping the tries. A
+popped balloon shows no number, so after a wrong pop a child cannot always tell
+which to undo.
+
+**No running total while building.** The kit wears its weight; nothing adds up
+the bunch until it is let go, and then the balloons light one by one as the
+total is counted on. A live total would turn the game into watching a number
+climb.
+
+**Stars for working it out first**: three for the first try, two for the
+second, one after that. A rescue is never failed.
+
+**Eight chapters**: First Flight, Whoosh!, Big Bunches, Heavy Cargo (past ten),
+Tiny Harness (a hook limit), Pop! (taking away), Two at Once (two kits share
+one tray, and every balloon is used) and The Big Rescue (two ideas at once).
+`?game=balloon&level=pop-1` opens any rescue by id, or `&level=two-at-once` any
+chapter.
+
+### The test that guards it
+
+`games/balloon/src/logic/guards.test.ts` plays every rescue three ways. A bot
+that grabs the biggest balloons must be right first time in under a quarter of
+the rescues after the first chapter; a bot that picks at random must average
+under two stars; a bot that works the sum out must get three stars everywhere.
+If a size-only guess ever does well, the levels have stopped needing
+arithmetic: fix the levels, never the test.
+
 ## Not built yet
 
 - **Real art and sound.** Seesaw's are swappable through `SeesawTheme` and
   `SoundPack`; see above. Sky Patrol has vector planes and a synthesised pack
   only, behind the same `SoundPack` names a recorded pack would implement, and
-  Bramble Dash the same.
-- **The other seven games.** The shell has a tile each, marked "Soon".
+  Bramble Dash the same. Balloon Rescue has a vector fox kit and a synthesised
+  pack behind the same names.
+- **The other six games.** The shell has a tile each, marked "Soon".
 - **Timed or scored modes.** An arcade half was built and removed: it added
   pressure rather than arithmetic, and a player could win it by dropping each
   animal on the lighter side without reading a number. It is in the git history

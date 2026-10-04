@@ -11,6 +11,7 @@ export default defineConfig({
       '@bundle/sky': resolvePath('./games/sky/src/index.ts'),
       '@bundle/math': resolvePath('./packages/math/src/index.ts'),
       '@bundle/bramble': resolvePath('./games/bramble/src/index.ts'),
+      '@bundle/balloon': resolvePath('./games/balloon/src/index.ts'),
     },
   },
   test: {

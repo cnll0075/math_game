@@ -53,7 +53,7 @@ describe('shell launcher', () => {
     const playable = CATALOG.filter((tile) => tile.module);
     expect(root.querySelectorAll('[data-coming-soon]')).toHaveLength(CATALOG.length - playable.length);
     // Named rather than counted, so this says which games are built.
-    expect(playable.map((tile) => tile.id)).toEqual(['seesaw', 'sky', 'bramble']);
+    expect(playable.map((tile) => tile.id)).toEqual(['seesaw', 'sky', 'bramble', 'balloon']);
   });
 
   it('opens the seesaw game from its tile', async () => {

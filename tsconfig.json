@@ -7,7 +7,8 @@
       "@bundle/seesaw": ["games/seesaw/src/index.ts"],
       "@bundle/sky": ["games/sky/src/index.ts"],
       "@bundle/math": ["packages/math/src/index.ts"],
-      "@bundle/bramble": ["games/bramble/src/index.ts"]
+      "@bundle/bramble": ["games/bramble/src/index.ts"],
+      "@bundle/balloon": ["games/balloon/src/index.ts"]
     }
   },
   "include": ["packages/*/src", "games/*/src", "apps/*/src", "vitest.config.ts"]

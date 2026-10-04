@@ -605,6 +605,11 @@ clipped one is dragged down into the tray. "Let go!" is the only way to find
 out, and a wrong try leaves the bunch as it was, with the gap in words — "2
 more!", "3 too many!".
 
+**↺ Start over** puts the rescue back as it opened — every popped balloon
+blown back up, every clipped one back in the tray — keeping the tries. A
+popped balloon shows no number, so after a wrong pop a child cannot always tell
+which to undo.
+
 **No running total while building.** The kit wears its weight; nothing adds up
 the bunch until it is let go, and then the balloons light one by one as the
 total is counted on. A live total would turn the game into watching a number
@@ -614,10 +619,10 @@ climb.
 second, one after that. A rescue is never failed.
 
 **Eight chapters**: First Flight, Whoosh!, Big Bunches, Heavy Cargo (past ten),
-Tiny Harness (a hook limit), Pop! (taking away), Windy Ridge (wind layers: the
-kit rises lift minus weight layers, so a ledge three layers up takes the weight
-plus three) and The Big Rescue (two ideas at once). `?game=balloon&level=pop-1` opens any rescue by id, or
-`&level=windy-ridge` any chapter.
+Tiny Harness (a hook limit), Pop! (taking away), Two at Once (two kits share
+one tray, and every balloon is used) and The Big Rescue (two ideas at once).
+`?game=balloon&level=pop-1` opens any rescue by id, or `&level=two-at-once` any
+chapter.
 
 ### The test that guards it
 

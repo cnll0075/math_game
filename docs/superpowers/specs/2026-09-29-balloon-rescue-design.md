@@ -66,8 +66,8 @@ begins.
 | 4 | **Heavy Cargo** | Past ten, with a 10-balloon | 11–20 | weight 13, tray `10 · 8 · 3 · 2` → 10 + 3 or 8 + 3 + 2 |
 | 5 | **Tiny Harness** | A hook limit forces a smart choice | 8–16 | weight 12, 2 hooks, tray `4 · 4 · 4 · 8 · 6 · 5` → 8 + 4; 4 + 4 + 4 is the bait |
 | 6 | **Pop!** | Already tied to too much; take some away | 5–15 | weight 7, tied `6 · 3 · 1` → pop the 3 |
-| 7 | **Windy Ridge** | Rise exactly N layers: the difference matters | 4–17 | weight 7, ledge 3 layers up → 10; 7 alone is the bait |
-| 8 | **The Big Rescue** | Two ideas in every rescue | mixed | weight 13, 2 hooks, ledge 2 layers up → 15 |
+| 7 | **Two at Once** | Split one tray between two kits | 4–10 each | kits 4 and 5, tray `3 · 1 · 2 · 3` → 3 + 1 and 2 + 3 |
+| 8 | **The Big Rescue** | Two ideas in every rescue | mixed | kits 15 and 9, 2 hooks each, tray `10 · 5 · 6 · 3` |
 
 Story lines are about the rescue, not the mechanic: *"Pip's kite pulled him
 into the mud!"*, *"The ledge is where the picnic is."* No chapter title or story
@@ -85,29 +85,24 @@ finished. "Let go!" unties the rope.
 The first rescue of the chapter has an empty tray, so popping is the only thing
 to try.
 
-### Windy Ridge
+### Two at Once
 
-The sky over the ridge has **wind layers**: bands of wind stacked one above the
-other, numbered 1, 2 and 3 up the left edge. The ledge is a cliff top on the
-right at the height of one layer, and only that layer blows towards it; every
-other layer blows away.
+Two kits stand side by side, each with its own weight, its own harness and its
+own hooks, sharing **one tray**. Both have to float exactly for the rescue to
+count.
 
-How high the kit rises is **lift minus weight**: a kit weighing 7 on 10 of lift
-rises 3 layers. So reaching the ledge 3 layers up takes exactly 7 + 3 = 10.
-
-- **The new idea is the difference.** Until now "a bit too much" was the
-  mistake; here it is the target. The bunch that makes exactly the weight — the
-  old habit — is always in the tray, and it only lifts the kit off the ground.
-- Too little to float: the strain and hop, as before. Floating but too low, or
-  too high: the kit rises to the layer it reached, is blown the wrong way, and
-  parachutes home. Past the top layer: the whoosh off the top, as before.
-- The gauge reads `9 / 7 + 3` and "1 more!" — the target written as the sum it
-  is, the gap in the same words as every other chapter.
-- The finished sum reads `7 + 3 = 10`.
-
-The first rescue comes with the kit already floating — tied balloons that make
-exactly its weight — so the only new thing is the climb. Three layers at most,
-so a kit on the top layer is still on screen.
+- **Every balloon is used.** The tray adds up to exactly both weights together,
+  so the question is a split — these go to one kit, the rest to the other. The
+  last rescues of the chapter add one spare balloon, so the split has to be
+  chosen rather than forced.
+- **Choosing a kit.** A balloon dragged onto a kit clips to that kit. A tap on a
+  tray balloon clips it to the **selected** kit, shown by a ring at its feet;
+  tapping a kit selects it. The left kit starts selected.
+- **Each kit is judged on its own.** After "Let go!" each kit flies by its own
+  verdict, and each gets its own gauge: "2 more!" over one and "2 too many!"
+  over the other says, without saying it, *move a 2 across*.
+- The finished sums are written one per kit: `3 + 1 = 4` and `2 + 3 = 5`.
+- Tied balloons, when there are any, are on the left kit only.
 
 ### Wind on the ledge
 
@@ -122,18 +117,16 @@ Every one of these is a test over the level data, using a brute-force solver
 that searches clips and pops:
 
 - every rescue has at least one exact answer within its hook limit
-- only the very first rescue can be answered by clipping a single balloon (the
-  lift already tied at the start of the first Windy Ridge rescue is given, not
-  an answer)
+- only the very first rescue can be answered by clipping a single balloon
 - nothing before **Pop!** needs a pop; every rescue in **Pop!** needs one
 - in **Big Bunches** no pair from the tray makes the weight
 - in **Tiny Harness** the tray holds a correct bunch that needs too many hooks,
   and a correct bunch that fits
 - in **Whoosh!** some pair from the tray overshoots by no more than 3 — the bait
-- in **Windy Ridge** the tray (with anything tied) always holds a bunch that
-  makes exactly the weight — the bait — and weight plus layers never passes 20
+- in **Two at Once** the tray adds up to both weights together, plus at most one
+  spare balloon, and no kit's weight is a single balloon in the tray
 - every rescue in **The Big Rescue** needs two of: past ten, a hook limit, a
-  pop, a wind layer
+  pop, two kits
 - the targets of each chapter lie in the range the table above gives it
 
 ## Screen
@@ -143,10 +136,11 @@ painted past it.
 
 - The character stands bottom-left on the ground, weight tag on its chest; the
   harness and its hooks float just above.
-- The ledge is a grassy cliff top, up and to the left in most chapters; in
-  Windy Ridge it is on the right at the height of its wind layer.
+- The ledge is a grassy cliff top, up and to the left. In Two at Once the
+  second kit stands further right and lands beside the first.
 - The tray is a strip along the bottom.
 - "Let go!" is a large button bottom-right, dimmed until a balloon is clipped.
+- A smaller **↺ start over** button sits above it.
 - The chapter card top-centre, the stars for this rescue top-right.
 
 ## Controls
@@ -163,6 +157,13 @@ dragged.
 
 A full harness bumps a balloon back with a wobble and a soft "no room" sound.
 
+**↺ Start over** blows every popped balloon back up and sends every clipped
+balloon back to the tray — the rescue as it opened, with its tries kept. A
+popped balloon shows no number, so after a wrong pop or two a child cannot
+always tell which to blow back up; starting over is the way out. A wrong try
+still leaves the bunch as it was, so the gauge's "2 more!" keeps describing
+what is on the harness. The button is dimmed when there is nothing to undo.
+
 ## Feel
 
 - **Just right** — they float up, step onto the ledge, and do a little dance
@@ -172,7 +173,9 @@ A full harness bumps a balloon back with a wobble and a soft "no room" sound.
 - **Too much** — a whoosh and a comic "wheee", a bump on a cloud, the parachute
   pops open, a slow drift down. It should be funny, never a telling-off.
 - **The count** — after "Let go!", each balloon lights in turn as the gauge
-  counts on, so the total is watched being made.
+  counts on, so the total is watched being made, and the kit lifts with it, in
+  proportion to the running total over its weight: nearly floating when it is
+  close. The flight carries on from wherever the count left it.
 
 The look follows the concept art: warm, rounded, pastel; soft clouds, grassy
 cliffs, fox kits as the characters. Vector-drawn first, behind a theme seam, so
@@ -215,8 +218,8 @@ The logic is pure, so the rules become tests:
 - the curriculum rules above, over every rescue in the data
 - outcome is short / exact / over by exactly the sign of lift − weight, and the
   gauge's "N more" / "N too many" is that difference
-- in a wind-layer rescue, the target is weight plus layers, and the flight
-  rises lift minus weight layers
+- with two kits, each is judged against its own weight, and only both exact
+  rescues
 - a full harness refuses a clip; a popped balloon can be re-inflated; a failed
   try leaves the bunch exactly as it was
 - stars: first try 3, second 2, later 1, and the stored best never goes down
@@ -255,3 +258,13 @@ levels, never the test.
   wind sock and the step marks are gone; the layers make overshooting by
   exactly the right amount the point, which is the difference, and give the
   wind a reason to exist.
+
+## Revisions after the second playtest (2026-10-04)
+
+- **↺ Start over** added, as above. Without numbers on popped balloons, a
+  child could not tell which ones to blow back up.
+- **Windy Ridge is gone.** It was not obvious how much lift reached which
+  layer. In its place, **Two at Once**: two kits, one tray, a split — the
+  partitioning idea set aside on 2026-10-01. The Big Rescue's wind-layer
+  rescues became two-kit rescues.
+- **The kit lifts during the count**, in proportion to the running total.

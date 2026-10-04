@@ -13,6 +13,7 @@ export default defineConfig({
       '@bundle/math': resolvePath('../../packages/math/src/index.ts'),
       '@bundle/bramble': resolvePath('../../games/bramble/src/index.ts'),
       '@bundle/balloon': resolvePath('../../games/balloon/src/index.ts'),
+      '@bundle/pond': resolvePath('../../games/pond/src/index.ts'),
     },
   },
   build: {

@@ -1,25 +1,16 @@
 export type Verdict = 'short' | 'exact' | 'over';
 
-/**
- * What letting go did. The weight and layers are kept beside the target so the
- * gauge can write it as the sum it is, and the flight can tell how high the kit
- * rose: lift minus weight.
- */
+/** What letting go did for one kit. */
 export interface Outcome {
   verdict: Verdict;
   have: number;
   need: number;
-  weight: number;
-  layer: number;
 }
 
 export const verdictOf = (have: number, need: number): Verdict =>
   have < need ? 'short' : have > need ? 'over' : 'exact';
 
-export function judge(lift: number, weight: number, layer = 0): Outcome {
-  const need = weight + layer;
-  return { verdict: verdictOf(lift, need), have: lift, need, weight, layer };
-}
+export const judge = (lift: number, weight: number): Outcome => ({ verdict: verdictOf(lift, weight), have: lift, need: weight });
 
 /** The gap in words: the teaching half of a wrong try. */
 export function feedbackLine(outcome: Outcome): string {
@@ -28,7 +19,4 @@ export function feedbackLine(outcome: Outcome): string {
   return outcome.verdict === 'short' ? `${gap} more!` : `${gap} too many!`;
 }
 
-export const gaugeText = (outcome: Outcome): string =>
-  outcome.layer > 0
-    ? `${outcome.have} / ${outcome.weight} + ${outcome.layer}`
-    : `${outcome.have} / ${outcome.need}`;
+export const gaugeText = (outcome: Outcome): string => `${outcome.have} / ${outcome.need}`;

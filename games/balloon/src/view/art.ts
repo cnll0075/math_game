@@ -1,7 +1,6 @@
 import { hand, label, type Bounds, type Point } from '@bundle/core';
 import type { Mood } from './flight.js';
-import { LAYERS } from '../logic/rescue-def.js';
-import { balloonRadius, LAYOUT, layerY, pegPoint } from './geometry.js';
+import { balloonRadius, LAYOUT, pegPoint } from './geometry.js';
 
 const INK = '#1e2a38';
 const TAU = Math.PI * 2;
@@ -405,20 +404,30 @@ export function drawBreeze(ctx: CanvasRenderingContext2D, bounds: Bounds, time: 
   ctx.restore();
 }
 
-/**
- * Windy Ridge's wind layers, numbered up the left edge. The one at the ledge's
- * height blows towards it; every other blows away.
- */
-export function drawWindLayers(ctx: CanvasRenderingContext2D, bounds: Bounds, target: number, time: number): void {
-  for (let layer = 1; layer <= LAYERS; layer += 1) {
-    const y = layerY(layer) - 60;
-    const towards = layer === target;
-    ctx.save();
-    ctx.fillStyle = towards ? 'rgba(255,240,170,0.35)' : 'rgba(255,255,255,0.18)';
-    ctx.fillRect(bounds.left, y - 34, bounds.right - bounds.left, 68);
-    ctx.restore();
-    drawStreaks(ctx, bounds, y, towards ? 1 : -1, time, towards ? 0.9 : 0.6);
-    label(ctx, String(layer), 40, y, 36, 'center');
-    label(ctx, towards ? '→' : '←', 84, y, 34, 'center');
-  }
+/** The ring at a kit's feet that says a tapped balloon will go to this one. */
+export function drawSelectRing(ctx: CanvasRenderingContext2D, feet: Point): void {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,206,80,0.95)';
+  ctx.lineWidth = 6;
+  ctx.beginPath();
+  ctx.ellipse(feet.x, feet.y + 4, 60, 16, 0, 0, TAU);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** ↺ Start over: puts the rescue back as it opened. Dimmed when there is nothing to undo. */
+export function drawResetButton(ctx: CanvasRenderingContext2D, enabled: boolean): void {
+  const { x, y, radius } = LAYOUT.reset;
+  ctx.save();
+  ctx.globalAlpha = enabled ? 1 : 0.45;
+  ctx.fillStyle = enabled ? '#5a9fd6' : '#b9c2cc';
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, TAU);
+  ctx.fill();
+  ctx.font = hand(700, 40);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText('↺', x, y + 2);
+  ctx.restore();
 }

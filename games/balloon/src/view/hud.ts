@@ -15,25 +15,32 @@ export function drawTopBar(
 }
 
 /**
- * After a wrong try: what you had over what you needed, and the gap in words.
- * Beside the kit, where the child is already looking.
+ * After a wrong try: what a kit had over what it needed, and the gap in words.
+ * Beside a lone kit, where the child is already looking; above each kit, smaller,
+ * when there are two.
  */
-export function drawGauge(ctx: CanvasRenderingContext2D, outcome: Outcome): void {
-  const x = HOME.x + 340;
-  const y = HOME.y - 250;
+export function drawGauge(
+  ctx: CanvasRenderingContext2D,
+  outcome: Outcome,
+  centre: Point = { x: HOME.x + 340, y: HOME.y - 250 },
+  small = false,
+): void {
+  const width = small ? 210 : 300;
+  const height = small ? 100 : 140;
   ctx.save();
-  ctx.fillStyle = outcome.verdict === 'short' ? 'rgba(90,150,220,0.95)' : 'rgba(240,123,95,0.95)';
+  ctx.fillStyle =
+    outcome.verdict === 'exact' ? 'rgba(92,184,92,0.95)' : outcome.verdict === 'short' ? 'rgba(90,150,220,0.95)' : 'rgba(240,123,95,0.95)';
   ctx.beginPath();
-  ctx.roundRect?.(x - 150, y - 70, 300, 140, 26);
+  ctx.roundRect?.(centre.x - width / 2, centre.y - height / 2, width, height, 24);
   ctx.fill();
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = 'rgba(255,255,255,0.9)';
-  ctx.font = hand(700, 30);
-  ctx.fillText(gaugeText(outcome), x, y - 28);
+  ctx.font = hand(700, small ? 22 : 30);
+  ctx.fillText(gaugeText(outcome), centre.x, centre.y - (small ? 20 : 28));
   ctx.fillStyle = '#ffffff';
-  ctx.font = hand(700, 46);
-  ctx.fillText(feedbackLine(outcome), x, y + 22);
+  ctx.font = hand(700, small ? 34 : 46);
+  ctx.fillText(feedbackLine(outcome), centre.x, centre.y + (small ? 16 : 22));
   ctx.restore();
 }
 

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { DESIGN, depthOf, recordingContext } from '@bundle/core';
 import { createDriver, type Driver } from '../driver.js';
 import { createScene } from './scene.js';
+import { HOME } from './geometry.js';
 
 const FRAME = 1 / 60;
 const SCREEN = { width: 1152, height: 768 };
@@ -99,12 +100,35 @@ describe('the scene', () => {
     expect(render(roomy).calls).not.toContain('setLineDash');
   });
 
-  it('draws the wind layers in Windy Ridge, and no layers anywhere else', () => {
-    const windy = render(createDriver({ book: {}, startLevel: 'windy-ridge-2' }));
-    expect(windy.texts.filter((text) => text === '→')).toHaveLength(1);
-    expect(windy.texts.filter((text) => text === '←')).toHaveLength(2);
-    const plain = render(createDriver({ book: {}, startLevel: 'whoosh-1' }));
-    expect(plain.texts).not.toContain('→');
+  it('draws both kits in Two at Once, and gives each its own gauge', () => {
+    const driver = createDriver({ book: {}, startLevel: 'two-at-once-1' });
+    driver.act({ kind: 'tray', index: 0 }); // 3 on the 4
+    driver.act({ kind: 'select', kit: 1 });
+    driver.act({ kind: 'tray', index: 3 }); // 3 on the 5
+    driver.act({ kind: 'letGo' });
+    while (driver.phase === 'flying') driver.step(FRAME);
+    const { texts } = render(driver);
+    expect(texts).toEqual(expect.arrayContaining(['4', '5', '3 / 4', '1 more!', '3 / 5', '2 more!']));
+  });
+
+  it('lifts the kit as the count climbs towards its weight', () => {
+    const driver = createDriver({ book: {}, startLevel: 'whoosh-1' });
+    driver.act({ kind: 'tray', index: 1 }); // 4
+    driver.act({ kind: 'tray', index: 2 }); // 3: 7, the weight
+    driver.act({ kind: 'letGo' });
+    const count = driver.flight!.count;
+    const scene = createScene();
+    while (driver.flight && driver.flight.t < count * 0.9) {
+      scene.observe(driver.step(FRAME));
+      scene.update(FRAME, driver.model());
+    }
+    const recording = recordingContext();
+    scene.render(recording.ctx, SCREEN);
+    expect(recording.translations.some((at) => at.x === HOME.x && at.y < HOME.y - 30)).toBe(true);
+  });
+
+  it('draws the start-over button', () => {
+    expect(render(createDriver({ book: {}, startLevel: 'whoosh-1' })).texts).toContain('↺');
   });
 
   it('shows a popped balloon without its number', () => {

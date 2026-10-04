@@ -14,7 +14,8 @@ import {
   drawSky,
   drawString,
   drawTrayShelf,
-  drawWindLayers,
+  drawResetButton,
+  drawSelectRing,
 } from './art.js';
 
 const bounds = { left: -100, top: 0, right: 1252, bottom: 768 };
@@ -27,7 +28,9 @@ describe('the art', () => {
     drawCliff(ctx, bounds, 'left', 220);
     drawCliff(ctx, bounds, 'right', 800);
     drawBreeze(ctx, bounds, 1.5);
-    drawWindLayers(ctx, bounds, 2, 1.5);
+    drawResetButton(ctx, true);
+    drawResetButton(ctx, false);
+    drawSelectRing(ctx, { x: 300, y: 560 });
     drawCliff(ctx, bounds, 'right', 780, 370);
     drawRope(ctx, { x: 300, y: 560 });
     drawString(ctx, { x: 300, y: 440 }, { x: 330, y: 300 });
@@ -55,12 +58,10 @@ describe('the art', () => {
     expect(texts).not.toContain('4');
   });
 
-  it('numbers the layers, and only the ledge\'s layer blows towards it', () => {
+  it('marks the start-over button with its arrow', () => {
     const { ctx, texts } = recordingContext();
-    drawWindLayers(ctx, { left: 0, top: 0, right: 1152, bottom: 768 }, 2, 0);
-    expect(texts).toEqual(expect.arrayContaining(['1', '2', '3']));
-    expect(texts.filter((text) => text === '→')).toHaveLength(1);
-    expect(texts.filter((text) => text === '←')).toHaveLength(2);
+    drawResetButton(ctx, true);
+    expect(texts).toContain('↺');
   });
 
   it('gives each value its own colour', () => {

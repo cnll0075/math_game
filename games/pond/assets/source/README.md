@@ -20,3 +20,11 @@ frog jump about, so the script takes all three apart:
   from the edge is cleared, so the notch stays open and the veins stay put.
 - `frog.png` - the frog, cut along its outline. The scenery behind it is
   painted soft, so the outline is the one crisp edge around it.
+
+## frog-sitting.png
+
+The frog sitting on a lily pad, facing front. It sits on the free pad in the
+middle of odd boards and coaches the first board, so only the frog is cut out:
+
+- `frog-sitting.png` - the frog, cut along its outline as `frog.png` is. A
+  strip of the pad's bright rim touches its left foot and is cut away by hand.

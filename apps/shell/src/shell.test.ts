@@ -45,7 +45,7 @@ describe('shell launcher', () => {
   it('renders one tile per game in the bundle', () => {
     createShell(root, testDeps()).showLauncher();
     expect(root.querySelectorAll('[data-game-tile]')).toHaveLength(CATALOG.length);
-    expect(CATALOG).toHaveLength(10);
+    expect(CATALOG).toHaveLength(11);
   });
 
   it('marks every unbuilt game as coming soon', () => {
@@ -53,7 +53,7 @@ describe('shell launcher', () => {
     const playable = CATALOG.filter((tile) => tile.module);
     expect(root.querySelectorAll('[data-coming-soon]')).toHaveLength(CATALOG.length - playable.length);
     // Named rather than counted, so this says which games are built.
-    expect(playable.map((tile) => tile.id)).toEqual(['seesaw', 'sky', 'bramble', 'balloon', 'pond']);
+    expect(playable.map((tile) => tile.id)).toEqual(['seesaw', 'sky', 'bramble', 'balloon', 'pond', 'fishing']);
   });
 
   it('opens the seesaw game from its tile', async () => {

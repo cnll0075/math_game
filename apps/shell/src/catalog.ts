@@ -3,6 +3,7 @@ import { skyGame } from '@bundle/sky';
 import { brambleGame } from '@bundle/bramble';
 import { balloonGame } from '@bundle/balloon';
 import { pondGame } from '@bundle/pond';
+import { fishingGame } from '@bundle/fishing';
 import type { GameModule } from '@bundle/core';
 
 export interface GameTile {
@@ -16,7 +17,7 @@ export interface GameTile {
 }
 
 /**
- * The bundle. One game is real; the rest are placeholders so the shape of the
+ * The bundle. Some games are real; the rest are placeholders so the shape of the
  * product is visible while the other nine are built.
  */
 export const CATALOG: readonly GameTile[] = [
@@ -25,6 +26,7 @@ export const CATALOG: readonly GameTile[] = [
   { id: 'bramble', title: 'Bramble Dash', blurb: 'Run the right way', colors: ['#8fce72', '#3f8f52'], module: brambleGame },
   { id: 'balloon', title: 'Balloon Rescue', blurb: 'Lift them just right', colors: ['#f7a8b8', '#7cc3ea'], module: balloonGame },
   { id: 'pond', title: 'Pond Pairs', blurb: 'Find the equal sums', colors: ['#7fc4c9', '#5aa9d6'], module: pondGame },
+  { id: 'fishing', title: 'Bucket Bay', blurb: 'Fill the bucket exactly', colors: ['#47b3dc', '#2786c0'], module: fishingGame },
   { id: 'shapes', title: 'Shape Workshop', blurb: 'Build with shapes', colors: ['#e4695f', '#f2a65a'] },
   { id: 'patterns', title: 'Pattern Path', blurb: 'What comes next?', colors: ['#b48ee0', '#7b6bd6'] },
   { id: 'measure', title: 'Measuring Yard', blurb: 'How long is it?', colors: ['#5aa9d6', '#3f7fbf'] },

@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { DESIGN, depthOf, recordingContext } from '@bundle/core';
+import { createRng, DESIGN, depthOf, recordingContext } from '@bundle/core';
 import { createDriver, type Driver } from '../driver.js';
 import { valueAt } from '../logic/game.js';
 import { sumText } from '../logic/sums.js';
 import { createScene } from './scene.js';
 import { TIMING } from './timing.js';
+import { FROG } from './frog.js';
+import { frogSpots } from './geometry.js';
 
 const FRAME = 1 / 60;
 const SCREEN = { width: 1152, height: 768 };
@@ -103,5 +105,44 @@ describe('the scene', () => {
     const { ctx, calls } = recordingContext();
     createScene().render(ctx, SCREEN);
     expect(calls).toHaveLength(0);
+  });
+
+  it('paints the pond, the pads and the frog from the painting once loaded', () => {
+    const picture = (width: number, height: number) => ({ width, height }) as unknown as HTMLImageElement;
+    const scene = createScene({ sprites: { pond: picture(1536, 1024), pad: picture(235, 113), frog: picture(175, 183) } });
+    const driver = createDriver({ book: {}, startLevel: 'board-4', seed: 7 });
+    scene.update(FRAME, driver.model());
+    const { calls } = draw(scene);
+    expect(calls.filter((call) => call === 'drawImage').length).toBeGreaterThanOrEqual(1 + 16);
+  });
+
+  it('brings the frog out onto an open spot, where a tap cheers it and leaves the board alone', () => {
+    const driver = createDriver({ book: {}, startLevel: 'board-4', seed: 8 });
+    const scene = createScene({ rng: createRng(8) });
+    let emerged = false;
+    for (let t = 0; t < FROG.firstMax + 1 && !emerged; t += FRAME) {
+      emerged = scene.update(FRAME, driver.model()).some((event) => event.type === 'emerged');
+    }
+    expect(emerged).toBe(true);
+    for (let t = 0; t <= FROG.emergeSeconds; t += FRAME) scene.update(FRAME, driver.model());
+    const spot = scene.frogSpot()!;
+    expect(frogSpots(4)).toContainEqual(spot);
+    const before = JSON.stringify(driver.game.state);
+    const on = { x: spot.x, y: spot.y - FROG.height / 2 };
+    expect(scene.frogAt(on)).toBe(true);
+    expect(scene.pokeFrog(on)).toEqual([{ type: 'cheered' }]);
+    expect(JSON.stringify(driver.game.state)).toBe(before);
+    scene.update(FRAME, driver.model());
+    expect(draw(scene).texts).toContain('Ribbit!');
+  });
+
+  it('sends the frog under when a new board opens', () => {
+    const driver = createDriver({ book: { 'board-2': 3 }, startLevel: 'board-2', seed: 9 });
+    const scene = createScene({ rng: createRng(9) });
+    for (let t = 0; t < FROG.firstMax + FROG.emergeSeconds + 0.2; t += FRAME) scene.update(FRAME, driver.model());
+    expect(scene.frogSpot()).not.toBeNull();
+    driver.act({ kind: 'picker' });
+    scene.observe(driver.act({ kind: 'pick', index: 1 }));
+    expect(scene.frogAt({ x: scene.frogSpot()?.x ?? 0, y: (scene.frogSpot()?.y ?? 0) - FROG.height / 2 })).toBe(false);
   });
 });

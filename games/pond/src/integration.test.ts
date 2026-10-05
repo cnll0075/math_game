@@ -88,4 +88,32 @@ describe('boards played through the module', () => {
     session.unmount();
     expect(container.querySelector('canvas')).toBeNull();
   });
+
+  it('lets a tap on the frog change nothing on the board', async () => {
+    const { session } = await mountGame('board-4');
+    const [a, b] = session.__test.pair(false);
+    session.__test.flip(a);
+    session.__test.flip(b);
+    const before = JSON.stringify(session.__test.state());
+    session.__test.act({ kind: 'frog', point: { x: 100, y: 400 } });
+    expect(JSON.stringify(session.__test.state())).toBe(before);
+    session.unmount();
+  });
+
+  it('croaks when the frog is poked while it sits', async () => {
+    const played: string[] = [];
+    vi.spyOn(sounds, 'createPondSoundPack').mockReturnValue({ preload: async () => {}, play: (event: string) => void played.push(event) });
+    const { session } = await mountGame('board-2');
+    let on: { x: number; y: number } | null = null;
+    for (let frame = 0; frame < 60 * 30 && !on; frame += 1) {
+      session.__test.step(1);
+      const spot = session.__test.frogSpot();
+      if (spot && session.__test.frogAt({ x: spot.x, y: spot.y - 40 })) on = { x: spot.x, y: spot.y - 40 };
+    }
+    expect(played).toContain('splash');
+    expect(on).not.toBeNull();
+    session.__test.act({ kind: 'frog', point: on! });
+    expect(played).toContain('croak');
+    session.unmount();
+  });
 });

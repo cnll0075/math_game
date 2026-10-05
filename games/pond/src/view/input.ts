@@ -17,7 +17,7 @@ export function createInput(
   canvas: HTMLCanvasElement,
   scene: Scene,
   emit: (intent: Intent) => void,
-  current: () => { phase: Phase; size: number },
+  current: () => { phase: Phase; size: number; frogAt?: (point: Point) => boolean },
 ): InputHandle {
   let pressed: { pointerId: number; intent: Intent | null } | null = null;
   let cursor: number | null = null;
@@ -33,7 +33,7 @@ export function createInput(
   };
 
   const intentAt = (point: Point): Intent | null => {
-    const { phase, size } = current();
+    const { phase, size, frogAt } = current();
     if (phase === 'picking') {
       const index = pickerAt(point);
       if (index !== null) return { kind: 'pick', index };
@@ -41,11 +41,14 @@ export function createInput(
     }
     if (inBoardsButton(point)) return { kind: 'picker' };
     if (phase === 'cleared') return { kind: 'next' };
+    // The frog never sits on a pad, so a tap on it is only ever a poke.
+    if (frogAt?.(point)) return { kind: 'frog', point };
     const index = padAt(point, size);
     return index === null ? null : { kind: 'flip', index };
   };
 
-  const same = (a: Intent | null, b: Intent | null): boolean => JSON.stringify(a) === JSON.stringify(b);
+  const same = (a: Intent | null, b: Intent | null): boolean =>
+    a?.kind === 'frog' && b?.kind === 'frog' ? true : JSON.stringify(a) === JSON.stringify(b);
 
   const onPointerDown = (event: PointerEvent): void => {
     if (pressed && pressed.pointerId !== event.pointerId && !event.isPrimary) return;

@@ -4,4 +4,6 @@ export type Intent =
   | { kind: 'picker' }
   | { kind: 'pick'; index: number }
   | { kind: 'close' }
-  | { kind: 'next' };
+  | { kind: 'next' }
+  /** A tap on the frog. It never reaches the board. */
+  | { kind: 'frog'; point: { x: number; y: number } };

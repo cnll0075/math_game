@@ -1,23 +1,45 @@
-import { drawArrivingBanner, fitToScreen, visibleBounds, type Point, type Size } from '@bundle/core';
+import { createRng, drawArrivingBanner, fitToScreen, visibleBounds, type Point, type Rng, type Size } from '@bundle/core';
 import type { DriverEvent, SceneModel } from '../driver.js';
 import { BOARDS, pairsOf } from '../logic/boards.data.js';
 import { sumText } from '../logic/sums.js';
-import { drawPad, drawPond } from './art.js';
-import { LAYOUT, padFont, padRect } from './geometry.js';
+import { drawFrog, drawPad, drawPond, drawSplash } from './art.js';
+import { createFrog, type FrogEvent } from './frog.js';
+import { frogSpots, LAYOUT, padFont, padRect } from './geometry.js';
+import type { Sprites } from './sprites.js';
 import { drawEndCard, drawMatchLine, drawPicker, drawTopBar } from './hud.js';
 import { TIMING } from './timing.js';
 
 export interface Scene {
-  update(dt: number, model: SceneModel): void;
+  /** Moves everything on; returns what the frog did, for the sound. */
+  update(dt: number, model: SceneModel): FrogEvent[];
   /** What just happened, so the scene can react. State stays the driver's. */
   observe(events: readonly DriverEvent[]): void;
   render(ctx: CanvasRenderingContext2D, screen: Size): void;
   toDesign(point: Point, screen: Size): Point;
   /** The keyboard highlight, or null. */
   setCursor(index: number | null): void;
+  /** Whether a point is on the frog while it can be tapped. */
+  frogAt(point: Point): boolean;
+  /** A tap on the frog: it cheers. Nothing on the board changes. */
+  pokeFrog(point: Point): FrogEvent[];
+  /** Where the frog sits, or null while it is underwater. */
+  frogSpot(): Point | null;
 }
 
-export function createScene(): Scene {
+export interface SceneOptions {
+  /** The painting's pieces; anything still null is drawn instead. */
+  sprites?: Sprites;
+  /** For the frog's whims. */
+  rng?: Rng;
+}
+
+/** How long a splash lasts. */
+const SPLASH_SECONDS = 0.6;
+
+export function createScene(options: SceneOptions = {}): Scene {
+  const sprites: Sprites = options.sprites ?? { pond: null, pad: null, frog: null };
+  const frog = createFrog(options.rng ?? createRng(Math.floor(Date.now() % 1_000_000)));
+  const splashes: Array<{ at: Point; life: number }> = [];
   let model: SceneModel | null = null;
   let clock = 0;
   let clearedFor = 0;
@@ -50,6 +72,8 @@ export function createScene(): Scene {
             break;
           }
           case 'board':
+            // The pads are about to move under the frog: it goes under.
+            frog.scatter();
             turning.clear();
             blooming.clear();
             matchLine = null;
@@ -67,6 +91,12 @@ export function createScene(): Scene {
     update(dt, next) {
       model = next;
       clock += dt;
+      const frogEvents = frog.step(dt, frogSpots(next.board.size));
+      for (const event of frogEvents) {
+        if (event.type === 'emerged' || event.type === 'dived') splashes.push({ at: event.at, life: 0 });
+      }
+      for (const splash of splashes) splash.life += dt;
+      while (splashes.length > 0 && splashes[0]!.life > SPLASH_SECONDS) splashes.shift();
       if (next.phase === 'cleared') clearedFor += dt;
       for (const [index, life] of turning) {
         if (life + dt >= TIMING.flipSeconds) turning.delete(index);
@@ -81,6 +111,7 @@ export function createScene(): Scene {
         banner.life += dt;
         if (banner.life > TIMING.boardAnnounceSeconds) banner = null;
       }
+      return frogEvents;
     },
 
     render(ctx, screen) {
@@ -96,7 +127,7 @@ export function createScene(): Scene {
       ctx.translate(transform.offsetX, transform.offsetY);
       ctx.scale(transform.scale, transform.scale);
 
-      drawPond(ctx, bounds, clock);
+      drawPond(ctx, bounds, clock, sprites.pond);
       current.game.pads.forEach((pad, index) => {
         const sum = pad.card.sum;
         const life = turning.get(index);
@@ -111,8 +142,13 @@ export function createScene(): Scene {
           turn: life === undefined ? 1 : Math.abs(Math.cos(through * Math.PI)),
           bloom: pad.matched ? (blooming.get(index) ?? TIMING.bloomSeconds) / TIMING.bloomSeconds : 0,
           cursor: cursor === index && current.phase === 'playing',
+          image: sprites.pad,
         });
       });
+
+      for (const splash of splashes) drawSplash(ctx, splash.at, splash.life / SPLASH_SECONDS);
+      const pose = frog.pose();
+      if (pose) drawFrog(ctx, pose, sprites.frog);
 
       drawTopBar(ctx, { title: current.board.title, totalStars: current.totalStars });
       if (matchLine) drawMatchLine(ctx, matchLine.text, matchLine.life / TIMING.matchLineSeconds);
@@ -140,5 +176,9 @@ export function createScene(): Scene {
     setCursor(index) {
       cursor = index;
     },
+
+    frogAt: (point) => frog.hit(point),
+    pokeFrog: (point) => frog.tap(point),
+    frogSpot: () => (frog.phase === 'hidden' ? null : frog.spot),
   };
 }

@@ -1,6 +1,7 @@
 import { DESIGN, hand, label } from '@bundle/core';
 import type { BoardDef } from '../logic/boards.data.js';
 import type { StarBook } from '../logic/stars.js';
+import { pondLabel } from './art.js';
 import { LAYOUT, pickerRect } from './geometry.js';
 
 /** Darkens everything behind an overlay — past the design rect too, so a wide screen has no bright edges. */
@@ -38,8 +39,8 @@ export function drawMatchLine(ctx: CanvasRenderingContext2D, text: string, progr
   ctx.globalAlpha = progress > 0.8 ? Math.max(0, (1 - progress) / 0.2) : 1;
   // In the top bar, over the board's name, so it never covers a pad the child
   // may want next.
-  panel(ctx, DESIGN.width / 2 - 300, LAYOUT.hudY - 40, 600, 80, 'rgba(255,255,255,0.96)');
-  label(ctx, text, DESIGN.width / 2, LAYOUT.hudY, 44, 'center');
+  panel(ctx, DESIGN.width / 2 - 300, LAYOUT.hudY - 40, 600, 80, 'rgba(255,255,255,0.55)');
+  pondLabel(ctx, text, DESIGN.width / 2, LAYOUT.hudY, 44);
   ctx.restore();
 }
 

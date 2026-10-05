@@ -6,6 +6,8 @@ import { readBook } from './logic/progress.js';
 import type { StarBook } from './logic/stars.js';
 import { createPondSoundPack } from './audio/pond-sounds.js';
 import { createInput } from './view/input.js';
+import type { FrogEvent } from './view/frog.js';
+import { loadSprites } from './view/sprites.js';
 import { createScene } from './view/scene.js';
 import { TIMING } from './view/timing.js';
 
@@ -29,6 +31,8 @@ export interface PondTestHooks {
   phase(): Phase;
   state(): GameState;
   stars(): StarBook;
+  frogSpot(): { x: number; y: number } | null;
+  frogAt(point: { x: number; y: number }): boolean;
 }
 
 export interface PondSession extends GameSession {
@@ -47,14 +51,17 @@ export const pondGame: PondModule = {
 
   async mount(container, host, options = {}): Promise<PondSession> {
     const sounds = createPondSoundPack(host.audio);
-    await sounds.preload();
+    const { sprites, ready } = loadSprites();
+    // A moment for the painting to arrive; the game starts either way, with the
+    // drawn pond standing in until it does.
+    await Promise.all([sounds.preload(), Promise.race([ready, new Promise((resolve) => setTimeout(resolve, 250))])]);
 
     const canvas = document.createElement('canvas');
     canvas.style.cssText = 'display:block;width:100%;height:100%;touch-action:none;';
     container.appendChild(canvas);
     const ctx = canvas.getContext('2d');
 
-    const scene = createScene();
+    const scene = createScene({ sprites });
     const driver: Driver = createDriver({
       book: readBook(host.storage.get<unknown>(STARS_KEY, {})),
       startLevel: options.startLevel,
@@ -98,7 +105,20 @@ export const pondGame: PondModule = {
       }
     };
 
+    const handleFrog = (events: readonly FrogEvent[]): void => {
+      for (const event of events) {
+        if (event.type === 'emerged' || event.type === 'dived') sounds.play('splash');
+        else if (event.type === 'hopped') sounds.play('hop');
+        else if (event.type === 'cheered') sounds.play('croak');
+      }
+    };
+
     const act = (intent: Intent): void => {
+      // The frog is scenery: a tap on it reaches the frog and nothing else.
+      if (intent.kind === 'frog') {
+        handleFrog(scene.pokeFrog(intent.point));
+        return;
+      }
       const events = driver.act(intent);
       handleEvents(events);
       scene.observe(events);
@@ -111,7 +131,7 @@ export const pondGame: PondModule = {
         void host.audio.unlock();
         act(intent);
       },
-      () => ({ phase: driver.phase, size: driver.model().board.size }),
+      () => ({ phase: driver.phase, size: driver.model().board.size, frogAt: (point) => scene.frogAt(point) }),
     );
 
     const resize = (): void => {
@@ -126,7 +146,7 @@ export const pondGame: PondModule = {
       const events = driver.step(dt);
       handleEvents(events);
       scene.observe(events);
-      scene.update(dt, driver.model());
+      handleFrog(scene.update(dt, driver.model()));
       if (ctx) scene.render(ctx, { width: canvas.width, height: canvas.height });
     };
 
@@ -176,6 +196,8 @@ export const pondGame: PondModule = {
         phase: () => driver.phase,
         state: () => driver.game.state,
         stars: () => driver.book,
+        frogSpot: () => scene.frogSpot(),
+        frogAt: (point) => scene.frogAt(point),
       },
     };
   },

@@ -148,6 +148,9 @@ export function createDriver(options: DriverOptions): Driver {
         case 'next':
           if (!readyForNext()) return [];
           return open(Math.min(index + 1, BOARDS.length - 1));
+        case 'frog':
+          // Decoration: the scene's frog answers it; the board never does.
+          return [];
       }
     },
 

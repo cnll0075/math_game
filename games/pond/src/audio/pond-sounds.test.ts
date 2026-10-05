@@ -13,7 +13,7 @@ describe('the pond sound pack', () => {
   });
 
   it('names the moments the design cares about', () => {
-    for (const event of ['flip', 'match', 'miss', 'cleared', 'board']) expect(SOUND_EVENTS).toContain(event);
+    for (const event of ['flip', 'match', 'miss', 'cleared', 'board', 'splash', 'hop', 'croak']) expect(SOUND_EVENTS).toContain(event);
   });
 
   it('stays silent rather than throwing before the context is unlocked', () => {

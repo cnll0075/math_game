@@ -27,10 +27,10 @@ const tap = (canvas: HTMLCanvasElement, x: number, y: number) => {
   pointer(canvas, 'pointerup', x, y);
 };
 
-const setup = (phase: Phase = 'playing', size = 4, width = 1152, height = 768) => {
+const setup = (phase: Phase = 'playing', size = 4, width = 1152, height = 768, frogAt: (point: { x: number; y: number }) => boolean = () => false) => {
   const canvas = canvasOf(width, height);
   const intents: Intent[] = [];
-  const input = createInput(canvas, createScene(), (intent) => intents.push(intent), () => ({ phase, size }));
+  const input = createInput(canvas, createScene(), (intent) => intents.push(intent), () => ({ phase, size, frogAt }));
   return { canvas, intents, input };
 };
 
@@ -110,5 +110,22 @@ describe('input', () => {
     input.dispose();
     globalThis.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
     expect(intents).toHaveLength(1);
+  });
+
+  it('turns a tap on the frog into a poke, never a flip', () => {
+    const onFrog = (point: { x: number; y: number }) => Math.hypot(point.x - 100, point.y - 400) < 40;
+    const { canvas, intents, input } = setup('playing', 4, 1152, 768, onFrog);
+    tap(canvas, 100, 400);
+    const pad = centre(padRect(4, 0));
+    tap(canvas, pad.x, pad.y);
+    expect(intents).toEqual([{ kind: 'frog', point: { x: 100, y: 400 } }, { kind: 'flip', index: 0 }]);
+    input.dispose();
+  });
+
+  it('leaves the frog alone while the picker or the end card is up', () => {
+    const { canvas, intents, input } = setup('cleared', 4, 1152, 768, () => true);
+    tap(canvas, 100, 400);
+    expect(intents).toEqual([{ kind: 'next' }]);
+    input.dispose();
   });
 });

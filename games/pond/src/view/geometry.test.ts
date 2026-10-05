@@ -68,7 +68,16 @@ describe('geometry', () => {
         expect(frog.x, board.id).toBeGreaterThanOrEqual(0);
         expect(frog.x + frog.w, board.id).toBeLessThanOrEqual(DESIGN.width);
         expect(frog.y + frog.h, board.id).toBeLessThanOrEqual(DESIGN.height);
-        expect(frog.y, board.id).toBeGreaterThanOrEqual(LAYOUT.boardsButton.top + LAYOUT.boardsButton.height - 30);
+        expect(frog.y, board.id).toBeGreaterThanOrEqual(0);
+        // Clear of the top bar: the Boards button, the board's name and the stars.
+        for (const bar of [
+          { x: LAYOUT.boardsButton.left, y: LAYOUT.boardsButton.top, w: LAYOUT.boardsButton.width, h: LAYOUT.boardsButton.height },
+          { x: DESIGN.width / 2 - 90, y: 0, w: 180, h: 76 },
+          { x: DESIGN.width - 140, y: 0, w: 140, h: 76 },
+        ]) {
+          const clear = frog.x + frog.w <= bar.x || bar.x + bar.w <= frog.x || frog.y + frog.h <= bar.y || bar.y + bar.h <= frog.y;
+          expect(clear, `${board.id} spot ${spot.x},${spot.y} under the top bar`).toBe(true);
+        }
         for (let index = 0; index < board.size * board.size; index += 1) {
           const pad = padRect(board.size, index);
           const apart =

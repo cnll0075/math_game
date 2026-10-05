@@ -12,8 +12,9 @@ export const FROG = {
   hiddenMin: 6,
   hiddenMax: 14,
   /** How long it sits before hopping on or diving. */
-  sitMin: 2,
-  sitMax: 4,
+  /** Long enough for a child to notice it and reach out. */
+  sitMin: 3,
+  sitMax: 6,
   /** How many hops a visit has before it dives. */
   hopsMin: 1,
   hopsMax: 3,
@@ -22,8 +23,8 @@ export const FROG = {
   diveSeconds: 0.55,
   cheerSeconds: 1.3,
   /** How tall it stands, and how near its middle a tap must land. */
-  height: 80,
-  reach: 46,
+  height: 96,
+  reach: 54,
   /** How far from where it sits it leaps out of, or dives into, the water. */
   splashOffset: 50,
 } as const;

@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { BOARDS } from '../logic/boards.data.js';
-import { inBoardsButton, inPickerPanel, LAYOUT, padAt, padFont, padRect, pickerAt, pickerRect } from './geometry.js';
+import { DESIGN } from '@bundle/core';
+import { FROG } from './frog.js';
+import { frogSpots, inBoardsButton, inPickerPanel, LAYOUT, padAt, padFont, padRect, pickerAt, pickerRect } from './geometry.js';
 
 describe('geometry', () => {
   it('keeps every pad of every board inside the pond, apart from its neighbours', () => {
@@ -22,7 +24,7 @@ describe('geometry', () => {
   it('keeps pads big enough to tap and sums big enough to read, even on 9×9', () => {
     const pad = padRect(9, 0);
     expect(pad.w).toBeGreaterThanOrEqual(100);
-    expect(pad.h).toBeGreaterThanOrEqual(58);
+    expect(pad.h).toBeGreaterThanOrEqual(54);
     expect(padFont(9)).toBeGreaterThanOrEqual(24);
   });
 
@@ -51,5 +53,33 @@ describe('geometry', () => {
       expect(inPickerPanel({ x: rect.x + 4, y: rect.y + 4 })).toBe(true);
     }
     expect(inPickerPanel({ x: 10, y: 740 })).toBe(false);
+  });
+
+  it('starts the pond below the shore, so pads sit on the water', () => {
+    expect(LAYOUT.pondTop).toBeGreaterThanOrEqual(150);
+  });
+
+  it('finds the frog somewhere to sit on every board, clear of every pad and of the top bar', () => {
+    for (const board of BOARDS) {
+      const spots = frogSpots(board.size);
+      expect(spots.length, board.id).toBeGreaterThan(0);
+      for (const spot of spots) {
+        const frog = { x: spot.x - FROG.reach, y: spot.y - FROG.height, w: FROG.reach * 2, h: FROG.height };
+        expect(frog.x, board.id).toBeGreaterThanOrEqual(0);
+        expect(frog.x + frog.w, board.id).toBeLessThanOrEqual(DESIGN.width);
+        expect(frog.y + frog.h, board.id).toBeLessThanOrEqual(DESIGN.height);
+        expect(frog.y, board.id).toBeGreaterThanOrEqual(LAYOUT.boardsButton.top + LAYOUT.boardsButton.height - 30);
+        for (let index = 0; index < board.size * board.size; index += 1) {
+          const pad = padRect(board.size, index);
+          const apart =
+            frog.x + frog.w <= pad.x || pad.x + pad.w <= frog.x || frog.y + frog.h <= pad.y || pad.y + pad.h <= frog.y;
+          expect(apart, `${board.id} spot ${spot.x},${spot.y} pad ${index}`).toBe(true);
+        }
+      }
+    }
+  });
+
+  it('gives the frog the whole open pond on a small board', () => {
+    expect(frogSpots(2).length).toBeGreaterThan(frogSpots(9).length);
   });
 });

@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import * as art from './art.js';
 import { createRng, DESIGN, depthOf, recordingContext } from '@bundle/core';
 import { createDriver, type Driver } from '../driver.js';
 import { valueAt } from '../logic/game.js';
@@ -6,7 +7,7 @@ import { sumText } from '../logic/sums.js';
 import { createScene } from './scene.js';
 import { TIMING } from './timing.js';
 import { FROG } from './frog.js';
-import { frogSpots } from './geometry.js';
+import { frogSpots, padRect } from './geometry.js';
 
 const FRAME = 1 / 60;
 const SCREEN = { width: 1152, height: 768 };
@@ -153,5 +154,70 @@ describe('the scene', () => {
     const events = [];
     for (let t = 0; t < 30; t += FRAME) events.push(...scene.update(FRAME, driver.model()));
     expect(events).toEqual([]);
+  });
+
+  it('coaches on the first board: what to tap, then what to look for', () => {
+    const driver = createDriver({ book: {}, startLevel: 'board-2', seed: 11 });
+    const scene = play(driver, FRAME);
+    expect(draw(scene).texts).toEqual(expect.arrayContaining(['Tap a lily pad to turn it over!', '👇']));
+    scene.observe(driver.act({ kind: 'flip', index: 0 }));
+    scene.update(FRAME, driver.model());
+    const after = draw(scene).texts;
+    expect(after.join(' ')).toContain('same amount');
+    expect(after).not.toContain('👇');
+  });
+
+  it('does not coach on any other board', () => {
+    const driver = createDriver({ book: {}, startLevel: 'board-3', seed: 12 });
+    expect(draw(play(driver, FRAME)).texts.join(' ')).not.toContain('Tap a lily pad');
+  });
+
+  it('keeps the leaping frog under while the coach is talking, so there is one frog at a time', () => {
+    const driver = createDriver({ book: {}, startLevel: 'board-2', seed: 13 });
+    const scene = createScene({ rng: createRng(13) });
+    const events = [];
+    for (let t = 0; t < 30; t += FRAME) events.push(...scene.update(FRAME, driver.model()));
+    expect(events).toEqual([]);
+  });
+
+  it('gives each matched pair its own colour of lily', () => {
+    const looks: Array<{ index: number; flower: string; bloom: number }> = [];
+    const spy = vi.spyOn(art, 'drawPad').mockImplementation((_ctx, rect, look) => {
+      const index = [...Array(16).keys()].find((each) => {
+        const pad = padRect(4, each);
+        return pad.x === rect.x && pad.y === rect.y;
+      })!;
+      looks.push({ index, flower: look.flower, bloom: look.bloom });
+    });
+    const driver = createDriver({ book: {}, startLevel: 'board-4', seed: 14 });
+    const scene = play(driver, FRAME);
+    const matched: Array<[number, number]> = [];
+    for (let pair = 0; pair < 2; pair += 1) {
+      const [a, b] = equalPair(driver);
+      scene.observe(driver.act({ kind: 'flip', index: a }));
+      scene.observe(driver.act({ kind: 'flip', index: b }));
+      matched.push([a, b]);
+    }
+    scene.update(1, driver.model());
+    draw(scene);
+    const colourOf = (index: number) => looks.filter((look) => look.index === index && look.bloom > 0).at(-1)!.flower;
+    expect(colourOf(matched[0]![0])).toBe(colourOf(matched[0]![1]));
+    expect(colourOf(matched[1]![0])).toBe(colourOf(matched[1]![1]));
+    expect(colourOf(matched[0]![0])).not.toBe(colourOf(matched[1]![0]));
+    spy.mockRestore();
+  });
+
+  it('coaches again when the first board is played again', () => {
+    const driver = createDriver({ book: {}, startLevel: 'board-2', seed: 15 });
+    const scene = play(driver, FRAME);
+    while (!driver.game.state.cleared) {
+      const [a, b] = equalPair(driver);
+      scene.observe(driver.act({ kind: 'flip', index: a }));
+      scene.observe(driver.act({ kind: 'flip', index: b }));
+    }
+    driver.act({ kind: 'picker' });
+    scene.observe(driver.act({ kind: 'pick', index: 0 }));
+    scene.update(FRAME, driver.model());
+    expect(draw(scene).texts).toContain('Tap a lily pad to turn it over!');
   });
 });

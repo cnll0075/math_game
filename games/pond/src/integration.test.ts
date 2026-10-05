@@ -113,7 +113,7 @@ describe('boards played through the module', () => {
     });
     const played: string[] = [];
     vi.spyOn(sounds, 'createPondSoundPack').mockReturnValue({ preload: async () => {}, play: (event: string) => void played.push(event) });
-    const { session } = await mountGame('board-2');
+    const { session } = await mountGame('board-3');
     const point = catchFrog(session);
     const before = JSON.stringify(session.__test.state());
     session.__test.act({ kind: 'frog', point });
@@ -126,7 +126,7 @@ describe('boards played through the module', () => {
   it('splashes as the frog leaps out and back in', async () => {
     const played: string[] = [];
     vi.spyOn(sounds, 'createPondSoundPack').mockReturnValue({ preload: async () => {}, play: (event: string) => void played.push(event) });
-    const { session } = await mountGame('board-2');
+    const { session } = await mountGame('board-3');
     catchFrog(session);
     session.__test.step(60 * 2);
     expect(played.filter((event) => event === 'splash').length).toBeGreaterThanOrEqual(2);

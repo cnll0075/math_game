@@ -22,7 +22,16 @@ export interface PadLook {
   cursor: boolean;
   /** The painted lily pad, once loaded. */
   image: CanvasImageSource | null;
+  /** The painted frog, which sits on the free pad. */
+  frog: CanvasImageSource | null;
+  /** The colour of a matched pair's water lily. */
+  flower: string;
 }
+
+/** Water lily colours, one per pair in the order they are found, in the painting's soft palette. */
+export const LILY_COLOURS: readonly string[] = ['#ffffff', '#ffb3cf', '#ffe27a', '#d7b8ff', '#ffc49a', '#a9dcff'];
+
+export const lilyColour = (order: number): string => LILY_COLOURS[order % LILY_COLOURS.length] ?? '#ffffff';
 
 /**
  * Lettering in the painting's style: chunky white with a thick dark green
@@ -78,23 +87,29 @@ export function drawPond(ctx: CanvasRenderingContext2D, bounds: Bounds, time: nu
   ctx.restore();
 }
 
-/** A white water lily, like the ones in the painting. */
-function drawFlower(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, open: number): void {
+/** A water lily like the ones in the painting, in a pair's own colour. */
+function drawFlower(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, open: number, colour: string): void {
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(open, open);
   ctx.strokeStyle = 'rgba(120,140,110,0.6)';
   ctx.lineWidth = 1.5;
-  for (const [count, reach, tint] of [
-    [6, 0.55, '#f4f7ef'],
-    [5, 0.35, '#ffffff'],
+  for (const [count, reach, light] of [
+    [6, 0.55, 0],
+    [5, 0.35, 0.45],
   ] as const) {
-    ctx.fillStyle = tint;
+    ctx.fillStyle = colour;
     for (let petal = 0; petal < count; petal += 1) {
       const angle = (petal / count) * TAU + reach;
       ctx.beginPath();
       ctx.ellipse(Math.cos(angle) * size * reach, Math.sin(angle) * size * reach * 0.8 - size * 0.1, size * 0.4, size * 0.2, angle, 0, TAU);
       ctx.fill();
+      if (light > 0) {
+        // The inner petals catch the light.
+        ctx.fillStyle = `rgba(255,255,255,${light})`;
+        ctx.fill();
+        ctx.fillStyle = colour;
+      }
       ctx.stroke();
     }
   }
@@ -145,7 +160,13 @@ export function drawPad(ctx: CanvasRenderingContext2D, rect: Rect, look: PadLook
   if (image) ctx.drawImage(image, -w / 2, -h / 2, w, h);
   else drawnPad(ctx, w, h, look.face);
 
-  if (look.face !== 'down') {
+  if (look.face === 'star' && look.frog) {
+    // The free pad: the frog sits on it, so it reads as already taken.
+    const frog = look.frog as CanvasImageSource & { width: number; height: number };
+    const fh = h * 1.3;
+    const fw = (frog.width / frog.height) * fh;
+    ctx.drawImage(frog, -fw / 2, -fh * 0.82, fw, fh);
+  } else if (look.face !== 'down') {
     if (image) {
       // The pale side: the same pad, lightened (or golden for the ★).
       ctx.fillStyle = look.face === 'star' ? 'rgba(255,214,110,0.55)' : 'rgba(255,255,240,0.42)';
@@ -160,7 +181,7 @@ export function drawPad(ctx: CanvasRenderingContext2D, rect: Rect, look: PadLook
     const font = fitFont(look.font, ctx.measureText(text).width, w * 0.78);
     pondLabel(ctx, text, 0, -h * 0.04, font);
     // On the pad's top edge, clear of the lettering.
-    if (look.bloom > 0) drawFlower(ctx, w * 0.3, -h / 2, h * 0.34, look.bloom);
+    if (look.bloom > 0) drawFlower(ctx, w * 0.3, -h / 2, h * 0.34, look.bloom, look.flower);
   }
   ctx.restore();
 }
@@ -261,5 +282,67 @@ export function drawFrog(ctx: CanvasRenderingContext2D, pose: FrogPose, image: C
     }
     ctx.restore();
   }
+  ctx.restore();
+}
+
+/** Wraps `text` into lines no wider than `width` in the current font. */
+function wrap(ctx: CanvasRenderingContext2D, text: string, width: number): string[] {
+  const lines: string[] = [];
+  let line = '';
+  for (const word of text.split(' ')) {
+    const tried = line ? `${line} ${word}` : word;
+    if (line && ctx.measureText(tried).width > width) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = tried;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+/** Where the first board's coach sits: on the water, clear of the pads and the plants. */
+export const COACH_AT: Point = { x: 1000, y: 470 };
+/** The coach's bubble: its right edge, and the widest its wrapped lines can make it. */
+export const COACH_BUBBLE = { right: DESIGN.width - 16, wrap: 270, maxWidth: 270 + 48 } as const;
+
+/** The frog coaching on the first board: sitting by the pads, saying what to do next. */
+export function drawCoach(ctx: CanvasRenderingContext2D, text: string, frog: CanvasImageSource | null, time: number): void {
+  const bob = Math.sin(time * 3) * 3;
+  drawFrog(ctx, { at: { x: COACH_AT.x, y: COACH_AT.y + bob }, facing: -1, scale: 1.1, tilt: 0, spin: 0, cheer: 0 }, frog);
+  ctx.save();
+  ctx.font = hand(800, 30);
+  const lines = wrap(ctx, text, COACH_BUBBLE.wrap);
+  const width = Math.min(COACH_BUBBLE.maxWidth, Math.max(...lines.map((line) => ctx.measureText(line).width)) + 48);
+  const height = lines.length * 38 + 30;
+  const right = COACH_BUBBLE.right;
+  const bottom = COACH_AT.y - FROG.height * 1.1 - 18;
+  ctx.fillStyle = 'rgba(255,255,255,0.96)';
+  ctx.strokeStyle = 'rgba(47,107,31,0.5)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.roundRect?.(right - width, bottom - height, width, height, 22);
+  ctx.fill();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(COACH_AT.x - 10, bottom - 2);
+  ctx.lineTo(COACH_AT.x + 4, bottom + 22);
+  ctx.lineTo(COACH_AT.x + 18, bottom - 2);
+  ctx.fill();
+  ctx.fillStyle = OUTLINE;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  lines.forEach((line, index) => ctx.fillText(line, right - width / 2, bottom - height + 34 + index * 38));
+  ctx.restore();
+}
+
+/** A hand pointing down at something to tap from just above it, bobbing so the eye finds it. */
+export function drawHand(ctx: CanvasRenderingContext2D, at: Point, time: number): void {
+  ctx.save();
+  ctx.font = hand(400, 56);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('👇', at.x, at.y - 4 - Math.abs(Math.sin(time * 4)) * 14);
   ctx.restore();
 }

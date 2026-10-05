@@ -39,7 +39,7 @@ export interface SceneOptions {
 const SPLASH_SECONDS = 0.6;
 
 export function createScene(options: SceneOptions = {}): Scene {
-  const sprites: Sprites = options.sprites ?? { pond: null, pad: null, frog: null };
+  const sprites: Sprites = options.sprites ?? { pond: null, pad: null, frog: null, sitting: null };
   const frog = createFrog(options.rng ?? createRng(Math.floor(Date.now() % 1_000_000)));
   const splashes: Array<{ at: Point; life: number }> = [];
   /** Each matched pad's lily colour: one colour per pair, in the order found. */
@@ -176,7 +176,7 @@ export function createScene(options: SceneOptions = {}): Scene {
           bloom: pad.matched ? (blooming.get(index) ?? TIMING.bloomSeconds) / TIMING.bloomSeconds : 0,
           cursor: cursor === index && current.phase === 'playing',
           image: sprites.pad,
-          frog: sprites.frog,
+          frog: sprites.sitting,
           flower: flowers.get(index) ?? lilyColour(0),
         });
       });
@@ -186,7 +186,7 @@ export function createScene(options: SceneOptions = {}): Scene {
       if (pose) drawFrog(ctx, pose, sprites.frog);
 
       if (coach !== 'done' && current.board.size === size && size === 2 && current.phase === 'playing') {
-        drawCoach(ctx, COACH_LINES[coach], sprites.frog, clock);
+        drawCoach(ctx, COACH_LINES[coach], sprites.sitting, clock);
         if (coach === 'tap') {
           const first = padRect(size, 0);
           drawHand(ctx, { x: first.x + first.w / 2, y: first.y }, clock);

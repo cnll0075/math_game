@@ -22,7 +22,7 @@ export interface PadLook {
   cursor: boolean;
   /** The painted lily pad, once loaded. */
   image: CanvasImageSource | null;
-  /** The painted frog, which sits on the free pad. */
+  /** The frog sitting facing front, which sits on the free pad. */
   frog: CanvasImageSource | null;
   /** The colour of a matched pair's water lily. */
   flower: string;
@@ -308,10 +308,17 @@ export const COACH_AT: Point = { x: 1000, y: 470 };
 /** The coach's bubble: its right edge, and the widest its wrapped lines can make it. */
 export const COACH_BUBBLE = { right: DESIGN.width - 16, wrap: 270, maxWidth: 270 + 48 } as const;
 
-/** The frog coaching on the first board: sitting by the pads, saying what to do next. */
+/** The frog coaching on the first board: sitting by the pads facing the child, saying what to do next. */
 export function drawCoach(ctx: CanvasRenderingContext2D, text: string, frog: CanvasImageSource | null, time: number): void {
   const bob = Math.sin(time * 3) * 3;
-  drawFrog(ctx, { at: { x: COACH_AT.x, y: COACH_AT.y + bob }, facing: -1, scale: 1.1, tilt: 0, spin: 0, cheer: 0 }, frog);
+  const sitting = frog as (CanvasImageSource & { width: number; height: number }) | null;
+  if (sitting) {
+    const h = FROG.height * 1.1;
+    const w = (sitting.width / sitting.height) * h;
+    ctx.drawImage(sitting, COACH_AT.x - w / 2, COACH_AT.y + bob - h, w, h);
+  } else {
+    drawFrog(ctx, { at: { x: COACH_AT.x, y: COACH_AT.y + bob }, facing: 1, scale: 1.1, tilt: 0, spin: 0, cheer: 0 }, null);
+  }
   ctx.save();
   ctx.font = hand(800, 30);
   const lines = wrap(ctx, text, COACH_BUBBLE.wrap);

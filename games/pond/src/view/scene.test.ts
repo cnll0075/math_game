@@ -110,11 +110,32 @@ describe('the scene', () => {
 
   it('paints the pond, the pads and the frog from the painting once loaded', () => {
     const picture = (width: number, height: number) => ({ width, height }) as unknown as HTMLImageElement;
-    const scene = createScene({ sprites: { pond: picture(1536, 1024), pad: picture(235, 113), frog: picture(175, 183) } });
+    const scene = createScene({ sprites: { pond: picture(1536, 1024), pad: picture(235, 113), frog: picture(175, 183), sitting: picture(419, 450) } });
     const driver = createDriver({ book: {}, startLevel: 'board-4', seed: 7 });
     scene.update(FRAME, driver.model());
     const { calls } = draw(scene);
     expect(calls.filter((call) => call === 'drawImage').length).toBeGreaterThanOrEqual(1 + 16);
+  });
+
+  it('sits the front-facing frog on the free pad and coaches with it, never the leaping one', () => {
+    const picture = (width: number, height: number) => ({ width, height }) as unknown as HTMLImageElement;
+    const sprites = { pond: null, pad: picture(235, 113), frog: picture(175, 183), sitting: picture(419, 450) };
+    const images = (startLevel: string) => {
+      const scene = createScene({ sprites });
+      scene.update(FRAME, createDriver({ book: {}, startLevel, seed: 7 }).model());
+      const drawn: unknown[] = [];
+      const { ctx } = recordingContext();
+      const spy = new Proxy(ctx, {
+        get: (target, property) =>
+          property === 'drawImage' ? (image: unknown) => void drawn.push(image) : Reflect.get(target, property),
+      });
+      scene.render(spy, SCREEN);
+      return drawn;
+    };
+    for (const level of ['board-3', 'board-2']) {
+      expect(images(level), level).toContain(sprites.sitting);
+      expect(images(level), level).not.toContain(sprites.frog);
+    }
   });
 
   it('brings the frog leaping out of open water, where a tap cheers it and leaves the board alone', () => {

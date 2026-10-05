@@ -642,7 +642,7 @@ to eight often read `=` as "the answer comes next"; here two sums that look
 nothing alike pair up because they are worth the same.
 
 **Eight square boards**, 2×2 to 9×9 (2 to 40 pairs). Odd boards have a free pad
-in the middle with the frog sitting on it, so it reads as already taken. On
+in the middle with a frog sitting on it, facing front, so it reads as already taken. On
 2×2 the frog coaches in a speech bubble — what to tap, what to look for, why a
 pair stayed up or hid again — with a hand pointing at the first pad. Finishing a board opens the next; the **Boards** button
 picks any open one. `?game=pond&level=board-5` opens a board directly.

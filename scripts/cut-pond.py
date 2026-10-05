@@ -8,9 +8,15 @@ and makes the frog jump about, so all three are taken apart:
 - `lily-pad.png`  one painted pad, cut out, for every pad the game deals
 - `frog.png`      the frog, cut out
 
-The boxes, seeds and cut-offs below are measured on this one 1536x1024 painting.
-A different painting needs them measured again; the script refuses any other
-size rather than cut the wrong places.
+A second painting, `frog-sitting.png`, is the frog sitting on a pad facing
+front. It sits on the free pad in the middle of odd boards and coaches the
+first board:
+
+- `frog-sitting.png`  that frog, cut out without its pad
+
+The boxes, seeds and cut-offs below are measured on these two paintings
+(1536x1024 and 1254x1254). A different painting needs them measured again; the
+script refuses any other size rather than cut the wrong places.
 
 Usage: python3 scripts/cut-pond.py   (needs numpy and Pillow)
 """
@@ -21,6 +27,7 @@ import numpy as np
 from PIL import Image, ImageFilter
 
 SOURCE = 'games/pond/assets/source/pond.png'
+SITTING_SOURCE = 'games/pond/assets/source/frog-sitting.png'
 OUT = 'games/pond/assets'
 
 # One of the painted pads: second row, second column. Any of the sixteen would
@@ -39,6 +46,13 @@ GRID_BOX = (170, 325, 1395, 915)
 # Where the scenery that hides the frog's old spot is borrowed from: just right
 # of it, rocks and grass on the same bank.
 FROG_PATCH_SHIFT = 170
+
+# The sitting frog, in the second painting: its box, a point on its belly, and
+# the strip of the pad's bright rim that touches its left foot and would
+# otherwise come away with it (rows, columns, inside the box).
+SITTING_BOX = (410, 385, 840, 845)
+SITTING_SEED = (300, 210)
+SITTING_RIM = (slice(330, 356), slice(0, 26))
 
 
 def flood(passable, seeds):
@@ -99,17 +113,21 @@ def cut_pad(art):
     cutout(crop, ~outside, f'{OUT}/lily-pad.png', feather=1.2)
 
 
-def cut_frog(art):
-    x0, y0, x1, y1 = FROG_BOX
-    crop = art[y0:y1, x0:x1]
+def outlined(crop):
+    """Everything inside the crop's one crisp outline."""
     lum = 0.3 * crop[..., 0] + 0.59 * crop[..., 1] + 0.11 * crop[..., 2]
     gy = np.zeros_like(lum)
     gx = np.zeros_like(lum)
     gy[1:-1] = lum[2:] - lum[:-2]
     gx[:, 1:-1] = lum[:, 2:] - lum[:, :-2]
     outline = dilate(np.hypot(gx, gy) > FROG_EDGE, 1)
-    outside = flood(~outline, border(*outline.shape))
-    frog = flood(~outside, [FROG_SEED])
+    return ~flood(~outline, border(*outline.shape))
+
+
+def cut_frog(art):
+    x0, y0, x1, y1 = FROG_BOX
+    crop = art[y0:y1, x0:x1]
+    frog = flood(outlined(crop), [FROG_SEED])
     frog = erode(dilate(frog, 2), 2)  # close pinholes
     frog = flood(dilate(erode(frog, 3), 3), [FROG_SEED])  # cut thin strands of scenery away
     frog &= ~(crop[..., 2] > crop[..., 1] + 10)  # and the splash, which is blue
@@ -118,6 +136,17 @@ def cut_frog(art):
     whole = np.zeros(art.shape[:2], bool)
     whole[y0:y1, x0:x1] = frog
     return whole
+
+
+def cut_sitting_frog(art):
+    x0, y0, x1, y1 = SITTING_BOX
+    crop = art[y0:y1, x0:x1]
+    frog = flood(outlined(crop), [SITTING_SEED])
+    frog = erode(dilate(frog, 2), 2)  # close pinholes
+    frog = flood(dilate(erode(frog, 5), 5), [SITTING_SEED])  # the pad's edge, where it meets the feet
+    frog[SITTING_RIM] = False
+    frog = flood(frog, [SITTING_SEED])
+    cutout(crop, frog, f'{OUT}/frog-sitting.png', feather=0.8)
 
 
 def repair(art, frog):
@@ -190,14 +219,21 @@ def repair(art, frog):
     Image.fromarray(out.clip(0, 255).astype(np.uint8)).save(f'{OUT}/pond.jpg', quality=88)
 
 
+def load(path, width, height):
+    art = np.asarray(Image.open(path).convert('RGB')).astype(int)
+    if art.shape[:2] != (height, width):
+        raise SystemExit(f'{path} is {art.shape[1]}x{art.shape[0]}; the measurements here are for {width}x{height}')
+    return art
+
+
 def main():
-    art = np.asarray(Image.open(SOURCE).convert('RGB')).astype(int)
-    if art.shape[:2] != (1024, 1536):
-        raise SystemExit(f'{SOURCE} is {art.shape[1]}x{art.shape[0]}; the measurements here are for 1536x1024')
+    art = load(SOURCE, 1536, 1024)
+    sitting = load(SITTING_SOURCE, 1254, 1254)
     cut_pad(art)
     frog = cut_frog(art)
     repair(art, frog)
-    print('wrote pond.jpg, lily-pad.png, frog.png')
+    cut_sitting_frog(sitting)
+    print('wrote pond.jpg, lily-pad.png, frog.png, frog-sitting.png')
 
 
 if __name__ == '__main__':

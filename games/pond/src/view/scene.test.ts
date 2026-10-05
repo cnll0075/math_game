@@ -116,19 +116,18 @@ describe('the scene', () => {
     expect(calls.filter((call) => call === 'drawImage').length).toBeGreaterThanOrEqual(1 + 16);
   });
 
-  it('brings the frog out onto an open spot, where a tap cheers it and leaves the board alone', () => {
+  it('brings the frog leaping out of open water, where a tap cheers it and leaves the board alone', () => {
     const driver = createDriver({ book: {}, startLevel: 'board-4', seed: 8 });
     const scene = createScene({ rng: createRng(8) });
-    let emerged = false;
-    for (let t = 0; t < FROG.firstMax + 1 && !emerged; t += FRAME) {
-      emerged = scene.update(FRAME, driver.model()).some((event) => event.type === 'emerged');
+    let launch: { x: number; y: number } | null = null;
+    for (let t = 0; t < FROG.firstMax + 1 && !launch; t += FRAME) {
+      const out = scene.update(FRAME, driver.model()).find((event) => event.type === 'emerged');
+      if (out && out.type === 'emerged') launch = out.at;
     }
-    expect(emerged).toBe(true);
-    for (let t = 0; t <= FROG.emergeSeconds; t += FRAME) scene.update(FRAME, driver.model());
-    const spot = scene.frogSpot()!;
-    expect(frogSpots(4)).toContainEqual(spot);
+    expect(frogSpots(4)).toContainEqual(launch);
+    for (let t = 0; t < FROG.leapSeconds * 0.4; t += FRAME) scene.update(FRAME, driver.model());
+    const on = scene.frogPoint()!;
     const before = JSON.stringify(driver.game.state);
-    const on = { x: spot.x, y: spot.y - FROG.height / 2 };
     expect(scene.frogAt(on)).toBe(true);
     expect(scene.pokeFrog(on)).toEqual([{ type: 'cheered' }]);
     expect(JSON.stringify(driver.game.state)).toBe(before);
@@ -136,13 +135,23 @@ describe('the scene', () => {
     expect(draw(scene).texts).toContain('Ribbit!');
   });
 
-  it('sends the frog under when a new board opens', () => {
+  it('lets the frog finish its leap and stay under when a new board opens', () => {
     const driver = createDriver({ book: { 'board-2': 3 }, startLevel: 'board-2', seed: 9 });
     const scene = createScene({ rng: createRng(9) });
-    for (let t = 0; t < FROG.firstMax + FROG.emergeSeconds + 0.2; t += FRAME) scene.update(FRAME, driver.model());
-    expect(scene.frogSpot()).not.toBeNull();
+    let out = false;
+    for (let t = 0; t < FROG.firstMax + 1 && !out; t += FRAME) out = scene.update(FRAME, driver.model()).some((event) => event.type === 'emerged');
     driver.act({ kind: 'picker' });
     scene.observe(driver.act({ kind: 'pick', index: 1 }));
-    expect(scene.frogAt({ x: scene.frogSpot()?.x ?? 0, y: (scene.frogSpot()?.y ?? 0) - FROG.height / 2 })).toBe(false);
+    for (let t = 0; t < FROG.leapSeconds + FROG.underMax + 0.1; t += FRAME) scene.update(FRAME, driver.model());
+    expect(scene.frogPoint()).toBeNull();
+  });
+
+  it('keeps the frog under while the picker is open, so nothing splashes behind it', () => {
+    const driver = createDriver({ book: {}, startLevel: 'board-2', seed: 10 });
+    const scene = createScene({ rng: createRng(10) });
+    driver.act({ kind: 'picker' });
+    const events = [];
+    for (let t = 0; t < 30; t += FRAME) events.push(...scene.update(FRAME, driver.model()));
+    expect(events).toEqual([]);
   });
 });

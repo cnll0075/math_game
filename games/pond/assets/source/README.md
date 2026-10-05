@@ -1,8 +1,9 @@
 # Where the artwork comes from
 
 Nothing in `assets/` is edited by hand. `pond.png` here is the original
-painting, and `scripts/cut-pond.py` cuts everything else out of it, so a better
-painting can be dropped in and recut with one command.
+painting, and `scripts/cut-pond.py` cuts everything else out of it. The script's
+boxes and cut-offs are measured on this painting: a new one means measuring
+them again, and the script refuses a painting of any other size.
 
 ## pond.png
 

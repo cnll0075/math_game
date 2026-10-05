@@ -41,10 +41,11 @@ export function createInput(
     }
     if (inBoardsButton(point)) return { kind: 'picker' };
     if (phase === 'cleared') return { kind: 'next' };
-    // The frog never sits on a pad, so a tap on it is only ever a poke.
-    if (frogAt?.(point)) return { kind: 'frog', point };
+    // A pad always gets its tap, even with the frog leaping over it; the frog
+    // only answers a tap that lands on it away from every pad.
     const index = padAt(point, size);
-    return index === null ? null : { kind: 'flip', index };
+    if (index !== null) return { kind: 'flip', index };
+    return frogAt?.(point) ? { kind: 'frog', point } : null;
   };
 
   const same = (a: Intent | null, b: Intent | null): boolean =>

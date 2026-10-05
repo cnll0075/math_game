@@ -188,6 +188,9 @@ export function drawSplash(ctx: CanvasRenderingContext2D, at: Point, progress: n
   ctx.restore();
 }
 
+/** Which side of the frog its "Ribbit!" goes: whichever has the room, so it never runs off the screen. */
+export const bubbleSide = (x: number): 1 | -1 => (x > DESIGN.width / 2 ? -1 : 1);
+
 function heart(ctx: CanvasRenderingContext2D, x: number, y: number, size: number): void {
   ctx.beginPath();
   ctx.moveTo(x, y + size * 0.35);
@@ -202,7 +205,7 @@ export function drawFrog(ctx: CanvasRenderingContext2D, pose: FrogPose, image: C
   ctx.translate(pose.at.x, pose.at.y);
   ctx.save();
   ctx.translate(0, -FROG.height / 2);
-  ctx.rotate(pose.spin + (pose.airborne ? -0.15 * pose.facing : 0));
+  ctx.rotate(pose.spin - pose.tilt * pose.facing);
   ctx.scale(pose.facing * pose.scale, pose.scale);
   const picture = image as (CanvasImageSource & { width: number; height: number }) | null;
   if (picture) {
@@ -234,16 +237,17 @@ export function drawFrog(ctx: CanvasRenderingContext2D, pose: FrogPose, image: C
     // "Ribbit!" in a bubble, and a few hearts floating up.
     ctx.save();
     ctx.globalAlpha = pose.cheer > 0.8 ? (1 - pose.cheer) / 0.2 : 1;
-    const bx = 70;
+    const side = bubbleSide(pose.at.x);
+    const bx = 70 * side;
     const by = -FROG.height - 28;
     ctx.fillStyle = 'rgba(255,255,255,0.95)';
     ctx.beginPath();
     ctx.ellipse(bx, by, 62, 26, 0, 0, TAU);
     ctx.fill();
     ctx.beginPath();
-    ctx.moveTo(bx - 34, by + 16);
-    ctx.lineTo(bx - 50, by + 36);
-    ctx.lineTo(bx - 20, by + 20);
+    ctx.moveTo(bx - 34 * side, by + 16);
+    ctx.lineTo(bx - 50 * side, by + 36);
+    ctx.lineTo(bx - 20 * side, by + 20);
     ctx.fill();
     ctx.font = hand(800, 26);
     ctx.textAlign = 'center';

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { depthOf, recordingContext } from '@bundle/core';
-import { drawFrog, drawPad, drawPond, drawSplash, fitFont, type PadLook } from './art.js';
+import { bubbleSide, drawFrog, drawPad, drawPond, drawSplash, fitFont, type PadLook } from './art.js';
 
 const rect = { x: 100, y: 100, w: 200, h: 120 };
 const look = (overrides: Partial<PadLook>): PadLook => ({ face: 'down', text: '3 + 4', font: 40, turn: 1, bloom: 0, cursor: false, image: null, ...overrides });
@@ -63,7 +63,7 @@ describe('the art', () => {
   });
 
   it('draws the frog, and its "Ribbit!" while it cheers', () => {
-    const pose = { at: { x: 300, y: 300 }, facing: -1 as const, scale: 1, spin: 1, cheer: 0.5, airborne: false };
+    const pose = { at: { x: 300, y: 300 }, facing: -1 as const, scale: 1, tilt: 0.2, spin: 1, cheer: 0.5 };
     const painted = recordingContext();
     drawFrog(painted.ctx, pose, picture(175, 183));
     expect(painted.calls).toContain('drawImage');
@@ -79,5 +79,10 @@ describe('the art', () => {
     const { ctx } = recordingContext();
     drawSplash(ctx, { x: 200, y: 400 }, 0.4);
     expect(depthOf(ctx)).toBe(0);
+  });
+
+  it('puts the "Ribbit!" bubble on the side of the frog with room for it', () => {
+    expect(bubbleSide(1100)).toBe(-1);
+    expect(bubbleSide(60)).toBe(1);
   });
 });

@@ -8,6 +8,10 @@ and makes the frog jump about, so all three are taken apart:
 - `lily-pad.png`  one painted pad, cut out, for every pad the game deals
 - `frog.png`      the frog, cut out
 
+The boxes, seeds and cut-offs below are measured on this one 1536x1024 painting.
+A different painting needs them measured again; the script refuses any other
+size rather than cut the wrong places.
+
 Usage: python3 scripts/cut-pond.py   (needs numpy and Pillow)
 """
 
@@ -188,6 +192,8 @@ def repair(art, frog):
 
 def main():
     art = np.asarray(Image.open(SOURCE).convert('RGB')).astype(int)
+    if art.shape[:2] != (1024, 1536):
+        raise SystemExit(f'{SOURCE} is {art.shape[1]}x{art.shape[0]}; the measurements here are for 1536x1024')
     cut_pad(art)
     frog = cut_frog(art)
     repair(art, frog)

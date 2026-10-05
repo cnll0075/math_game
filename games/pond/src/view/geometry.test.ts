@@ -1,8 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { BOARDS } from '../logic/boards.data.js';
 import { DESIGN } from '@bundle/core';
-import { FROG } from './frog.js';
-import { frogSpots, inBoardsButton, inPickerPanel, LAYOUT, padAt, padFont, padRect, pickerAt, pickerRect } from './geometry.js';
+import { frogSpots, inBoardsButton, inOpenWater, inPickerPanel, LAYOUT, padAt, padFont, padRect, pickerAt, pickerRect } from './geometry.js';
 
 describe('geometry', () => {
   it('keeps every pad of every board inside the pond, apart from its neighbours', () => {
@@ -55,37 +54,32 @@ describe('geometry', () => {
     expect(inPickerPanel({ x: 10, y: 740 })).toBe(false);
   });
 
-  it('starts the pond below the shore, so pads sit on the water', () => {
-    expect(LAYOUT.pondTop).toBeGreaterThanOrEqual(150);
+  it('starts the pond below the painted shore, so every pad sits on water', () => {
+    expect(LAYOUT.pondTop).toBeGreaterThanOrEqual(185);
   });
 
-  it('finds the frog somewhere to sit on every board, clear of every pad and of the top bar', () => {
+  it('finds open water for the frog on every board, never on or beside a pad', () => {
     for (const board of BOARDS) {
       const spots = frogSpots(board.size);
-      expect(spots.length, board.id).toBeGreaterThan(0);
+      expect(spots.length, board.id).toBeGreaterThanOrEqual(2);
       for (const spot of spots) {
-        const frog = { x: spot.x - FROG.reach, y: spot.y - FROG.height, w: FROG.reach * 2, h: FROG.height };
-        expect(frog.x, board.id).toBeGreaterThanOrEqual(0);
-        expect(frog.x + frog.w, board.id).toBeLessThanOrEqual(DESIGN.width);
-        expect(frog.y + frog.h, board.id).toBeLessThanOrEqual(DESIGN.height);
-        expect(frog.y, board.id).toBeGreaterThanOrEqual(0);
-        // Clear of the top bar: the Boards button, the board's name and the stars.
-        for (const bar of [
-          { x: LAYOUT.boardsButton.left, y: LAYOUT.boardsButton.top, w: LAYOUT.boardsButton.width, h: LAYOUT.boardsButton.height },
-          { x: DESIGN.width / 2 - 90, y: 0, w: 180, h: 76 },
-          { x: DESIGN.width - 140, y: 0, w: 140, h: 76 },
-        ]) {
-          const clear = frog.x + frog.w <= bar.x || bar.x + bar.w <= frog.x || frog.y + frog.h <= bar.y || bar.y + bar.h <= frog.y;
-          expect(clear, `${board.id} spot ${spot.x},${spot.y} under the top bar`).toBe(true);
-        }
+        expect(inOpenWater(spot), `${board.id} ${spot.x},${spot.y}`).toBe(true);
+        expect(spot.x, board.id).toBeGreaterThanOrEqual(0);
+        expect(spot.x, board.id).toBeLessThanOrEqual(DESIGN.width);
         for (let index = 0; index < board.size * board.size; index += 1) {
           const pad = padRect(board.size, index);
-          const apart =
-            frog.x + frog.w <= pad.x || pad.x + pad.w <= frog.x || frog.y + frog.h <= pad.y || pad.y + pad.h <= frog.y;
-          expect(apart, `${board.id} spot ${spot.x},${spot.y} pad ${index}`).toBe(true);
+          const clear = spot.x < pad.x - 8 || spot.x > pad.x + pad.w + 8 || spot.y < pad.y - 8 || spot.y > pad.y + pad.h + 8;
+          expect(clear, `${board.id} spot ${spot.x},${spot.y} beside pad ${index}`).toBe(true);
         }
       }
     }
+  });
+
+  it('keeps the frog out of the bank and the plants', () => {
+    expect(inOpenWater({ x: 600, y: 120 })).toBe(false); // the far bank
+    expect(inOpenWater({ x: 80, y: 700 })).toBe(false); // the plant at the bottom left
+    expect(inOpenWater({ x: 1110, y: 700 })).toBe(false); // the plant at the bottom right
+    expect(inOpenWater({ x: 600, y: 500 })).toBe(true);
   });
 
   it('gives the frog the whole open pond on a small board', () => {

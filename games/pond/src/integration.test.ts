@@ -5,6 +5,8 @@ import { pondGame } from './index.js';
 import { createTestHost, type TestHost } from './test-host.js';
 import { BOARDS } from './logic/boards.data.js';
 import * as sounds from './audio/pond-sounds.js';
+import * as driverModule from './driver.js';
+import type { Intent } from './intent.js';
 
 let restoreCanvas: () => void;
 beforeAll(() => {
@@ -89,31 +91,45 @@ describe('boards played through the module', () => {
     expect(container.querySelector('canvas')).toBeNull();
   });
 
-  it('lets a tap on the frog change nothing on the board', async () => {
-    const { session } = await mountGame('board-4');
-    const [a, b] = session.__test.pair(false);
-    session.__test.flip(a);
-    session.__test.flip(b);
+  /** Steps until the frog is in the air somewhere a tap reaches it, and returns that point. */
+  const catchFrog = (session: Awaited<ReturnType<typeof mountGame>>['session']) => {
+    for (let frame = 0; frame < 60 * 30; frame += 1) {
+      session.__test.step(1);
+      const point = session.__test.frogPoint();
+      if (point && session.__test.frogAt(point)) return point;
+    }
+    throw new Error('the frog never came out');
+  };
+
+  it('sends a tap on the frog to the frog and never to the board', async () => {
+    const seen: Intent[] = [];
+    const real = driverModule.createDriver;
+    vi.spyOn(driverModule, 'createDriver').mockImplementation((options) => {
+      const driver = real(options);
+      return new Proxy(driver, {
+        get: (target, key) =>
+          key === 'act' ? (intent: Intent) => (seen.push(intent), target.act(intent)) : Reflect.get(target, key),
+      });
+    });
+    const played: string[] = [];
+    vi.spyOn(sounds, 'createPondSoundPack').mockReturnValue({ preload: async () => {}, play: (event: string) => void played.push(event) });
+    const { session } = await mountGame('board-2');
+    const point = catchFrog(session);
     const before = JSON.stringify(session.__test.state());
-    session.__test.act({ kind: 'frog', point: { x: 100, y: 400 } });
+    session.__test.act({ kind: 'frog', point });
+    expect(played).toContain('croak');
+    expect(seen.filter((intent) => intent.kind === 'frog')).toEqual([]);
     expect(JSON.stringify(session.__test.state())).toBe(before);
     session.unmount();
   });
 
-  it('croaks when the frog is poked while it sits', async () => {
+  it('splashes as the frog leaps out and back in', async () => {
     const played: string[] = [];
     vi.spyOn(sounds, 'createPondSoundPack').mockReturnValue({ preload: async () => {}, play: (event: string) => void played.push(event) });
     const { session } = await mountGame('board-2');
-    let on: { x: number; y: number } | null = null;
-    for (let frame = 0; frame < 60 * 30 && !on; frame += 1) {
-      session.__test.step(1);
-      const spot = session.__test.frogSpot();
-      if (spot && session.__test.frogAt({ x: spot.x, y: spot.y - 40 })) on = { x: spot.x, y: spot.y - 40 };
-    }
-    expect(played).toContain('splash');
-    expect(on).not.toBeNull();
-    session.__test.act({ kind: 'frog', point: on! });
-    expect(played).toContain('croak');
+    catchFrog(session);
+    session.__test.step(60 * 2);
+    expect(played.filter((event) => event === 'splash').length).toBeGreaterThanOrEqual(2);
     session.unmount();
   });
 });

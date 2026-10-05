@@ -3,7 +3,7 @@ import type { DriverEvent, SceneModel } from '../driver.js';
 import { BOARDS, pairsOf } from '../logic/boards.data.js';
 import { sumText } from '../logic/sums.js';
 import { drawFrog, drawPad, drawPond, drawSplash } from './art.js';
-import { createFrog, type FrogEvent } from './frog.js';
+import { createFrog, FROG, type FrogEvent } from './frog.js';
 import { frogSpots, LAYOUT, padFont, padRect } from './geometry.js';
 import type { Sprites } from './sprites.js';
 import { drawEndCard, drawMatchLine, drawPicker, drawTopBar } from './hud.js';
@@ -22,8 +22,8 @@ export interface Scene {
   frogAt(point: Point): boolean;
   /** A tap on the frog: it cheers. Nothing on the board changes. */
   pokeFrog(point: Point): FrogEvent[];
-  /** Where the frog sits, or null while it is underwater. */
-  frogSpot(): Point | null;
+  /** The middle of the frog, or null while it is underwater. */
+  frogPoint(): Point | null;
 }
 
 export interface SceneOptions {
@@ -91,7 +91,9 @@ export function createScene(options: SceneOptions = {}): Scene {
     update(dt, next) {
       model = next;
       clock += dt;
-      const frogEvents = frog.step(dt, frogSpots(next.board.size));
+      // The frog rests while the picker or the end card is up, so nothing
+      // splashes behind them.
+      const frogEvents = next.phase === 'playing' ? frog.step(dt, frogSpots(next.board.size)) : [];
       for (const event of frogEvents) {
         if (event.type === 'emerged' || event.type === 'dived') splashes.push({ at: event.at, life: 0 });
       }
@@ -179,6 +181,9 @@ export function createScene(options: SceneOptions = {}): Scene {
 
     frogAt: (point) => frog.hit(point),
     pokeFrog: (point) => frog.tap(point),
-    frogSpot: () => (frog.phase === 'hidden' ? null : frog.spot),
+    frogPoint: () => {
+      const pose = frog.pose();
+      return pose ? { x: pose.at.x, y: pose.at.y - FROG.height / 2 } : null;
+    },
   };
 }

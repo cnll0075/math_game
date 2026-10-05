@@ -128,4 +128,13 @@ describe('input', () => {
     expect(intents).toEqual([{ kind: 'next' }]);
     input.dispose();
   });
+
+  it('always gives a pad its tap, even with the frog leaping over it', () => {
+    const { canvas, intents, input } = setup('playing', 4, 1152, 768, () => true);
+    const pad = centre(padRect(4, 5));
+    tap(canvas, pad.x, pad.y);
+    tap(canvas, 20, 400);
+    expect(intents).toEqual([{ kind: 'flip', index: 5 }, { kind: 'frog', point: { x: 20, y: 400 } }]);
+    input.dispose();
+  });
 });

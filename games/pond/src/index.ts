@@ -31,7 +31,8 @@ export interface PondTestHooks {
   phase(): Phase;
   state(): GameState;
   stars(): StarBook;
-  frogSpot(): { x: number; y: number } | null;
+  /** The middle of the frog while it is out of the water. */
+  frogPoint(): { x: number; y: number } | null;
   frogAt(point: { x: number; y: number }): boolean;
 }
 
@@ -108,7 +109,6 @@ export const pondGame: PondModule = {
     const handleFrog = (events: readonly FrogEvent[]): void => {
       for (const event of events) {
         if (event.type === 'emerged' || event.type === 'dived') sounds.play('splash');
-        else if (event.type === 'hopped') sounds.play('hop');
         else if (event.type === 'cheered') sounds.play('croak');
       }
     };
@@ -196,7 +196,7 @@ export const pondGame: PondModule = {
         phase: () => driver.phase,
         state: () => driver.game.state,
         stars: () => driver.book,
-        frogSpot: () => scene.frogSpot(),
+        frogPoint: () => scene.frogPoint(),
         frogAt: (point) => scene.frogAt(point),
       },
     };

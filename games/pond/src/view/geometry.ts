@@ -1,5 +1,4 @@
 import { DESIGN, type Point } from '@bundle/core';
-import { FROG } from './frog.js';
 
 /** Where everything sits, in design coordinates. */
 export const LAYOUT = {
@@ -8,8 +7,8 @@ export const LAYOUT = {
   pondLeft: 60,
   pondRight: 1092,
   /** Below the painted shore, so every pad sits on water. */
-  pondTop: 150,
-  pondBottom: 744,
+  pondTop: 185,
+  pondBottom: 764,
   /** A small board's pads stop growing here, so they never become posters. */
   maxPad: { w: 220, h: 140 },
   gap: 10,
@@ -83,27 +82,43 @@ function gridBounds(size: number, margin: number): Rect {
   return { x: first.x - margin, y: first.y - margin, w: last.x + last.w - first.x + 2 * margin, h: last.y + last.h - first.y + 2 * margin };
 }
 
-/** Spots on the bank along the top, between the Boards button, the board's name and the stars. */
-const SHORE: readonly Point[] = [
-  { x: 260, y: 136 },
-  { x: 400, y: 136 },
-  { x: 760, y: 136 },
-  { x: 900, y: 136 },
-];
+/** The painted pond's open water, in design coordinates: below the bank, clear of the plants. */
+const WATER = {
+  top: 205,
+  bottom: 755,
+  /** The plants that grow into the water at the two near corners. */
+  plants: [
+    { x: 0, y: 545, w: 175, h: 223 },
+    { x: 1035, y: 590, w: 117, h: 178 },
+  ],
+} as const;
+
+export const inOpenWater = (point: Point): boolean =>
+  point.y >= WATER.top &&
+  point.y <= WATER.bottom &&
+  !WATER.plants.some((plant) => point.x >= plant.x && point.x <= plant.x + plant.w && point.y >= plant.y && point.y <= plant.y + plant.h);
+
+const SPOT_COLUMNS = [20, 40, ...Array.from({ length: 26 }, (_, index) => 80 + index * 40), 1110, 1132];
+
+const cache = new Map<number, Point[]>();
 
 /**
- * Where the frog may sit on a board: open water and the bank, never over a pad,
- * so it can never get between a child and the game. A small board leaves most
- * of the pond open; on 9×9 only the bank is left.
+ * Where the frog may leap out of or into the water on a board: open water, and
+ * never on or right beside a pad, so a splash never lands on one. A small board
+ * leaves most of the pond open; a big one only its edges and the strip below.
  */
 export function frogSpots(size: number): Point[] {
-  const pads = gridBounds(size, 12);
-  const candidates: Point[] = [...SHORE];
-  for (let y = 240; y <= DESIGN.height - 30; y += 70) {
-    for (let x = 70; x <= DESIGN.width - 70; x += 70) candidates.push({ x, y });
+  const known = cache.get(size);
+  if (known) return known;
+  const pads = gridBounds(size, 8);
+  const spots: Point[] = [];
+  for (let y = 220; y <= WATER.bottom; y += 40) {
+    for (const x of SPOT_COLUMNS) {
+      const spot = { x, y };
+      const onPads = x >= pads.x && x <= pads.x + pads.w && y >= pads.y && y <= pads.y + pads.h;
+      if (!onPads && inOpenWater(spot)) spots.push(spot);
+    }
   }
-  return candidates.filter((spot) => {
-    const frog: Rect = { x: spot.x - FROG.reach, y: spot.y - FROG.height, w: FROG.reach * 2, h: FROG.height };
-    return frog.x + frog.w <= pads.x || pads.x + pads.w <= frog.x || frog.y + frog.h <= pads.y || pads.y + pads.h <= frog.y;
-  });
+  cache.set(size, spots);
+  return spots;
 }

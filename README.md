@@ -655,6 +655,17 @@ cleared. Boards are dealt fresh every time.
 shown — tapping again turns them back at once. **Stars** come from misses per
 pair: at most one is three stars, at most two is two.
 
+**The pond is painted.** The pond, the lily pads and the frog are cut from one
+painting in `games/pond/assets/source/` by `scripts/cut-pond.py`: the painted
+pads and the frog are lifted out of the pond and the water repaired, so the
+game can deal its own boards over it. Sums are lettered in the painting's style,
+chunky white with a dark green outline.
+
+**The frog** is scenery. Every 6 to 14 seconds it leaps out of the water,
+sits a few seconds, hops between open spots and dives back in. It only ever
+sits where there is no pad — on a big board, the bank — so it can never come
+between a child and the game; tap it and it spins and says "Ribbit!".
+
 ### The test that guards it
 
 `games/pond/src/logic/guards.test.ts` plays every board two ways. A bot with

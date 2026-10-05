@@ -633,6 +633,50 @@ under two stars; a bot that works the sum out must get three stars everywhere.
 If a size-only guess ever does well, the levels have stopped needing
 arithmetic: fix the levels, never the test.
 
+## Pond Pairs
+
+The memory game every child knows — lily pads face down, turn two over, keep
+them if they match — with pictures replaced by sums, and *matching* meaning
+*being the same amount*: `3 + 4` and `9 − 2` belong together. Children of six
+to eight often read `=` as "the answer comes next"; here two sums that look
+nothing alike pair up because they are worth the same.
+
+**Eight square boards**, 2×2 to 9×9 (2 to 40 pairs). Odd boards have a free pad
+in the middle with a frog sitting on it, facing front, so it reads as already taken. On
+2×2 the frog coaches in a speech bubble — what to tap, what to look for, why a
+pair stayed up or hid again — with a hand pointing at the first pad. Finishing a board opens the next; the **Boards** button
+picks any open one. `?game=pond&level=board-5` opens a board directly.
+
+**The cards** are additions and subtractions within 10 on the two smallest
+boards and within 20 after. Any two cards with the same value match; no two
+are written the same; a pair is one addition and one subtraction wherever it
+can be; every value appears an even number of times, so the pond can always be
+cleared. Boards are dealt fresh every time.
+
+**A miss** holds both pads up for a moment and turns them back, with no numbers
+shown — tapping again turns them back at once. **A match** opens a water lily
+on both pads, each pair in its own colour. **Stars** come from misses per
+pair: at most one is three stars, at most two is two.
+
+**The pond is painted.** The pond, the lily pads and the frog are cut from one
+painting in `games/pond/assets/source/` by `scripts/cut-pond.py`: the painted
+pads and the frog are lifted out of the pond and the water repaired, so the
+game can deal its own boards over it. The script's measurements are for that
+painting; a new one means measuring again. Sums are lettered in the painting's style,
+chunky white with a dark green outline.
+
+**The frog** is scenery. Every 6 to 14 seconds it leaps out of the water —
+one to three leaps, each straight back in somewhere else, never stopping on
+the screen. It only ever leaves or meets open water, and a tap on a pad always
+goes to the pad even with the frog flying over it, so it can never come between
+a child and the game. Tap it in mid-air and it spins and says "Ribbit!".
+
+### The test that guards it
+
+`games/pond/src/logic/guards.test.ts` plays every board two ways. A bot with
+perfect memory that works every sum out must average at least 2.5 stars on
+every board; a bot that flips at random must average at most 1.5 from 4×4 up.
+
 ## Not built yet
 
 - **Real art and sound.** Seesaw's are swappable through `SeesawTheme` and
@@ -640,7 +684,7 @@ arithmetic: fix the levels, never the test.
   only, behind the same `SoundPack` names a recorded pack would implement, and
   Bramble Dash the same. Balloon Rescue has a vector fox kit and a synthesised
   pack behind the same names.
-- **The other six games.** The shell has a tile each, marked "Soon".
+- **The other five games.** The shell has a tile each, marked "Soon".
 - **Timed or scored modes.** An arcade half was built and removed: it added
   pressure rather than arithmetic, and a player could win it by dropping each
   animal on the lighter side without reading a number. It is in the git history

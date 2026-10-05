@@ -163,9 +163,10 @@ export function drawPad(ctx: CanvasRenderingContext2D, rect: Rect, look: PadLook
   if (look.face === 'star' && look.frog) {
     // The free pad: the frog sits on it, so it reads as already taken.
     const frog = look.frog as CanvasImageSource & { width: number; height: number };
-    const fh = h * 1.3;
+    // Sized and seated to stay on its own pad, clear of the sums on the pads around it.
+    const fh = h * 1.0;
     const fw = (frog.width / frog.height) * fh;
-    ctx.drawImage(frog, -fw / 2, -fh * 0.82, fw, fh);
+    ctx.drawImage(frog, -fw / 2, -fh * 0.68, fw, fh);
   } else if (look.face !== 'down') {
     if (image) {
       // The pale side: the same pad, lightened (or golden for the ★).

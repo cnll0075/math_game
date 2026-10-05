@@ -641,8 +641,10 @@ them if they match — with pictures replaced by sums, and *matching* meaning
 to eight often read `=` as "the answer comes next"; here two sums that look
 nothing alike pair up because they are worth the same.
 
-**Eight square boards**, 2×2 to 9×9 (2 to 40 pairs). Odd boards have a free ★
-pad in the middle. Finishing a board opens the next; the **Boards** button
+**Eight square boards**, 2×2 to 9×9 (2 to 40 pairs). Odd boards have a free pad
+in the middle with the frog sitting on it, so it reads as already taken. On
+2×2 the frog coaches in a speech bubble — what to tap, what to look for, why a
+pair stayed up or hid again — with a hand pointing at the first pad. Finishing a board opens the next; the **Boards** button
 picks any open one. `?game=pond&level=board-5` opens a board directly.
 
 **The cards** are additions and subtractions within 10 on the two smallest
@@ -652,7 +654,8 @@ can be; every value appears an even number of times, so the pond can always be
 cleared. Boards are dealt fresh every time.
 
 **A miss** holds both pads up for a moment and turns them back, with no numbers
-shown — tapping again turns them back at once. **Stars** come from misses per
+shown — tapping again turns them back at once. **A match** opens a water lily
+on both pads, each pair in its own colour. **Stars** come from misses per
 pair: at most one is three stars, at most two is two.
 
 **The pond is painted.** The pond, the lily pads and the frog are cut from one

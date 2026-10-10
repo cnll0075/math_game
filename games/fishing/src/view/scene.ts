@@ -16,6 +16,7 @@ import {
   drawSplash,
   drawSurface,
   drawDrowning,
+  drawWake,
   drawTimer,
   drawWater,
 } from './art.js';
@@ -80,16 +81,13 @@ export function createScene(sprites: Sprites): Scene {
   let banner: { title: string; life: number } | null = null;
   const lean = createSpring(0, { stiffness: 60 });
   const sink = createSpring(4, { stiffness: 40 });
-  /** The boat turning round, -1 to 1. Quick, so it reads as a turn rather than a squash. */
-  const turn = createSpring(1, { stiffness: 320 });
-  let fresh = true;
-
   /** Where the boat is drawn now, with any extra roll and sink a capsize adds. */
   const placeOf = (world: WorldState, roll = 0): RigPlace => ({
     x: world.boat.x,
-    facing: turn.value,
+    swing: world.boat.swing,
     angle: lean.value + roll * roll * 2.6,
-    sink: sink.value + roll * 46,
+    // The hull dips a little as it swings round, and settles as it comes about.
+    sink: sink.value + roll * 46 + Math.sin(world.boat.swing) * 6,
   });
   const floats: Float[] = [];
   const splashes: Splash[] = [];
@@ -111,7 +109,6 @@ export function createScene(sprites: Sprites): Scene {
           splashes.length = 0;
           lean.snap(0);
           sink.snap(4);
-          fresh = true;
         }
         if (!model) continue;
         const world = model.world;
@@ -194,10 +191,6 @@ export function createScene(sprites: Sprites): Scene {
       sink.target = 4 + share * 14 + drag * 1.2;
       lean.step(dt);
       sink.step(dt);
-      if (fresh) turn.snap(world.boat.facing);
-      fresh = false;
-      turn.target = world.boat.facing;
-      turn.step(dt);
     },
 
     render(ctx, screen) {
@@ -246,7 +239,11 @@ export function createScene(sprites: Sprites): Scene {
       // Over the top, the fish have all leapt out by the time the boat is on its side.
       const fish = capsized && roll > 0.2 ? [] : inBucket.flatMap((weight) => speciesOfWeight(weight) ?? []);
       const bucket = { total: shown, capacity: world.def.capacity, bump, over: shown > world.def.capacity, fish };
-      drawRig(ctx, sprites, { place, turn: turn.value, overboard, hop, bucket }, clock);
+      if (!capsized) {
+        const sailing = Math.abs(world.boat.target - world.boat.x) > 1 ? Math.sign(world.boat.target - world.boat.x) : 0;
+        drawWake(ctx, world.boat.x, world.boat.swing, sailing, clock);
+      }
+      drawRig(ctx, sprites, { place, overboard, hop, bucket }, clock);
       drawSurface(ctx, bounds, clock);
       if (!overboard) drawBucketCount(ctx, bucket, rigPoint(place, bucketLocal(BUCKET.label)));
       if (overboard) {

@@ -10,6 +10,8 @@ stays. Out of the scene comes:
                   out (the game sails its own), to stand behind the bay
 - `bucket.png`    with its "8/10" and its fish painted out, so the game can
                   write the count on its side
+- `fisherman-sad.png` the boy with his smile turned into a frown, worried
+                  brows and a tear: for when the boat goes over
 - `boat-front.png` the near wall of the hull alone, drawn over whoever sits in
                   the boat so they are in it rather than behind it
 - `timer.png`     with its face wiped, so the game can draw its own time
@@ -240,6 +242,29 @@ def near_wall(boat):
     return front
 
 
+# The boy's face, in the cut fisherman's own pixels.
+MOUTH = (69, 79, 90, 93)
+SKIN_AT = (79, 78)
+FROWN = [(72, 91), (76, 87), (81, 86), (86, 87), (89, 91)]
+BROWS = [((60, 58), (72, 53)), ((89, 53), (99, 58))]
+TEAR = (62, 77, 67, 88)
+
+
+def sad(fisherman):
+    """The same boy, unhappy: frown, worried brows, a tear."""
+    face = fisherman.copy()
+    draw = ImageDraw.Draw(face)
+    skin = face.getpixel(SKIN_AT)
+    draw.ellipse(MOUTH, fill=skin)
+    draw.line(FROWN, fill=(120, 50, 40, 255), width=3, joint='curve')
+    for brow in BROWS:
+        draw.line(brow, fill=(70, 40, 30, 255), width=3)
+    left, top, right, bottom = TEAR
+    draw.ellipse((left, top + 3, right, bottom), fill=(120, 190, 240, 255))
+    draw.polygon([(left + 1, top + 6), ((left + right) / 2, top), (right - 1, top + 6)], fill=(120, 190, 240, 255))
+    return face
+
+
 def backdrop(board):
     scene = board.crop(SCENE_BOX).convert('RGB')
     left, top, right, bottom = SCENE_BOY
@@ -269,6 +294,8 @@ def main():
         sprite.save(f'{OUT}/{name}.png', optimize=True)
         if name == 'boat':
             near_wall(sprite).save(f'{OUT}/boat-front.png', optimize=True)
+        if name == 'fisherman':
+            sad(sprite).save(f'{OUT}/fisherman-sad.png', optimize=True)
         print(name, 'cut', sprite.size)
 
 

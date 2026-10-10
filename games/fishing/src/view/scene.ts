@@ -15,7 +15,7 @@ import {
   drawSeagull,
   drawSplash,
   drawSurface,
-  drawSwimmer,
+  drawDrowning,
   drawTimer,
   drawWater,
 } from './art.js';
@@ -34,6 +34,9 @@ export interface Scene {
 
 /** How long a caught fish takes to fly from the line into the bucket. */
 export const FLY_SECONDS = 0.6;
+
+/** How far through the roll the boy goes over the side. */
+const OVERBOARD_AT = 0.35;
 
 /** How far the boat leans for each unit of weight on the line, radians. */
 export const LEAN_PER_WEIGHT = 0.026;
@@ -227,7 +230,7 @@ export function createScene(sprites: Sprites): Scene {
       const capsized = current.outcome === 'capsized' && current.phase === 'lost';
       const roll = capsized ? Math.max(0, Math.min(1, (current.since - FLY_SECONDS) / TIMING.capsizeSeconds)) : 0;
       const place = placeOf(world, roll);
-      const overboard = roll > 0.35;
+      const overboard = roll > OVERBOARD_AT;
       const hop = current.phase === 'won' && current.since < 1.6 ? Math.abs(Math.sin(current.since * 8)) * 12 : 0;
 
       if (!capsized) {
@@ -247,9 +250,11 @@ export function createScene(sprites: Sprites): Scene {
       drawSurface(ctx, bounds, clock);
       if (!overboard) drawBucketCount(ctx, bucket, rigPoint(place, bucketLocal(BUCKET.label)));
       if (overboard) {
-        const beside = rigPoint(place, { x: RIG.boat.width * 0.15, y: RIG.waterline });
-        drawSwimmer(ctx, sprites, { x: beside.x, y: BAY.surfaceY + 30 }, clock);
-        if (roll < 0.6) drawSplash(ctx, { x: beside.x, y: BAY.surfaceY }, (roll - 0.35) / 0.25, 60);
+        // Thrown off over the side the boat rolled towards.
+        const beside = rigPoint({ ...place, angle: 0, sink: 0 }, { x: RIG.boat.width + 110, y: RIG.waterline });
+        const t = current.since - FLY_SECONDS - TIMING.capsizeSeconds * OVERBOARD_AT;
+        drawDrowning(ctx, sprites, beside.x, t, clock);
+        if (roll < 0.6) drawSplash(ctx, { x: beside.x, y: BAY.surfaceY }, (roll - OVERBOARD_AT) / 0.25, 60);
       }
       for (const splash of splashes) drawSplash(ctx, splash.at, splash.life / TIMING.splashSeconds, splash.size);
 

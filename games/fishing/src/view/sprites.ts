@@ -6,6 +6,7 @@ export type SpriteName =
   | ItemId
   | 'backdrop'
   | 'fisherman'
+  | 'fisherman-sad'
   | 'boat'
   | 'boat-front'
   | 'bucket'

@@ -315,24 +315,83 @@ function drawFallbackFisherman(ctx: CanvasRenderingContext2D, hop: number): void
   ctx.restore();
 }
 
-/** The fisherman in the water after the boat goes over: just his head and shoulders, bobbing. */
-export function drawSwimmer(ctx: CanvasRenderingContext2D, sprites: Sprites, at: Point, clock: number): void {
-  const image = sprites.fisherman;
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(at.x - 200, at.y - 400, 400, 400 + 18);
-  ctx.clip();
-  const bob = Math.sin(clock * 3) * 4;
-  if (image) {
-    const s = RIG.scale;
-    ctx.drawImage(image, at.x - (image.width * s) / 2, at.y - 95 * s + bob, image.width * s, image.height * s);
-  } else {
-    ctx.fillStyle = '#f6c9a0';
+/** How the boy goes under: a struggle at the surface, then down, then only bubbles. */
+export const DROWN = {
+  /** Seconds splashing with the water at his chin. */
+  struggle: 1.5,
+  /** Seconds going under. */
+  sink: 1.3,
+  /** Where his chin is, in his picture's own pixels: the water starts there. */
+  chin: 100,
+} as const;
+
+/**
+ * The boy in the water after the boat goes over, unhappy. He splashes with the
+ * water at his chin, then sinks out of sight and leaves a trail of bubbles.
+ * Everything below the surface is cut away, so he is in the water rather than
+ * hanging in front of it.
+ */
+export function drawDrowning(ctx: CanvasRenderingContext2D, sprites: Sprites, x: number, t: number, clock: number): void {
+  const image = sprites['fisherman-sad'] ?? sprites.fisherman;
+  const s = RIG.scale;
+  const struggling = t < DROWN.struggle;
+  const under = Math.max(0, Math.min(1, (t - DROWN.struggle) / DROWN.sink));
+  // While he struggles he bobs hard; as he sinks the water climbs over his hat.
+  const bob = struggling ? Math.abs(Math.sin(t * 9)) * -10 : 0;
+  const waterAt = DROWN.chin - under * (DROWN.chin + 20);
+  const top = BAY.surfaceY - waterAt * s + bob;
+  const tilt = struggling ? Math.sin(t * 7) * 0.12 : 0;
+
+  if (under < 1) {
+    ctx.save();
     ctx.beginPath();
-    ctx.arc(at.x, at.y - 20 + bob, 22, 0, TAU);
-    ctx.fill();
+    ctx.rect(x - 300, BAY.surfaceY - 400, 600, 400 + 2);
+    ctx.clip();
+    ctx.translate(x, BAY.surfaceY);
+    ctx.rotate(tilt);
+    ctx.translate(-x, -BAY.surfaceY);
+    if (image) ctx.drawImage(image, x - (image.width * s) / 2, top, image.width * s, image.height * s);
+    else {
+      ctx.fillStyle = '#f6c9a0';
+      ctx.beginPath();
+      ctx.arc(x, top + 60, 28, 0, TAU);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // Rings on the water where he is, and his arms thrashing up spray.
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+  ctx.lineWidth = 3;
+  for (let ring = 0; ring < 2; ring += 1) {
+    const grow = (clock * 0.9 + ring * 0.5) % 1;
+    ctx.globalAlpha = 1 - grow;
+    ctx.beginPath();
+    ctx.ellipse?.(x, BAY.surfaceY + 2, 50 + grow * 60, 8 + grow * 6, 0, 0, TAU);
+    ctx.stroke();
   }
   ctx.restore();
+  if (struggling) {
+    const side = Math.sin(t * 9) > 0 ? 1 : -1;
+    drawSplash(ctx, { x: x + side * 55, y: BAY.surfaceY }, (t * 3) % 1, 26);
+  }
+
+  // Bubbles from where he went down.
+  if (t > DROWN.struggle) {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+    ctx.lineWidth = 2.5;
+    for (let bubble = 0; bubble < 7; bubble += 1) {
+      const rise = ((t - DROWN.struggle) * 1.4 + bubble / 7) % 1;
+      const y = BAY.surfaceY + 120 - rise * 120;
+      ctx.globalAlpha = 1 - rise * 0.6;
+      ctx.beginPath();
+      ctx.arc(x + Math.sin(bubble * 2.3 + t * 4) * 16, y, 4 + (bubble % 3) * 3, 0, TAU);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
 }
 
 /** The line from the rod tip to the hook: slack when light, taut when something heavy pulls. */

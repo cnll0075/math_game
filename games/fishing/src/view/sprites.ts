@@ -7,6 +7,7 @@ export type SpriteName =
   | 'backdrop'
   | 'fisherman'
   | 'boat'
+  | 'boat-front'
   | 'bucket'
   | 'timer'
   | 'buoy'

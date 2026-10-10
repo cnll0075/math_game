@@ -27,7 +27,7 @@ describe('the scene', () => {
     const { ctx, texts } = render(driver);
     expect(depthOf(ctx)).toBe(0);
     expect(texts).toContain('0/10');
-    expect(texts).toContain('1:00');
+    expect(texts).toContain('0:35');
     expect(texts).toContain('10 more!');
     for (const weight of ['1', '2', '5']) expect(texts).toContain(weight);
   });

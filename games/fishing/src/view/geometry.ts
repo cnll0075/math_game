@@ -3,81 +3,89 @@ import { BAY } from '../logic/world.js';
 
 /**
  * Where everything sits, in design pixels. The water takes two thirds of the
- * screen so the fish have room; the bucket and the timer take the top corners
- * so they are always in view and never under the boat.
+ * screen so the fish have room. The bucket rides in the boat; the timer has the
+ * top right corner and the level's line runs along the sand.
  */
 export const LAYOUT = {
-  titleY: 28,
-  lineY: 64,
-  /** The bucket, top left, big: it is the goal. */
-  bucket: { x: 70, y: 6, scale: 1.08 },
+  /** Where the opening banner settles, top middle, before it fades. */
+  titleY: 40,
+  /** The level's line, along the sand. */
+  titleX: 28,
+  lineY: 748,
   /** The stopwatch, top right. */
   timer: { x: 1030, y: 8, scale: 0.94 },
   hookButton: { x: 1074, y: 688, r: 56 },
 } as const;
 
 /**
- * The boat and the fisherman, as one rig cut from the board. In the rig's own
- * pixels the boat (flipped, so the motor is behind him) has its top left at
- * the origin, the fisherman stands in it, and his rod tip is out past the bow.
+ * The boat, the boy sitting in it and the bucket beside him, as one rig cut
+ * from the board. In the rig's own pixels the boat (flipped, so the motor is
+ * behind him and the bow ahead) has its top left at the origin; the boy and the
+ * bucket are drawn between the hull and its near wall, so they are in it. All
+ * of it is mirrored when the boat faces left.
  */
 export const RIG = {
-  scale: 0.82,
+  scale: 1.25,
   boat: { width: 219, height: 156 },
-  fisherman: { x: 55, y: -100 },
-  rodTip: { x: 220, y: -92 },
+  fisherman: { x: 84, y: -83 },
+  rodTip: { x: 249, y: -75 },
+  bucket: { x: -6, y: -58, scale: 0.82 },
   /** Where the water meets the hull. */
   waterline: 122,
-  /** The point the rig leans about, on the waterline under the middle of the hull. */
+  /** The middle of the hull on the waterline: where the world's boat is, and what it leans about. */
   pivot: { x: 110, y: 122 },
 } as const;
 
-/** The rig's origin, so the rod tip is over `hookX` and the hull sits on the water. */
-export const rigOrigin = (hookX: number, sink = 0): Point => ({
-  x: hookX - RIG.rodTip.x * RIG.scale,
-  y: BAY.surfaceY - RIG.waterline * RIG.scale + sink,
-});
-
-/** A point in rig pixels, in design pixels, once the rig has leant by `angle`. */
-export function rigPoint(hookX: number, local: Point, angle: number, sink = 0): Point {
-  const origin = rigOrigin(hookX, sink);
-  const pivot = { x: origin.x + RIG.pivot.x * RIG.scale, y: origin.y + RIG.pivot.y * RIG.scale };
-  const x = origin.x + local.x * RIG.scale - pivot.x;
-  const y = origin.y + local.y * RIG.scale - pivot.y;
-  const cos = Math.cos(angle);
-  const sin = Math.sin(angle);
-  return { x: pivot.x + x * cos - y * sin, y: pivot.y + x * sin + y * cos };
+export interface RigPlace {
+  /** The middle of the hull. */
+  x: number;
+  /** 1 facing right, -1 facing left; between while it turns round. */
+  facing: number;
+  /** Lean, radians, towards the side the boat faces. */
+  angle: number;
+  sink: number;
 }
 
-/** The boat and its fisherman, for taps: a tap there casts. */
-export function onBoat(point: Point, hookX: number): boolean {
-  const origin = rigOrigin(hookX);
-  return (
-    point.x >= origin.x &&
-    point.x <= origin.x + RIG.rodTip.x * RIG.scale &&
-    point.y >= origin.y + RIG.fisherman.y * RIG.scale &&
-    point.y <= origin.y + RIG.boat.height * RIG.scale
-  );
+/** A point in rig pixels, in design pixels, for a boat placed and leaning so. */
+export function rigPoint(place: RigPlace, local: Point): Point {
+  const x = (local.x - RIG.pivot.x) * RIG.scale * place.facing;
+  const y = (local.y - RIG.pivot.y) * RIG.scale;
+  const angle = place.angle * place.facing;
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  return { x: place.x + x * cos - y * sin, y: BAY.surfaceY + place.sink + x * sin + y * cos };
+}
+
+/** The boat, the boy and the bucket, for taps: a tap there casts. */
+export function onBoat(point: Point, boatX: number, facing: 1 | -1): boolean {
+  const a = rigPoint({ x: boatX, facing, angle: 0, sink: 0 }, { x: RIG.bucket.x, y: RIG.fisherman.y });
+  const b = rigPoint({ x: boatX, facing, angle: 0, sink: 0 }, { x: RIG.boat.width, y: RIG.boat.height });
+  return point.x >= Math.min(a.x, b.x) && point.x <= Math.max(a.x, b.x) && point.y >= a.y && point.y <= b.y;
 }
 
 /** Generous: small fingers miss by a lot. */
 export const onHookButton = (point: Point): boolean =>
   Math.hypot(point.x - LAYOUT.hookButton.x, point.y - LAYOUT.hookButton.y) <= LAYOUT.hookButton.r + 14;
 
-/** The bucket picture, in its own pixels: the opening the count is written in, and its body. */
+/** The bucket picture, in its own pixels: its open top, and the side the count is written on. */
 export const BUCKET = {
   width: 149,
   height: 160,
-  opening: { x: 79, y: 24, rx: 50, ry: 18 },
-  /** The body below the rim, as a trapezoid the fill is clipped to. */
-  body: { top: 46, bottom: 148, topLeft: 20, topRight: 138, bottomLeft: 34, bottomRight: 124 },
+  opening: { x: 79, y: 27, rx: 50, ry: 18 },
+  /** Where the count goes: on its side, above where the hull hides it. */
+  label: { x: 79, y: 84 },
+  /** The side below the rim, as a trapezoid the rising fill is clipped to. */
+  body: { top: 58, bottom: 148, topLeft: 22, topRight: 136, bottomLeft: 34, bottomRight: 124 },
 } as const;
+
+/** A point on the bucket, in its own pixels, as a point in the rig. */
+export const bucketLocal = (point: Point): Point => ({
+  x: RIG.bucket.x + point.x * RIG.bucket.scale,
+  y: RIG.bucket.y + point.y * RIG.bucket.scale,
+});
 
 /** The stopwatch, in its own pixels: its face. */
 export const TIMER = { width: 116, height: 142, face: { x: 60, y: 88, r: 46 } } as const;
 
-/** Where a caught fish flies to: the bucket's opening, in design pixels. */
-export const bucketMouth = (): Point => ({
-  x: LAYOUT.bucket.x + BUCKET.opening.x * LAYOUT.bucket.scale,
-  y: LAYOUT.bucket.y + BUCKET.opening.y * LAYOUT.bucket.scale,
-});
+/** Where a caught fish flies to: into the bucket's mouth, wherever the boat is. */
+export const bucketMouth = (place: RigPlace): Point => rigPoint(place, bucketLocal(BUCKET.opening));

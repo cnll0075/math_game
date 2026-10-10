@@ -1,12 +1,15 @@
 import { DESIGN, drawSummaryCard, label, type Point } from '@bundle/core';
 import type { Outcome } from '../logic/world.js';
-import { BUCKET, LAYOUT, TIMER } from './geometry.js';
+import { LAYOUT, TIMER } from './geometry.js';
 
-/** The level's name and its line, top middle, between the bucket and the timer. */
-export function drawTopBar(ctx: CanvasRenderingContext2D, title: string, line: string): void {
+/**
+ * The level's line, along the sand at the bottom: the one strip of the screen
+ * the boat never sails across. The level's name has its moment in the banner
+ * as the level opens.
+ */
+export function drawTopBar(ctx: CanvasRenderingContext2D, line: string): void {
   ctx.save();
-  label(ctx, title, DESIGN.width / 2, LAYOUT.titleY, 30, 'center');
-  label(ctx, line, DESIGN.width / 2, LAYOUT.lineY, 24, 'center');
+  label(ctx, line, LAYOUT.titleX, LAYOUT.lineY, 24, 'left');
   ctx.restore();
 }
 
@@ -19,13 +22,11 @@ export function drawProgress(ctx: CanvasRenderingContext2D, number: number, coun
   ctx.restore();
 }
 
-/** Under the bucket, on the first levels: how many more it needs. */
-export function drawGap(ctx: CanvasRenderingContext2D, gap: number): void {
+/** Over the bucket, on the first levels: how many more it needs. */
+export function drawGap(ctx: CanvasRenderingContext2D, gap: number, at: Point): void {
   if (gap <= 0) return;
-  const x = LAYOUT.bucket.x + (BUCKET.width * LAYOUT.bucket.scale) / 2;
-  const y = LAYOUT.bucket.y + BUCKET.height * LAYOUT.bucket.scale + 20;
   ctx.save();
-  label(ctx, `${gap} more!`, x, y, 28, 'center');
+  label(ctx, `${gap} more!`, at.x, at.y, 28, 'center');
   ctx.restore();
 }
 

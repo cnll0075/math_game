@@ -1,5 +1,5 @@
 import { reachable, weightsIn } from './reach.js';
-import { BAY, PHYSICS, sizeOf, total, weightOf, type Swimmer, type World, type WorldState } from './world.js';
+import { BAY, hookX, PHYSICS, sizeOf, total, weightOf, type Swimmer, type World, type WorldState } from './world.js';
 
 /**
  * A player that never misreads a number, for the tests that guard the levels
@@ -42,7 +42,7 @@ function aimFor(state: WorldState, swimmer: Swimmer): number {
   const boatSpeed = PHYSICS.boatSpeed * (1 - PHYSICS.boatLoadSlowdown * load);
   let x = ahead(swimmer, dropSeconds(swimmer.y));
   for (let pass = 0; pass < 3; pass += 1) {
-    const sail = Math.abs(x - state.boat.x) / boatSpeed;
+    const sail = Math.abs(x - hookX(state)) / boatSpeed;
     x = ahead(swimmer, sail + dropSeconds(swimmer.y));
   }
   return x;
@@ -63,17 +63,17 @@ export function botTurn(world: World, policy: Policy): void {
     // Never leave a gap nothing in the bay can fill.
     .filter((swimmer) => reachable(room - weightOf(swimmer.what), weightsIn(state.def)))
     .map((swimmer) => ({ swimmer, x: aimFor(state, swimmer) }))
-    .filter(({ x }) => x >= BAY.minX && x <= BAY.maxX);
+    .filter(({ x }) => x >= BAY.hookMin && x <= BAY.hookMax);
   if (choices.length === 0) return;
 
   const weight = (choice: { swimmer: Swimmer }): number => weightOf(choice.swimmer.what);
   const best = policy === 'biggest' ? Math.max(...choices.map(weight)) : Math.min(...choices.map(weight));
   const target = choices
     .filter((choice) => weight(choice) === best)
-    .sort((a, b) => Math.abs(a.x - state.boat.x) - Math.abs(b.x - state.boat.x))[0]!;
+    .sort((a, b) => Math.abs(a.x - hookX(state)) - Math.abs(b.x - hookX(state)))[0]!;
 
-  if (Math.abs(target.x - state.boat.x) <= 8) {
-    const first = firstCatch(state, state.boat.x);
+  if (Math.abs(target.x - hookX(state)) <= 8) {
+    const first = firstCatch(state, hookX(state));
     // Something too heavy in the way: wait for it to pass rather than tip the boat.
     if (first && first.what.kind === 'fish' && !reachable(room - weightOf(first.what), weightsIn(state.def))) return;
     world.cast();

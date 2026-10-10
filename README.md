@@ -687,12 +687,15 @@ their weights; catch them until the bucket is **exactly** full before the
 stopwatch runs out. Gold Miner's hook, with arithmetic in the bucket.
 
 **Tap the water** and the boat sails there — the rod tip goes exactly where the
-finger went, and a finger slid along steers it. **Tap the hook button** (or the
+finger went, and a finger slid along steers it. The boat turns to face the way
+it sails, so the hook reaches nearly to either edge. **Tap the hook button** (or the
 boat) and the hook drops straight down and grabs the first thing it touches,
 so a fish in the way is the fish you get. Arrow keys and space on a Mac.
 
-**Big fish are the quick way.** A heavy catch reels slowly, leans the boat and
-pulls the line taut, but one 10 is far quicker than ten 1s. So the play is to
+**Big fish are the quick way.** A heavy catch reels slowly — a 10 takes six
+times as long as a 1 — leans the boat and pulls the line taut, but one 10 is
+still far quicker than ten 1s. The boy sits in the boat with the bucket beside
+him, the count written on its side and the catch poking out of the top. So the play is to
 land the big ones, then work out exactly what is missing — *7 in a bucket for
 10 needs a 3.* The first three levels write "3 more!" under the bucket; after
 that the gap is the child's to find.
@@ -711,8 +714,9 @@ worth nothing. `?game=fishing&level=jellyfish` opens any level by id.
 **The art** is cut from one asset board, `games/fishing/assets/source/board.png`,
 by `scripts/cut-fishing.py` (numpy and Pillow): each sprite by flooding the
 board's white in from the edge of its box, the boy and boat painted out of the
-backdrop, and the bucket's and stopwatch's painted numbers wiped so the game
-can write its own. Until a picture loads, a plain shape stands in.
+backdrop, the boat's near wall cut out on its own so the boy can sit behind it,
+and the bucket's and stopwatch's painted numbers wiped so the game can write
+its own. Until a picture loads, a plain shape stands in.
 
 ### The test that guards it
 

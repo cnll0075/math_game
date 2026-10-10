@@ -8,7 +8,10 @@ stays. Out of the scene comes:
 
 - `backdrop.jpg`  the scene above the water, with its own boy and boat painted
                   out (the game sails its own), to stand behind the bay
-- `bucket.png`    with its "8/10" painted out, so the game can write its own
+- `bucket.png`    with its "8/10" and its fish painted out, so the game can
+                  write the count on its side
+- `boat-front.png` the near wall of the hull alone, drawn over whoever sits in
+                  the boat so they are in it rather than behind it
 - `timer.png`     with its face wiped, so the game can draw its own time
 
 The boxes below are measured on this board. A different board needs them
@@ -64,13 +67,17 @@ SCENE_BOX = (20, 40, 850, 355)
 SCENE_BOY = (146, 136, 412, 315)
 SCENE_PATCH_SHIFT = 270
 
-# The fishing line hangs from the rod tip on the board. The game draws its own,
-# so the painted one comes out of both the fisherman and the boat.
-LINE_COLUMNS = (1024, 1048)
-LINE_ROWS = (80, 290)
+# The fishing line hangs from the rod tip on the board down to the boat's bow.
+# The game draws its own, so the painted one is filled in from just beside it:
+# white over the background, wood and rim where it crosses the boat.
+LINE_COLUMNS = (1032, 1045)
+LINE_ROWS = (74, 216)
+LINE_BORROW = 7
 
 # The bucket's opening, where "8/10" is painted, and the timer's face.
 BUCKET_OPENING = (1325, 123, 50, 18)  # centre x, centre y, radius x, radius y
+# The fish painted on the bucket's side.
+BUCKET_FISH = (1292, 177, 1353, 213)
 TIMER_FACE = (1466, 160, 49)  # centre x, centre y, radius
 # Cream rather than white, so the face is not taken for background.
 FACE = (252, 240, 212)
@@ -175,7 +182,7 @@ def cut(board, box, blanks=()):
 
 
 def erase_line(board):
-    """Paint the fishing line out of the board, where it runs over white."""
+    """Paint the fishing line out of the board, borrowing what is just beside it."""
     pixels = np.asarray(board).astype(int).copy()
     left, right = LINE_COLUMNS
     top, bottom = LINE_ROWS
@@ -183,8 +190,8 @@ def erase_line(board):
     lo = region.min(axis=2)
     hi = region.max(axis=2)
     line = (lo >= 120) & ((hi - lo) <= 40)
-    region[line] = 255
-    pixels[top:bottom, left:right] = region
+    for y, x in zip(*np.nonzero(line)):
+        pixels[top + y, left + x] = pixels[top + y, right + LINE_BORROW]
     return Image.fromarray(pixels.astype(np.uint8), 'RGB')
 
 
@@ -193,6 +200,16 @@ def paint_bucket(board):
     cx, cy, rx, ry = BUCKET_OPENING
     navy = board.getpixel((cx - rx + 6, cy))
     draw.ellipse((cx - rx, cy - ry, cx + rx, cy + ry), fill=navy)
+    # The fish on its side: each row of it is painted over by blending the
+    # bucket's own blue from either side, which keeps the shading.
+    left, top, right, bottom = BUCKET_FISH
+    pixels = np.asarray(board).astype(float)
+    for y in range(top, bottom):
+        a = pixels[y, left - 2]
+        b = pixels[y, right + 2]
+        for x in range(left, right):
+            t = (x - left) / (right - left)
+            board.putpixel((x, y), tuple(int(v) for v in a * (1 - t) + b * t))
 
 
 def paint_timer(board):
@@ -205,6 +222,22 @@ def paint_timer(board):
     red = (box[..., 0] > 170) & (box[..., 1] < 140) & (box[..., 2] < 150)
     for y, x in zip(*np.nonzero(red)):
         board.putpixel((cx - r - 6 + int(x), cy - r - 6 + int(y)), FACE)
+
+
+# The boat's near wall, in the cut boat's own pixels: the top edge of the rim
+# nearest us, from the bow on the left round to the stern on the right.
+NEAR_RIM = [(0, 74), (25, 78), (50, 80), (100, 80), (150, 68), (200, 53), (219, 45)]
+
+
+def near_wall(boat):
+    """The part of the hull in front of anyone standing in it."""
+    mask = Image.new('L', boat.size, 0)
+    outline = NEAR_RIM + [(boat.size[0], boat.size[1]), (0, boat.size[1])]
+    ImageDraw.Draw(mask).polygon(outline, fill=255)
+    front = boat.copy()
+    alpha = np.minimum(np.asarray(boat)[..., 3], np.asarray(mask))
+    front.putalpha(Image.fromarray(alpha.astype(np.uint8)))
+    return front
 
 
 def backdrop(board):
@@ -232,8 +265,11 @@ def main():
     paint_bucket(clean)
     paint_timer(clean)
     for name, box in SPRITES.items():
-        cut(clean, box, BLANK.get(name, ())).save(f'{OUT}/{name}.png', optimize=True)
-        print(name, 'cut')
+        sprite = cut(clean, box, BLANK.get(name, ()))
+        sprite.save(f'{OUT}/{name}.png', optimize=True)
+        if name == 'boat':
+            near_wall(sprite).save(f'{OUT}/boat-front.png', optimize=True)
+        print(name, 'cut', sprite.size)
 
 
 if __name__ == '__main__':

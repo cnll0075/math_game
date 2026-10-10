@@ -1,7 +1,7 @@
 import { hand, type Bounds, type Point } from '@bundle/core';
-import { ITEMS, SPECIES, weightColour, type ItemId } from '../logic/species.js';
+import { ITEMS, SPECIES, weightColour, type ItemId, type SpeciesId } from '../logic/species.js';
 import { BAY, sizeOf, type What } from '../logic/world.js';
-import { BUCKET, LAYOUT, RIG, rigOrigin, TIMER } from './geometry.js';
+import { BUCKET, LAYOUT, RIG, TIMER, type RigPlace } from './geometry.js';
 import type { Sprites } from './sprites.js';
 
 const INK = '#1e2a38';
@@ -146,50 +146,154 @@ export function drawSeagull(ctx: CanvasRenderingContext2D, sprites: Sprites, bou
   ctx.restore();
 }
 
+export interface BucketModel {
+  total: number;
+  capacity: number;
+  /** A bump as a fish lands, 0..1. */
+  bump: number;
+  over: boolean;
+  /** What is in it, so it can be seen poking out of the top. */
+  fish: readonly SpeciesId[];
+}
+
 export interface RigPose {
-  hookX: number;
-  /** Lean, radians, clockwise: towards the line. */
-  angle: number;
-  /** How far the hull sits down in the water: a fuller bucket, a heavier boat. */
-  sink: number;
-  /** Drawn without the fisherman: he has gone over the side. */
+  place: RigPlace;
+  /** The boat turning round: 1 facing right, -1 facing left, and between while it turns. */
+  turn: number;
+  /** Drawn without the boy: he has gone over the side. */
   overboard: boolean;
   /** A happy hop when the bucket is full. */
   hop: number;
+  bucket: BucketModel;
 }
 
-/** The boat and the fisherman standing in it, leaning together. */
-export function drawRig(ctx: CanvasRenderingContext2D, sprites: Sprites, pose: RigPose): void {
-  const origin = rigOrigin(pose.hookX, pose.sink);
+/** One of the boat's two pictures, flipped so the motor is at the stern behind him. */
+function drawHull(ctx: CanvasRenderingContext2D, image: HTMLImageElement | null, front: boolean): void {
+  if (image) {
+    ctx.save();
+    ctx.translate(RIG.boat.width, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(image, 0, 0);
+    ctx.restore();
+    return;
+  }
+  ctx.fillStyle = front ? '#c99258' : '#9c6b3c';
+  ctx.beginPath();
+  ctx.moveTo(0, front ? 70 : 50);
+  ctx.lineTo(RIG.boat.width, front ? 70 : 50);
+  ctx.lineTo(RIG.boat.width - 30, RIG.boat.height);
+  ctx.lineTo(30, RIG.boat.height);
+  ctx.closePath();
+  ctx.fill();
+}
+
+/** The bucket in the boat, in its own pixels: its fill rising up its side, and the catch poking out of the top. */
+function drawBucketInBoat(ctx: CanvasRenderingContext2D, sprites: Sprites, model: BucketModel, clock: number): void {
+  const grow = 1 + model.bump * 0.1;
+  ctx.save();
+  ctx.translate(RIG.bucket.x, RIG.bucket.y);
+  ctx.scale(RIG.bucket.scale, RIG.bucket.scale);
+  ctx.translate(BUCKET.width / 2, BUCKET.height);
+  ctx.scale(grow, grow);
+  ctx.translate(-BUCKET.width / 2, -BUCKET.height);
+
+  const image = sprites.bucket;
+  if (image) ctx.drawImage(image, 0, 0);
+  else {
+    ctx.fillStyle = '#2f7fd0';
+    ctx.fillRect(BUCKET.body.topLeft, 10, BUCKET.body.topRight - BUCKET.body.topLeft, BUCKET.body.bottom - 10);
+  }
+
+  // The catch, heads up out of the mouth: cut off by the front of the rim, so
+  // it is in the bucket rather than stuck on its face.
+  const shown = model.fish.slice(-8);
+  const { opening } = BUCKET;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(-40, -200, BUCKET.width + 80, 200 + opening.y);
+  ctx.ellipse?.(opening.x, opening.y, opening.rx - 4, opening.ry - 3, 0, 0, Math.PI);
+  ctx.clip();
+  shown.forEach((species, index) => {
+    const fish = sprites[species];
+    const across = opening.x + ((index % 4) - 1.5) * 22;
+    const up = opening.y - 2 - Math.floor(index / 4) * 10;
+    const length = 54;
+    const height = length * SPECIES[species].aspect;
+    ctx.save();
+    ctx.translate(across, up);
+    ctx.rotate(-Math.PI / 2 + Math.sin(clock * 3 + index * 1.7) * 0.18);
+    if (fish) ctx.drawImage(fish, -length / 2, -height / 2, length, height);
+    else {
+      ctx.fillStyle = weightColour(SPECIES[species].weight);
+      ctx.fillRect(-length / 2, -height / 2, length, height);
+    }
+    ctx.restore();
+  });
+  ctx.restore();
+
+  const share = Math.max(0, Math.min(1, model.total / Math.max(1, model.capacity)));
+  if (share > 0) {
+    const body = BUCKET.body;
+    const level = body.bottom - (body.bottom - body.top) * share;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(body.topLeft, body.top);
+    ctx.lineTo(body.topRight, body.top);
+    ctx.lineTo(body.bottomRight, body.bottom);
+    ctx.lineTo(body.bottomLeft, body.bottom);
+    ctx.closePath();
+    ctx.clip();
+    ctx.fillStyle = model.over ? 'rgba(232,84,63,0.55)' : 'rgba(150,225,255,0.4)';
+    ctx.fillRect(0, level, BUCKET.width, body.bottom - level + 4);
+    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(0, level);
+    ctx.lineTo(BUCKET.width, level);
+    ctx.stroke();
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+/**
+ * The boat with the boy sitting in it and the bucket at the stern. The boy and
+ * the bucket go between the hull and its near wall, so they are in the boat
+ * rather than in front of it. The whole rig leans together, and squeezes
+ * through nothing as it turns round.
+ */
+export function drawRig(ctx: CanvasRenderingContext2D, sprites: Sprites, pose: RigPose, clock: number): void {
+  const { place } = pose;
   const s = RIG.scale;
   ctx.save();
-  ctx.translate(origin.x + RIG.pivot.x * s, origin.y + RIG.pivot.y * s);
-  ctx.rotate(pose.angle);
-  ctx.translate(-RIG.pivot.x * s, -RIG.pivot.y * s);
-  ctx.scale(s, s);
+  ctx.translate(place.x, BAY.surfaceY + place.sink);
+  ctx.rotate(place.angle * place.facing);
+  ctx.scale(s * pose.turn, s);
+  ctx.translate(-RIG.pivot.x, -RIG.pivot.y);
+  drawHull(ctx, sprites.boat, false);
+  drawBucketInBoat(ctx, sprites, pose.bucket, clock);
   if (!pose.overboard) {
     const fisherman = sprites.fisherman;
     if (fisherman) ctx.drawImage(fisherman, RIG.fisherman.x, RIG.fisherman.y - pose.hop);
     else drawFallbackFisherman(ctx, pose.hop);
   }
-  const boat = sprites.boat;
-  if (boat) {
-    // Flipped, so the motor is at the stern behind him and the bow points where he fishes.
-    ctx.save();
-    ctx.translate(RIG.boat.width, 0);
-    ctx.scale(-1, 1);
-    ctx.drawImage(boat, 0, 0);
-    ctx.restore();
-  } else {
-    ctx.fillStyle = '#b7814a';
-    ctx.beginPath();
-    ctx.moveTo(0, 60);
-    ctx.lineTo(RIG.boat.width, 60);
-    ctx.lineTo(RIG.boat.width - 30, RIG.boat.height);
-    ctx.lineTo(30, RIG.boat.height);
-    ctx.closePath();
-    ctx.fill();
-  }
+  drawHull(ctx, sprites['boat-front'], true);
+  ctx.restore();
+}
+
+/** The count, written on the bucket's side the right way round whichever way the boat faces. */
+export function drawBucketCount(ctx: CanvasRenderingContext2D, model: BucketModel, at: Point): void {
+  const text = `${model.total}/${model.capacity}`;
+  const size = (text.length > 4 ? 30 : 36) * (1 + model.bump * 0.15);
+  ctx.save();
+  ctx.font = hand(700, size);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineWidth = 6;
+  ctx.strokeStyle = '#123a6b';
+  ctx.strokeText(text, at.x, at.y);
+  ctx.fillStyle = model.over ? '#ffb3a6' : '#ffffff';
+  ctx.fillText(text, at.x, at.y);
   ctx.restore();
 }
 
@@ -197,15 +301,15 @@ function drawFallbackFisherman(ctx: CanvasRenderingContext2D, hop: number): void
   ctx.save();
   ctx.translate(0, -hop);
   ctx.fillStyle = '#e0533f';
-  ctx.fillRect(100, -20, 60, 90);
+  ctx.fillRect(110, 0, 60, 90);
   ctx.fillStyle = '#f6c9a0';
   ctx.beginPath();
-  ctx.arc(130, -40, 26, 0, TAU);
+  ctx.arc(140, -20, 26, 0, TAU);
   ctx.fill();
   ctx.strokeStyle = '#7a5230';
   ctx.lineWidth = 5;
   ctx.beginPath();
-  ctx.moveTo(150, 40);
+  ctx.moveTo(160, 50);
   ctx.lineTo(RIG.rodTip.x, RIG.rodTip.y);
   ctx.stroke();
   ctx.restore();
@@ -401,68 +505,6 @@ export function drawItemIcon(ctx: CanvasRenderingContext2D, sprites: Sprites, it
   ctx.beginPath();
   ctx.arc(at.x, at.y, height / 2, 0, TAU);
   ctx.fill();
-  ctx.restore();
-}
-
-export interface BucketModel {
-  total: number;
-  capacity: number;
-  /** A bump as a fish lands, 0..1. */
-  bump: number;
-  over: boolean;
-}
-
-/**
- * The bucket: big, top left, with the count written in its mouth and the
- * water inside rising as it fills. It is the goal, so it is the biggest thing
- * on the screen that is not the sea.
- */
-export function drawBucket(ctx: CanvasRenderingContext2D, sprites: Sprites, model: BucketModel): void {
-  const { x, y, scale } = LAYOUT.bucket;
-  const grow = 1 + model.bump * 0.08;
-  ctx.save();
-  ctx.translate(x + (BUCKET.width * scale) / 2, y + (BUCKET.height * scale) / 2);
-  ctx.scale(scale * grow, scale * grow);
-  ctx.translate(-BUCKET.width / 2, -BUCKET.height / 2);
-
-  const image = sprites.bucket;
-  if (image) ctx.drawImage(image, 0, 0);
-  else {
-    ctx.fillStyle = '#2f7fd0';
-    ctx.fillRect(BUCKET.body.topLeft, 10, BUCKET.body.topRight - BUCKET.body.topLeft, BUCKET.body.bottom - 10);
-  }
-
-  // The fill, rising in the body.
-  const share = Math.max(0, Math.min(1, model.total / Math.max(1, model.capacity)));
-  if (share > 0) {
-    const body = BUCKET.body;
-    const level = body.bottom - (body.bottom - body.top) * share;
-    ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(body.topLeft, body.top);
-    ctx.lineTo(body.topRight, body.top);
-    ctx.lineTo(body.bottomRight, body.bottom);
-    ctx.lineTo(body.bottomLeft, body.bottom);
-    ctx.closePath();
-    ctx.clip();
-    ctx.fillStyle = model.over ? 'rgba(232,84,63,0.6)' : 'rgba(140,220,255,0.55)';
-    ctx.fillRect(0, level, BUCKET.width, body.bottom - level + 4);
-    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(0, level);
-    ctx.lineTo(BUCKET.width, level);
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  const { opening } = BUCKET;
-  const text = `${model.total}/${model.capacity}`;
-  ctx.font = hand(700, text.length > 4 ? 28 : 32);
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = model.over ? '#ff8a7a' : '#ffffff';
-  ctx.fillText(text, opening.x, opening.y + 2);
   ctx.restore();
 }
 

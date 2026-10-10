@@ -152,7 +152,7 @@ export const fishingGame: FishingModule = {
         void host.audio.unlock();
         act(intent);
       },
-      () => ({ phase: driver.phase, hookX: driver.world.state.boat.x }),
+      () => ({ phase: driver.phase, boatX: driver.world.state.boat.x, facing: driver.world.state.boat.facing }),
     );
 
     const resize = (): void => {

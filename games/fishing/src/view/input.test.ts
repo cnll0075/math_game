@@ -23,10 +23,10 @@ const pointer = (canvas: HTMLCanvasElement, type: string, x: number, y: number, 
   canvas.dispatchEvent(event);
 };
 
-const setup = (phase: Phase = 'fishing', hookX = 600) => {
+const setup = (phase: Phase = 'fishing', boatX = 500) => {
   const canvas = canvasOf(1152, 768);
   const intents: Intent[] = [];
-  const input = createInput(canvas, createScene(NO_SPRITES), (intent) => intents.push(intent), () => ({ phase, hookX }));
+  const input = createInput(canvas, createScene(NO_SPRITES), (intent) => intents.push(intent), () => ({ phase, boatX, facing: 1 as const }));
   return { canvas, intents, input };
 };
 
@@ -47,8 +47,8 @@ describe('input', () => {
     const { canvas, intents, input } = setup();
     pointer(canvas, 'pointerdown', LAYOUT.hookButton.x, LAYOUT.hookButton.y);
     pointer(canvas, 'pointerup', LAYOUT.hookButton.x, LAYOUT.hookButton.y);
-    pointer(canvas, 'pointerdown', 520, 200);
-    pointer(canvas, 'pointerup', 520, 200);
+    pointer(canvas, 'pointerdown', 500, 230);
+    pointer(canvas, 'pointerup', 500, 230);
     expect(intents).toEqual([{ kind: 'cast' }, { kind: 'cast' }]);
     input.dispose();
   });

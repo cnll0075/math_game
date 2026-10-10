@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { createDriver, type Driver, type DriverEvent } from './driver.js';
 import { botTurn } from './logic/bot.js';
 import { LEVELS } from './logic/levels.data.js';
+import { hookTarget } from './logic/world.js';
 import { TIMING } from './view/timing.js';
 
 const FRAME = 1 / 60;
@@ -45,7 +46,7 @@ describe('the driver', () => {
     const driver = createDriver({ book: {}, seed: seeded() });
     driver.act({ kind: 'sail', x: 700 });
     expect(driver.phase).toBe('fishing');
-    expect(driver.world.state.boat.target).toBe(700);
+    expect(hookTarget(driver.world.state)).toBe(700);
   });
 
   it('gives stars for a full bucket, then moves on once they have been shown', () => {

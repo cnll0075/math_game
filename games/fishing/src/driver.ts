@@ -2,7 +2,7 @@ import type { Intent } from './intent.js';
 import { LEVELS, type LevelDef } from './logic/levels.data.js';
 import { MAX_STARS, startIndex, totalStars } from './logic/progress.js';
 import { recordStars, starsFor, type StarBook } from './logic/stars.js';
-import { createWorld, type Outcome, type World, type WorldEvent, type WorldState } from './logic/world.js';
+import { createWorld, hookTarget, type Outcome, type World, type WorldEvent, type WorldState } from './logic/world.js';
 import { TIMING } from './view/timing.js';
 
 /**
@@ -150,7 +150,7 @@ export function createDriver(options: DriverOptions): Driver {
         case 'sail':
           return world.sail(intent.x);
         case 'nudge':
-          return world.sail(state.boat.target + intent.dir * NUDGE);
+          return world.sail(hookTarget(state) + intent.dir * NUDGE);
         case 'cast':
           return settle(world.cast());
       }

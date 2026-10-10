@@ -8,16 +8,21 @@ import { BONUS_SECONDS, ITEMS, SPECIES, type Gait, type ItemId, type SpeciesId }
  * scene draws in, so "the hook touched the fish" means what it looks like.
  */
 export const BAY = {
-  surfaceY: 250,
+  surfaceY: 285,
   floorY: 752,
   /** The band fish swim in, between just under the surface and just over the sand. */
-  swimTop: 318,
-  swimBottom: 668,
+  swimTop: 350,
+  swimBottom: 676,
   /** Where crabs walk and treasure rests. */
   sandY: 706,
-  /** How far the rod tip may sail: the boat stays clear of the bucket and the timer. */
-  minX: 400,
-  maxX: 1020,
+  /** How far the hook may reach: nearly to either edge. */
+  hookMin: 34,
+  hookMax: 1118,
+  /** How far the middle of the hull may go: half of it can slide off either side. */
+  boatMin: 0,
+  boatMax: 1152,
+  /** From the middle of the hull out to the rod tip, which is over the bow. */
+  rodReach: 174,
   /** Fish turn round once they are this far off either side. */
   turnLeft: -170,
   turnRight: 1322,
@@ -28,9 +33,13 @@ export const PHYSICS = {
   dropSpeed: 540,
   /** An empty hook comes back up at this. */
   emptySpeed: 760,
-  /** A catch of weight w reels at reelSpeed / (1 + reelDrag * w); twice that after a speed potion. */
-  reelSpeed: 290,
-  reelDrag: 0.15,
+  /**
+   * A 1 comes up at `reelLight`, a 10 at `reelHeavy`, and everything between
+   * on a curve, so each step heavier is the same share slower and a 10 is a
+   * real effort next to a 1. Twice as fast after a speed potion.
+   */
+  reelLight: 430,
+  reelHeavy: 72,
   /** The boat sails at this when the bucket is empty, and slows as it fills. */
   boatSpeed: 460,
   boatLoadSlowdown: 0.35,
@@ -39,7 +48,7 @@ export const PHYSICS = {
   /** And with the net. */
   netPad: 44,
   /** Where the hook rests, just in the water. */
-  restY: 262,
+  restY: 297,
   /** A caught fish is replaced by another of its kind after this long. */
   respawnSeconds: 1.4,
   /** One reel click for every this many pixels of line wound in. */
@@ -88,8 +97,12 @@ export interface WorldState {
   timeLeft: number;
   /** The clock does not run until the level has announced itself. */
   running: boolean;
-  /** Where the rod tip is, and where it is sailing to. */
-  boat: { x: number; target: number };
+  /**
+   * The middle of the hull, where it is sailing to, and which way it faces:
+   * the boat turns to face the way it sails, so the rod is always over the
+   * side the child tapped.
+   */
+  boat: { x: number; target: number; facing: 1 | -1 };
   hook: Hook;
   swimmers: Swimmer[];
   /** Every weight in the bucket, in the order it went in. */
@@ -145,10 +158,16 @@ const gaitOf = (what: What): Gait => (what.kind === 'fish' ? SPECIES[what.specie
 /** How fast the line comes in with this on the end. */
 export function reelSpeed(state: WorldState, what: What | null): number {
   if (!what) return PHYSICS.emptySpeed;
-  return (PHYSICS.reelSpeed * (state.fast ? 2 : 1)) / (1 + PHYSICS.reelDrag * dragOf(what));
+  const heaviness = (dragOf(what) - 1) / 9;
+  const speed = PHYSICS.reelLight * Math.pow(PHYSICS.reelHeavy / PHYSICS.reelLight, heaviness);
+  return speed * (state.fast ? 2 : 1);
 }
 
-export const hookX = (state: WorldState): number => state.boat.x;
+/** The hook hangs from the rod tip, out over the side the boat faces. */
+export const hookX = (state: WorldState): number => state.boat.x + state.boat.facing * BAY.rodReach;
+
+/** Where the hook is heading: over where the boat is sailing to. */
+export const hookTarget = (state: WorldState): number => state.boat.target + state.boat.facing * BAY.rodReach;
 
 export const hooked = (state: WorldState): Swimmer | null =>
   state.hook.catch === null ? null : state.swimmers.find((swimmer) => swimmer.id === state.hook.catch) ?? null;
@@ -193,7 +212,7 @@ export function createWorld(def: LevelDef, options: WorldOptions = {}): World {
     time: 0,
     timeLeft: def.seconds,
     running: false,
-    boat: { x: 576, target: 576 },
+    boat: { x: 576 - BAY.rodReach, target: 576 - BAY.rodReach, facing: 1 },
     hook: { state: 'ready', y: PHYSICS.restY, catch: null },
     swimmers: [],
     bucket: [...(def.start ?? [])],
@@ -215,7 +234,7 @@ export function createWorld(def: LevelDef, options: WorldOptions = {}): World {
     const slot = (index + 0.2 + rng.next() * 0.6) / opening.length;
     // Something that never moves is put where the boat can reach it.
     const still = gaitOf(what) === 'rest';
-    const x = still ? BAY.minX + rng.next() * (BAY.maxX - BAY.minX) : 40 + slot * 1072;
+    const x = still ? BAY.hookMin + 30 + rng.next() * (BAY.hookMax - BAY.hookMin - 60) : 40 + slot * 1072;
     state.swimmers.push(make(what, x, rng.next() < 0.5 ? 1 : -1));
   });
 
@@ -365,7 +384,11 @@ export function createWorld(def: LevelDef, options: WorldOptions = {}): World {
 
     sail(x) {
       if (state.outcome || state.hook.state !== 'ready') return [];
-      state.boat.target = Math.max(BAY.minX, Math.min(BAY.maxX, x));
+      const want = Math.max(BAY.hookMin, Math.min(BAY.hookMax, x));
+      // Face the way it is going, so the rod reaches over that side.
+      if (want > state.boat.x + 1) state.boat.facing = 1;
+      else if (want < state.boat.x - 1) state.boat.facing = -1;
+      state.boat.target = Math.max(BAY.boatMin, Math.min(BAY.boatMax, want - state.boat.facing * BAY.rodReach));
       state.sailed += 1;
       return [];
     },

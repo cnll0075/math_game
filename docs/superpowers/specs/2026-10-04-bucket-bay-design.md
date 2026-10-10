@@ -16,7 +16,9 @@ For ages 6–8. Totals up to 25.
 
 - **Tap the water** and the boat sails there. The hook hangs from the rod tip,
   and the rod tip goes exactly where the finger went, so "tap above the fish" is
-  all there is to aiming.
+  all there is to aiming. The boat turns to face the way it sails, so the rod
+  is always out over that side and the hook reaches nearly to either edge with
+  the boat still on screen; half the boat may slide off an edge.
 - **Tap the hook button** (bottom right), or the boat itself, to drop the hook.
   A finger held on the water and slid steers the boat.
   It falls straight down and grabs the **first thing it touches**, the way the
@@ -84,16 +86,20 @@ Items weigh nothing in the bucket. They are reeled up like a catch.
 
 ## The screen
 
-The water takes two thirds of the screen, so the fish have room. Above it is
-the painted lake from the board, with its own boy and boat painted out. The
-bucket is the biggest thing that is not the sea: top left, with the count
-written in its mouth (`7/10`) and water rising inside it as it fills. A caught
-fish flies from the line into the bucket and is only counted when it lands.
-The stopwatch is top right, with a wedge of time that drains, green to amber to
-red, and ticks out loud for the last five seconds. The hook button is bottom
-right, under the thumb.
+The water takes most of the screen, so the fish have room. Above it is the
+painted lake from the board, with its own boy and boat painted out. The boy
+sits **in** the boat — the hull is cut in two, and he and the bucket are drawn
+between it and its near wall — with the bucket at the stern beside him. The
+count is written big on the bucket's side (`7/10`), a fill rises up it, and the
+catch pokes heads-up out of its mouth. A caught fish flies from the line into
+the bucket and is only counted when it lands. The stopwatch is top right, with
+a wedge of time that drains, green to amber to red, and ticks out loud for the
+last five seconds. The level's line runs along the sand at the bottom, the one
+strip the boat never crosses. The hook button is bottom right, under the thumb.
 
-**The physics a child can feel**: weight on the line leans the boat towards it
+**The physics a child can feel**: a 1 winds up in about a second; each step
+heavier is the same share slower, so a 10 takes six times as long. Weight on
+the line leans the boat towards it
 and pulls the line taut, a heavy catch wriggles slower and wider, the reel
 clicks lower and further apart, and a fuller bucket sits the boat lower in the
 water and sails it more slowly. Going over, the boat rolls, the fisherman ends
@@ -122,8 +128,9 @@ the hook button once the boat has moved.
 | 12 | Busy Sea | 18 | 1, 3, 4, 6, 8 | everything at once |
 | 13 | Big Haul | 25 | 1, 2, 5, 7, 9, 10 | the big one |
 
-The clocks are 45 to 75 seconds: about five times what a perfect bot needs, so
-the margin is the child's.
+The clocks are 25 to 50 seconds. Each is about one and a half times what a
+child who plans well would take — reckoned as the bot's time plus a few seconds
+of thinking and aiming per catch — so the clock is felt without being cruel.
 
 ## Structure
 

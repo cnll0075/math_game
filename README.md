@@ -707,8 +707,8 @@ on a tap or by itself. Stars come from the clock: a third left is three.
 
 **Thirteen levels** bring in one new fish or item at a time: ten fish weighing 1
 to 10 (crabs walk the sand, jellyfish drift, swordfish race), a speed potion,
-a health potion that throws back the one fish that would tip the boat, a net
-that catches from further away, bonus time, and treasure — heavy to wind up and
+a health potion that throws back the one catch that would tip the boat, a net
+whose one cast scoops up a bunch at once (`2 + 1 + 1 = 4`), bonus time, and treasure — heavy to wind up and
 worth nothing. `?game=fishing&level=jellyfish` opens any level by id.
 
 **The art** is cut from one asset board, `games/fishing/assets/source/board.png`,

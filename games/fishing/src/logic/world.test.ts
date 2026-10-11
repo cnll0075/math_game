@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { LevelDef } from './levels.data.js';
 import type { ItemId, SpeciesId } from './species.js';
-import { BAY, createWorld, hookX, PHYSICS, reelSpeed, total, type What, type World, type WorldEvent } from './world.js';
+import { BAY, createWorld, hookX, lineDrag, PHYSICS, reelSpeed, total, type What, type World, type WorldEvent } from './world.js';
 
 const DEF: LevelDef = {
   id: 'test',
@@ -206,24 +206,66 @@ describe('the items', () => {
     put(world, fish('tuna'), hookX(world.state), 500);
     world.cast();
     const events = haul(world);
-    expect(events).toContainEqual({ type: 'saved', weight: 5, total: 5 });
+    expect(events).toContainEqual({ type: 'saved', weights: [5], total: 5 });
     expect(world.state.outcome).toBeNull();
     expect(world.state.bucket).toEqual([]);
     expect(world.state.saves).toBe(0);
   });
 
-  it('the net catches from further away', () => {
-    const near = PHYSICS.hookPad + 20;
-    const without = bay();
-    put(without, fish('clownfish'), hookX(without.state) + 40 + near, 450);
-    without.cast();
-    expect(types(haul(without))).toEqual(['empty']);
+  it('a net makes the next cast scoop up everything near what it touches, and then it is used up', () => {
+    const world = bay({ capacity: 20 });
+    put(world, item('net'), hookX(world.state), 400);
+    world.cast();
+    haul(world);
+    expect(world.state.nets).toBe(1);
 
-    const withNet = bay();
-    withNet.state.net = true;
-    put(withNet, fish('clownfish'), hookX(withNet.state) + 40 + near, 450);
-    withNet.cast();
-    expect(types(haul(withNet))).toEqual(['hooked', 'caught']);
+    const x = hookX(world.state);
+    put(world, fish('bluefish'), x, 500);
+    put(world, fish('clownfish'), x + 60, 520);
+    put(world, fish('tuna'), x - 50, 470);
+    put(world, fish('tuna'), x + 400, 500);
+    world.cast();
+    expect(world.state.nets).toBe(0);
+    const events = haul(world);
+    expect(events).toContainEqual({ type: 'netted', weights: [5, 2, 1], total: 8 });
+    expect(events.filter((event) => event.type === 'caught').map((event) => (event.type === 'caught' ? event.order : -1))).toEqual([0, 1, 2]);
+    expect(world.state.bucket).toEqual([5, 2, 1]);
+
+    // The next cast is the hook again: one fish.
+    put(world, fish('bluefish'), x, 500);
+    put(world, fish('clownfish'), x + 60, 520);
+    world.cast();
+    haul(world);
+    expect(world.state.bucket).toEqual([5, 2, 1, 2]);
+  });
+
+  it('a net of fish that tips the boat tips it, and a health potion throws the whole net back', () => {
+    const tipped = bay({ capacity: 6 });
+    tipped.state.nets = 1;
+    put(tipped, fish('tuna'), hookX(tipped.state), 500);
+    put(tipped, fish('bluefish'), hookX(tipped.state) + 50, 500);
+    tipped.cast();
+    haul(tipped);
+    expect(tipped.state.outcome).toBe('capsized');
+
+    const saved = bay({ capacity: 6 });
+    saved.state.nets = 1;
+    saved.state.saves = 1;
+    put(saved, fish('tuna'), hookX(saved.state), 500);
+    put(saved, fish('bluefish'), hookX(saved.state) + 50, 500);
+    saved.cast();
+    expect(haul(saved)).toContainEqual({ type: 'saved', weights: [5, 2], total: 7 });
+    expect(saved.state.outcome).toBeNull();
+    expect(saved.state.bucket).toEqual([]);
+  });
+
+  it('a net full of fish reels no slower than a 10', () => {
+    const world = bay({ capacity: 40 });
+    world.state.nets = 1;
+    for (const dx of [-40, 0, 40]) put(world, fish('puffer'), hookX(world.state) + dx, 500);
+    world.cast();
+    world.step(0.5);
+    expect(lineDrag(world.state)).toBe(PHYSICS.heaviestHaul);
   });
 });
 

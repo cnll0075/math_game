@@ -22,7 +22,7 @@ export function firstCatch(state: WorldState, x: number): Swimmer | null {
   for (const swimmer of state.swimmers) {
     if (swimmer.hooked) continue;
     const { length, height } = sizeOf(swimmer.what);
-    const pad = state.net ? PHYSICS.netPad : PHYSICS.hookPad;
+    const pad = state.nets > 0 ? PHYSICS.netPad : PHYSICS.hookPad;
     // Where it is while the hook passes through its depth, from top to bottom,
     // with room for its bob: a fast fish can swim into the line on the way down.
     const top = dropSeconds(Math.max(PHYSICS.restY, swimmer.y - height * 0.38 - pad - 25));
@@ -34,6 +34,25 @@ export function firstCatch(state: WorldState, x: number): Swimmer | null {
     if (!best || swimmer.y < best.y) best = swimmer;
   }
   return best;
+}
+
+/**
+ * Everything a net dropped at `x` now would come up with: what it touches
+ * first, and what is near that when it does.
+ */
+export function netCatch(state: WorldState, x: number): Swimmer[] {
+  const first = firstCatch(state, x);
+  if (!first) return [];
+  const seconds = dropSeconds(first.y);
+  return state.swimmers.filter((swimmer) => {
+    if (swimmer.hooked) return false;
+    if (swimmer === first) return true;
+    const { length, height } = sizeOf(swimmer.what);
+    // A little more room than the net really has, to be safe.
+    const dx = (ahead(swimmer, seconds) - x) / (length * 0.42 + PHYSICS.scoopPad + 30);
+    const dy = (swimmer.y - first.y) / (height * 0.38 + PHYSICS.scoopPad + 30);
+    return dx * dx + dy * dy <= 1;
+  });
 }
 
 /** Where to drop for this fish, from where the boat is now. */
@@ -73,9 +92,10 @@ export function botTurn(world: World, policy: Policy): void {
     .sort((a, b) => Math.abs(a.x - hookX(state)) - Math.abs(b.x - hookX(state)))[0]!;
 
   if (Math.abs(target.x - hookX(state)) <= 8) {
-    const first = firstCatch(state, hookX(state));
+    const haul = state.nets > 0 ? netCatch(state, hookX(state)) : [firstCatch(state, hookX(state))].flatMap((swimmer) => swimmer ?? []);
+    const load = haul.reduce((sum, swimmer) => sum + weightOf(swimmer.what), 0);
     // Something too heavy in the way: wait for it to pass rather than tip the boat.
-    if (first && first.what.kind === 'fish' && !reachable(room - weightOf(first.what), weightsIn(state.def))) return;
+    if (load > 0 && !reachable(room - load, weightsIn(state.def))) return;
     world.cast();
     return;
   }

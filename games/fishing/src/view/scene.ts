@@ -1,7 +1,7 @@
 import { createSpring, drawArrivingBanner, fitToScreen, visibleBounds, type Bounds, type Point, type Size } from '@bundle/core';
 import type { DriverEvent, SceneModel } from '../driver.js';
 import { ITEMS, speciesOfWeight, type ItemId } from '../logic/species.js';
-import { BAY, dragOf, hooked, hookX, total, weightOf, type What, type WorldState } from '../logic/world.js';
+import { BAY, hookX, lineDrag, onLine, total, weightOf, type What, type WorldState } from '../logic/world.js';
 import {
   drawBackdrop,
   drawBucketCount,
@@ -35,6 +35,14 @@ export interface Scene {
 
 /** How long a caught fish takes to fly from the line into the bucket. */
 export const FLY_SECONDS = 0.6;
+
+/** Out of a net, the fish fly into the bucket this far apart. */
+export const NET_STAGGER = 0.2;
+
+/** Rising words go this far out past the line, their middle never further left or right than this. */
+const FLOAT_BESIDE = 190;
+const FLOAT_LEFT = 190;
+const FLOAT_RIGHT = 860;
 
 /** How far through the roll the boy goes over the side. */
 const OVERBOARD_AT = 0.35;
@@ -93,12 +101,14 @@ export function createScene(sprites: Sprites): Scene {
   let bump = 0;
   let pulse = 0;
 
-  const launch = (what: What, from: Point, to: Point, bucket: boolean): void => {
-    flyers.push({ what, from, to, life: 0, seconds: bucket ? FLY_SECONDS : 0.9, bucket, weight: bucket ? weightOf(what) : 0 });
+  const launch = (what: What, from: Point, to: Point, bucket: boolean, delay = 0): void => {
+    flyers.push({ what, from, to, life: -delay, seconds: bucket ? FLY_SECONDS : 0.9, bucket, weight: bucket ? weightOf(what) : 0 });
   };
 
   return {
     observe(events) {
+      // Out of a net, the sum is said once rather than a "+3" for every fish.
+      const netted = events.some((event) => event.type === 'netted');
       for (const event of events) {
         if (event.type === 'level') {
           banner = { title: event.retry ? 'Try again!' : event.level.title, life: 0 };
@@ -112,24 +122,36 @@ export function createScene(sprites: Sprites): Scene {
         const world = model.world;
         const x = hookX(world);
         const place = placeOf(world);
-        const above = rigPoint(place, { x: RIG.pivot.x, y: RIG.fisherman.y - 30 });
+        // Words rise over open water: out past the line, or behind the boat when
+        // it is too near the timer for that. The fish fly the other way, to the bucket.
+        const ahead = x + FLOAT_BESIDE;
+        const above = { x: ahead <= FLOAT_RIGHT ? ahead : Math.max(FLOAT_LEFT, world.boat.x - 280), y: BAY.surfaceY - 100 };
         switch (event.type) {
           case 'cast':
             splashes.push({ at: { x, y: BAY.surfaceY + 4 }, life: 0, size: 20 });
             break;
           case 'caught': {
             const species = speciesOfWeight(event.weight);
-            if (species) launch({ kind: 'fish', species }, { x, y: BAY.surfaceY - 30 }, bucketMouth(place), true);
-            floats.push({ text: `+${event.weight}`, at: above, life: 0 });
-            splashes.push({ at: { x, y: BAY.surfaceY }, life: 0, size: 26 });
+            const from = { x: x + (event.order % 2 === 1 ? -1 : 1) * 24 * Math.ceil(event.order / 2), y: BAY.surfaceY - 30 };
+            if (species) launch({ kind: 'fish', species }, from, bucketMouth(place), true, event.order * NET_STAGGER);
+            if (!netted) floats.push({ text: `+${event.weight}`, at: above, life: 0 });
+            if (event.order === 0) splashes.push({ at: { x, y: BAY.surfaceY }, life: 0, size: 26 });
+            break;
+          }
+          case 'netted': {
+            const sum = event.weights.reduce((acc, weight) => acc + weight, 0);
+            floats.push({ text: `${event.weights.join(' + ')} = ${sum}`, at: above, life: 0 });
             break;
           }
           case 'item':
             floats.push({ text: ITEMS[event.item].says, at: above, life: 0 });
             break;
           case 'saved': {
-            const species = speciesOfWeight(event.weight);
-            if (species) launch({ kind: 'fish', species }, { x, y: BAY.surfaceY - 30 }, { x: x + 120, y: BAY.surfaceY + 120 }, false);
+            event.weights.forEach((weight, index) => {
+              const species = speciesOfWeight(weight);
+              const to = { x: x + 120 + index * 50, y: BAY.surfaceY + 120 + index * 30 };
+              if (species) launch({ kind: 'fish', species }, { x, y: BAY.surfaceY - 30 }, to, false, index * 0.1);
+            });
             floats.push({ text: `Too heavy! Back you go!`, at: above, life: 0 });
             break;
           }
@@ -182,8 +204,7 @@ export function createScene(sprites: Sprites): Scene {
       // The physics the child feels: weight on the line pulls the boat over,
       // a fuller bucket sits it lower in the water.
       const world = next.world;
-      const on = hooked(world);
-      const drag = on ? dragOf(on.what) : 0;
+      const drag = lineDrag(world);
       const share = Math.min(1, total(world) / Math.max(1, world.def.capacity));
       lean.target = drag * LEAN_PER_WEIGHT + (world.hook.state === 'dropping' ? 0.02 : 0) + Math.sin(clock * 1.3) * 0.018;
       sink.target = 4 + share * 14 + drag * 1.2;
@@ -209,7 +230,6 @@ export function createScene(sprites: Sprites): Scene {
       drawWater(ctx, bounds, clock, sprites);
       drawBuoy(ctx, sprites, 1110, clock);
 
-      const on = hooked(world);
       for (const part of ['body', 'tag'] as const) {
         for (const swimmer of world.swimmers) {
           if (swimmer.hooked) continue;
@@ -226,9 +246,16 @@ export function createScene(sprites: Sprites): Scene {
 
       if (!capsized) {
         const tip = rigPoint(place, { x: RIG.rodTip.x, y: RIG.rodTip.y - hop });
-        drawLine(ctx, tip, { x, y: world.hook.y - 14 }, on ? dragOf(on.what) / 8 : 0, clock);
-        drawHook(ctx, { x, y: world.hook.y }, world.net);
-        if (on) drawCreature(ctx, sprites, { what: on.what, at: on, dir: on.dir, hooked: true, clock, phase: on.phase });
+        drawLine(ctx, tip, { x, y: world.hook.y - 14 }, lineDrag(world) / 8, clock);
+        const haul = onLine(world);
+        // Holding a net, the next cast is the net's: it hangs from the rod ready.
+        const net = world.hook.net || (world.nets > 0 && world.hook.state === 'ready');
+        // A net goes behind what it scooped, so every number can be read; a hook goes in front.
+        if (net) drawHook(ctx, sprites, { x, y: world.hook.y }, true, world.hook.state);
+        for (const part of ['body', 'tag'] as const) {
+          for (const on of haul) drawCreature(ctx, sprites, { what: on.what, at: on, dir: on.dir, hooked: true, clock, phase: on.phase, part });
+        }
+        if (!net) drawHook(ctx, sprites, { x, y: world.hook.y }, false, world.hook.state);
       }
       // The bucket counts a fish when it lands in it, not while it is in the air.
       const flying = flyers.filter((flyer) => flyer.bucket && flyer.life < flyer.seconds);
@@ -260,13 +287,13 @@ export function createScene(sprites: Sprites): Scene {
         // Beside the bucket, out past the stern, so it never sits on the line under the title.
         drawGap(ctx, world.def.capacity - shown, onScreen(rigPoint(place, bucketLocal({ x: -62, y: 70 })), bounds, 70, 70));
       }
-      drawHeld(ctx, sprites, world.fast, world.saves, world.net);
+      drawHeld(ctx, sprites, world.fast, world.saves, world.nets);
       drawTopBar(ctx, coachLine(current));
       if (banner) drawArrivingBanner(ctx, banner.title, banner.life / TIMING.introSeconds, TIMING.introSettleFraction, LAYOUT.titleY);
 
       const playing = playingPhase(current);
       const beckon = current.level.coach && world.sailed > 0 && world.casts === 0 ? (clock * 1.2) % 1 : 0;
-      drawHookButton(ctx, playing && world.hook.state === 'ready', beckon);
+      drawHookButton(ctx, sprites, playing && world.hook.state === 'ready', beckon, world.nets > 0);
 
       for (const flyer of flyers) {
         if (flyer.life < 0) continue;
@@ -329,11 +356,11 @@ function onScreen(at: Point, bounds: Bounds, margin: number, lift = 0): Point {
 const playingPhase = (model: SceneModel): boolean => model.phase === 'intro' || model.phase === 'fishing';
 
 /** The things held, in a row under the timer: what the potions and the net have given. */
-function drawHeld(ctx: CanvasRenderingContext2D, sprites: Sprites, fast: boolean, saves: number, net: boolean): void {
+function drawHeld(ctx: CanvasRenderingContext2D, sprites: Sprites, fast: boolean, saves: number, nets: number): void {
   const held: ItemId[] = [];
   if (fast) held.push('speed-potion');
   for (let save = 0; save < saves; save += 1) held.push('health-potion');
-  if (net) held.push('net');
+  for (let net = 0; net < nets; net += 1) held.push('net');
   const y = LAYOUT.timer.y + TIMER.height * LAYOUT.timer.scale + 56;
   const right = LAYOUT.timer.x + TIMER.width * LAYOUT.timer.scale;
   held.forEach((item, index) => drawItemIcon(ctx, sprites, item, { x: right - 20 - index * 44, y }, 40));

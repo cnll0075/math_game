@@ -1,6 +1,6 @@
 import { hand, type Bounds, type Point } from '@bundle/core';
 import { ITEMS, SPECIES, weightColour, type ItemId, type SpeciesId } from '../logic/species.js';
-import { BAY, sizeOf, type What } from '../logic/world.js';
+import { BAY, sizeOf, type HookState, type What } from '../logic/world.js';
 import { BUCKET, LAYOUT, RIG, TIMER, type RigPlace } from './geometry.js';
 import type { Sprites } from './sprites.js';
 
@@ -429,18 +429,35 @@ export function drawLine(ctx: CanvasRenderingContext2D, from: Point, to: Point, 
   ctx.restore();
 }
 
-/** The hook: a silver J under a red and white float weight. Wider when the net is on. */
-export function drawHook(ctx: CanvasRenderingContext2D, at: Point, net: boolean): void {
+/** How far round the net it scoops, drawn as a ring so a child can see what it will bring up. */
+export const SCOOP_RING = 92;
+
+/**
+ * The hook: a silver J under a red and white float weight. Holding a net, the
+ * net hangs there instead, in a ring showing how much it scoops.
+ */
+export function drawHook(ctx: CanvasRenderingContext2D, sprites: Sprites, at: Point, net: boolean, state: HookState): void {
   ctx.save();
   ctx.translate(at.x, at.y);
+  if (net && state === 'reeling') {
+    drawItemIcon(ctx, sprites, 'net', { x: -10, y: 18 }, 74);
+    ctx.restore();
+    return;
+  }
   if (net) {
-    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
-    ctx.setLineDash?.([6, 6]);
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = state === 'dropping' ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.5)';
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    ctx.setLineDash?.([8, 7]);
+    ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.arc(0, 10, 44, 0, TAU);
+    ctx.arc(0, 10, SCOOP_RING, 0, TAU);
+    ctx.fill();
     ctx.stroke();
     ctx.setLineDash?.([]);
+    // The hoop on the hook, the handle trailing up the line.
+    drawItemIcon(ctx, sprites, 'net', { x: -10, y: 18 }, 74);
+    ctx.restore();
+    return;
   }
   ctx.fillStyle = '#e8543f';
   ctx.beginPath();
@@ -641,8 +658,8 @@ export function drawTimer(ctx: CanvasRenderingContext2D, sprites: Sprites, model
   ctx.restore();
 }
 
-/** The big round button that drops the hook. */
-export function drawHookButton(ctx: CanvasRenderingContext2D, ready: boolean, beckon: number): void {
+/** The big round button that drops the hook, or the net when one is held. */
+export function drawHookButton(ctx: CanvasRenderingContext2D, sprites: Sprites, ready: boolean, beckon: number, net: boolean): void {
   const { x, y, r } = LAYOUT.hookButton;
   ctx.save();
   if (beckon > 0) {
@@ -660,6 +677,11 @@ export function drawHookButton(ctx: CanvasRenderingContext2D, ready: boolean, be
   ctx.arc(x, y, r, 0, TAU);
   ctx.fill();
   ctx.stroke();
+  if (net) {
+    drawItemIcon(ctx, sprites, 'net', { x, y }, r * 1.45);
+    ctx.restore();
+    return;
+  }
   ctx.strokeStyle = INK;
   ctx.lineWidth = 8;
   ctx.lineCap = 'round';

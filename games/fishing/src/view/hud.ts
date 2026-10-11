@@ -35,7 +35,7 @@ export function drawFloat(ctx: CanvasRenderingContext2D, text: string, at: Point
   if (progress >= 1) return;
   ctx.save();
   ctx.globalAlpha = progress > 0.7 ? (1 - progress) / 0.3 : 1;
-  label(ctx, text, at.x, at.y - progress * 60, text.length > 4 ? 30 : 46, 'center');
+  label(ctx, text, at.x, at.y - progress * 60, text.length > 4 ? 34 : 46, 'center');
   ctx.restore();
 }
 

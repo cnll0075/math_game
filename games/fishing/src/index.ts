@@ -8,7 +8,7 @@ import type { StarBook } from './logic/stars.js';
 import type { WorldState } from './logic/world.js';
 import { createFishingSoundPack } from './audio/fishing-sounds.js';
 import { createInput } from './view/input.js';
-import { createScene, FLY_SECONDS } from './view/scene.js';
+import { createScene, FLY_SECONDS, NET_STAGGER } from './view/scene.js';
 import { loadSprites } from './view/sprites.js';
 import { TIMING } from './view/timing.js';
 
@@ -101,7 +101,7 @@ export const fishingGame: FishingModule = {
             sounds.play('reel', { step: event.weight });
             break;
           case 'caught':
-            sounds.play('caught', { delay: FLY_SECONDS * 0.9, step: event.weight });
+            sounds.play('caught', { delay: FLY_SECONDS * 0.9 + event.order * NET_STAGGER, step: event.weight });
             break;
           case 'item':
             sounds.play(ITEM_SOUNDS[event.item]);

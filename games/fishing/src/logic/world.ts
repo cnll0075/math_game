@@ -47,8 +47,12 @@ export const PHYSICS = {
   boatLoadSlowdown: 0.35,
   /** Slack around a fish the hook can still catch it in. */
   hookPad: 14,
-  /** And with the net. */
+  /** A net touches something from further away than the hook, */
   netPad: 44,
+  /** and once it has, scoops up everything this near as well. */
+  scoopPad: 64,
+  /** A net full of fish reels no slower than this much weight on the line. */
+  heaviestHaul: 10,
   /** Where the hook rests, just in the water. */
   restY: 297,
   /** A caught fish is replaced by another of its kind after this long. */
@@ -85,8 +89,10 @@ export type HookState = 'ready' | 'dropping' | 'reeling';
 export interface Hook {
   state: HookState;
   y: number;
-  /** The id of whatever is on it. */
-  catch: number | null;
+  /** The ids of whatever is on it: one thing on the hook, any number in the net. */
+  catch: number[];
+  /** This cast is the net's: it scoops up everything near what it touches. */
+  net: boolean;
 }
 
 /** `stuck` is a gap nothing in the bay can fill, said at once rather than waited out. */
@@ -109,8 +115,8 @@ export interface WorldState {
   fast: boolean;
   /** Health potions held: each one throws back a fish that would tip the boat. */
   saves: number;
-  /** Caught the net: the hook catches from further away for the rest of the level. */
-  net: boolean;
+  /** Nets held: the next cast is the net's, and scoops up a bunch at once. */
+  nets: number;
   outcome: Outcome | null;
   /** How many times the player has sailed and cast, for the coach. */
   sailed: number;
@@ -119,13 +125,17 @@ export interface WorldState {
 
 export type WorldEvent =
   | { type: 'cast' }
-  | { type: 'hooked'; what: What; weight: number }
+  /** `weight` is everything on the line together; `count` is more than one in a net. */
+  | { type: 'hooked'; what: What; weight: number; count: number }
   | { type: 'empty' }
   | { type: 'reel'; weight: number }
-  | { type: 'caught'; weight: number; total: number }
+  /** One fish into the bucket. Out of a net they go in one after another: `order` counts them. */
+  | { type: 'caught'; weight: number; total: number; order: number }
+  /** A net came up with more than one fish: what they weigh, and the bucket after. */
+  | { type: 'netted'; weights: number[]; total: number }
   | { type: 'item'; item: ItemId }
-  /** A health potion threw back a fish that would have tipped the boat. */
-  | { type: 'saved'; weight: number; total: number }
+  /** A health potion threw back the catch that would have tipped the boat: a fish, or a whole net. */
+  | { type: 'saved'; weights: number[]; total: number }
   | { type: 'full'; total: number }
   | { type: 'capsized'; total: number }
   | { type: 'stuck'; total: number; gap: number }
@@ -153,10 +163,11 @@ export function sizeOf(what: What): { length: number; height: number } {
 
 const gaitOf = (what: What): Gait => (what.kind === 'fish' ? SPECIES[what.species].gait : ITEMS[what.item].gait);
 
-/** How fast the line comes in with this on the end. */
-export function reelSpeed(state: WorldState, what: What | null): number {
-  if (!what) return PHYSICS.emptySpeed;
-  const heaviness = (dragOf(what) - 1) / 9;
+/** How fast the line comes in with this on the end, or this much weight. */
+export function reelSpeed(state: WorldState, what: What | number | null): number {
+  if (what === null || what === 0) return PHYSICS.emptySpeed;
+  const drag = typeof what === 'number' ? what : dragOf(what);
+  const heaviness = (drag - 1) / 9;
   const speed = PHYSICS.reelLight * Math.pow(PHYSICS.reelHeavy / PHYSICS.reelLight, heaviness);
   return speed * (state.fast ? 2 : 1);
 }
@@ -167,8 +178,19 @@ export const hookX = (state: WorldState): number => state.boat.x + BAY.rodReach;
 /** Where the hook is heading: over where the boat is sailing to. */
 export const hookTarget = (state: WorldState): number => state.boat.target + BAY.rodReach;
 
-export const hooked = (state: WorldState): Swimmer | null =>
-  state.hook.catch === null ? null : state.swimmers.find((swimmer) => swimmer.id === state.hook.catch) ?? null;
+/** Everything on the line, the first thing it touched first. */
+export const onLine = (state: WorldState): Swimmer[] =>
+  state.hook.catch.flatMap((id) => state.swimmers.find((swimmer) => swimmer.id === id) ?? []);
+
+/** How heavy the line is to wind in: a net of fish together, up to a point. */
+export const lineDrag = (state: WorldState): number =>
+  Math.min(PHYSICS.heaviestHaul, onLine(state).reduce((sum, swimmer) => sum + dragOf(swimmer.what), 0));
+
+/** Where something in the net hangs, from the hook: side by side, so every number can be read. */
+export const inNet = (index: number): { x: number; y: number } => {
+  const step = Math.ceil(index / 2);
+  return { x: (index % 2 === 1 ? -1 : 1) * 48 * step, y: 16 * step };
+};
 
 const between = (rng: Rng, [low, high]: readonly [number, number]): number => low + (high - low) * rng.next();
 
@@ -211,12 +233,12 @@ export function createWorld(def: LevelDef, options: WorldOptions = {}): World {
     timeLeft: def.seconds,
     running: false,
     boat: { x: 576 - BAY.rodReach, target: 576 - BAY.rodReach },
-    hook: { state: 'ready', y: PHYSICS.restY, catch: null },
+    hook: { state: 'ready', y: PHYSICS.restY, catch: [], net: false },
     swimmers: [],
     bucket: [...(def.start ?? [])],
     fast: false,
     saves: 0,
-    net: false,
+    nets: 0,
     outcome: null,
     sailed: 0,
     casts: 0,
@@ -245,9 +267,8 @@ export function createWorld(def: LevelDef, options: WorldOptions = {}): World {
     state.swimmers = state.swimmers.filter((swimmer) => swimmer.id !== id);
   };
 
-  const touching = (swimmer: Swimmer, x: number, y: number): boolean => {
+  const touching = (swimmer: Swimmer, x: number, y: number, pad: number): boolean => {
     const { length, height } = sizeOf(swimmer.what);
-    const pad = state.net ? PHYSICS.netPad : PHYSICS.hookPad;
     // The body, not the picture's corners: fins and claws stick out past it.
     const dx = (x - swimmer.x) / (length * 0.42 + pad);
     const dy = (y - swimmer.y) / (height * 0.38 + pad);
@@ -255,46 +276,51 @@ export function createWorld(def: LevelDef, options: WorldOptions = {}): World {
   };
 
   const land = (events: WorldEvent[]): void => {
-    const swimmer = hooked(state);
-    state.hook = { state: 'ready', y: PHYSICS.restY, catch: null };
-    if (!swimmer) return;
-    remove(swimmer.id);
-    const what = swimmer.what;
-    if (what.kind === 'item') {
+    const haul = onLine(state);
+    state.hook = { state: 'ready', y: PHYSICS.restY, catch: [], net: false };
+    for (const swimmer of haul) remove(swimmer.id);
+    for (const { what } of haul) {
+      if (what.kind !== 'item') continue;
       if (what.item === 'speed-potion') state.fast = true;
       if (what.item === 'health-potion') state.saves += 1;
-      if (what.item === 'net') state.net = true;
+      if (what.item === 'net') state.nets += 1;
       if (what.item === 'bonus-time') state.timeLeft += BONUS_SECONDS;
       events.push({ type: 'item', item: what.item });
-      return;
     }
-    respawns.push({ at: state.time + PHYSICS.respawnSeconds, species: what.species });
-    const weight = SPECIES[what.species].weight;
-    if (total(state) + weight > def.capacity && state.saves > 0) {
-      // The health potion: the fish that would tip the boat jumps back in.
+    const weights = haul.flatMap(({ what }) => (what.kind === 'fish' ? [SPECIES[what.species].weight] : []));
+    for (const { what } of haul) if (what.kind === 'fish') respawns.push({ at: state.time + PHYSICS.respawnSeconds, species: what.species });
+    if (weights.length === 0) return;
+    const after = total(state) + weights.reduce((sum, weight) => sum + weight, 0);
+    if (after > def.capacity && state.saves > 0) {
+      // The health potion: the catch that would tip the boat jumps back in.
       state.saves -= 1;
-      events.push({ type: 'saved', weight, total: total(state) + weight });
+      events.push({ type: 'saved', weights, total: after });
       return;
     }
-    state.bucket.push(weight);
-    const sum = total(state);
-    events.push({ type: 'caught', weight, total: sum });
-    if (sum === def.capacity) {
+    if (weights.length > 1) events.push({ type: 'netted', weights, total: after });
+    weights.forEach((weight, order) => {
+      state.bucket.push(weight);
+      events.push({ type: 'caught', weight, total: total(state), order });
+    });
+    if (after === def.capacity) {
       state.outcome = 'full';
-      events.push({ type: 'full', total: sum });
-    } else if (sum > def.capacity) {
+      events.push({ type: 'full', total: after });
+    } else if (after > def.capacity) {
       state.outcome = 'capsized';
-      events.push({ type: 'capsized', total: sum });
-    } else if (!reachable(def.capacity - sum, weightsIn(def))) {
+      events.push({ type: 'capsized', total: after });
+    } else if (!reachable(def.capacity - after, weightsIn(def))) {
       state.outcome = 'stuck';
-      events.push({ type: 'stuck', total: sum, gap: def.capacity - sum });
+      events.push({ type: 'stuck', total: after, gap: def.capacity - after });
     }
   };
 
   const dropHook = (): WorldEvent[] => {
     // Casting stops the boat where it is: the hook goes down here, now.
     state.boat.target = state.boat.x;
-    state.hook = { state: 'dropping', y: PHYSICS.restY, catch: null };
+    // Holding a net, this cast is the net's.
+    const net = state.nets > 0;
+    if (net) state.nets -= 1;
+    state.hook = { state: 'dropping', y: PHYSICS.restY, catch: [], net };
     state.casts += 1;
     return [{ type: 'cast' }];
   };
@@ -350,30 +376,40 @@ export function createWorld(def: LevelDef, options: WorldOptions = {}): World {
       const x = hookX(state);
       // The first thing the hook meets is the thing it catches: the topmost.
       const hit = state.swimmers
-        .filter((swimmer) => !swimmer.hooked && touching(swimmer, x, hook.y))
+        .filter((swimmer) => !swimmer.hooked && touching(swimmer, x, hook.y, hook.net ? PHYSICS.netPad : PHYSICS.hookPad))
         .sort((a, b) => a.y - b.y)[0];
       if (hit) {
-        hit.hooked = true;
-        hook.catch = hit.id;
+        // A net scoops up everything near what it touched as well.
+        const scooped = hook.net
+          ? state.swimmers.filter((swimmer) => swimmer !== hit && !swimmer.hooked && touching(swimmer, x, hit.y, PHYSICS.scoopPad))
+          : [];
+        const haul = [hit, ...scooped];
+        for (const swimmer of haul) swimmer.hooked = true;
+        hook.catch = haul.map((swimmer) => swimmer.id);
         hook.state = 'reeling';
         reeled = 0;
-        events.push({ type: 'hooked', what: hit.what, weight: weightOf(hit.what) });
+        const weight = haul.reduce((sum, swimmer) => sum + weightOf(swimmer.what), 0);
+        events.push({ type: 'hooked', what: hit.what, weight, count: haul.length });
       } else if (hook.y >= BAY.floorY - 12) {
         hook.y = BAY.floorY - 12;
         hook.state = 'reeling';
         events.push({ type: 'empty' });
       }
     } else if (hook.state === 'reeling') {
-      const swimmer = hooked(state);
-      const distance = reelSpeed(state, swimmer?.what ?? null) * dt;
+      const haul = onLine(state);
+      const drag = lineDrag(state);
+      const distance = reelSpeed(state, drag) * dt;
       hook.y -= distance;
-      if (swimmer) {
-        swimmer.x = hookX(state);
-        swimmer.y = hook.y + sizeOf(swimmer.what).length * 0.4;
+      haul.forEach((swimmer, index) => {
+        const offset = inNet(index);
+        swimmer.x = hookX(state) + offset.x;
+        swimmer.y = hook.y + sizeOf(swimmer.what).length * 0.4 + offset.y;
+      });
+      if (haul.length > 0) {
         reeled += distance;
         while (reeled >= PHYSICS.reelClickPixels) {
           reeled -= PHYSICS.reelClickPixels;
-          events.push({ type: 'reel', weight: dragOf(swimmer.what) });
+          events.push({ type: 'reel', weight: drag });
         }
       }
       if (hook.y <= PHYSICS.restY) land(events);

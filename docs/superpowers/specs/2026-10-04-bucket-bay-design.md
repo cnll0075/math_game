@@ -79,8 +79,8 @@ Items weigh nothing in the bucket. They are reeled up like a catch.
 | Item | What it does |
 | --- | --- |
 | **Speed Potion** | Every catch for the rest of the level reels twice as fast |
-| **Health Potion** | Kept, and shown under the bucket. The next fish that would tip the boat jumps back into the sea instead |
-| **Net** | The hook catches from further away for the rest of the level |
+| **Health Potion** | Kept, and shown under the timer. The next catch that would tip the boat — a fish, or a whole net — jumps back into the sea instead |
+| **Net** | Kept, and shown on the hook button. The next cast drops the net instead of the hook, in a ring showing its reach: it scoops up the first thing it touches and everything near it, and they go into the bucket together — `2 + 1 + 1 = 4`. A net can fill the bucket in one go, or tip the boat. It reels as slowly as its weight, but never slower than a 10 |
 | **Bonus Time** | Ten more seconds |
 | **Treasure** | Sits on the sand. Weighs nothing, and is heavy to wind up: shiny, and a waste of time, like the rocks in Gold Miner |
 
@@ -122,15 +122,17 @@ the hook button once the boat has moved.
 | 6 | Crab Walk | 14 | 1, 4, 6 | crabs; treasure |
 | 7 | Life Saver | 10 | 2, 4, 6, 8 | health potion |
 | 8 | Puffer Party | 15 | 3, 4, 9 | |
-| 9 | Swordfish! | 14 | 1, 2, 7 | net |
+| 9 | Swordfish! | 14 | 1, 2, 7 | net: one cast scoops a bunch |
 | 10 | Half Full | 16, 8 already in | 2, 3, 5, 6 | a bucket that starts part full |
 | 11 | Jellyfish | 20 | 1, 2, 10 | |
 | 12 | Busy Sea | 18 | 1, 3, 4, 6, 8 | everything at once |
 | 13 | Big Haul | 25 | 1, 2, 5, 7, 9, 10 | the big one |
 
-The clocks are 25 to 50 seconds. Each is about one and a half times what a
-child who plans well would take — reckoned as the bot's time plus a few seconds
-of thinking and aiming per catch — so the clock is felt without being cruel.
+The clocks are 20 to 35 seconds. Each is about one and a half times what a
+child who plans well would take without any items — reckoned as the bot's time
+plus three seconds of thinking and aiming per catch — so three stars never
+needs an item, but the clock is felt, and a potion or a coin is worth the
+detour.
 
 ## Structure
 

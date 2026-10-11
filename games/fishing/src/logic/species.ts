@@ -76,7 +76,7 @@ export const ITEMS: Readonly<Record<ItemId, Item>> = {
     id: 'health-potion', name: 'Health Potion', says: 'Safe from tipping!', drag: 0, gait: 'drift',
     speed: [16, 28], depth: [0.15, 0.7], aspect: 1.42, length: 50,
   },
-  net: { id: 'net', name: 'Net', says: 'Bigger catch!', drag: 0, gait: 'drift', speed: [16, 28], depth: [0.15, 0.7], aspect: 1.12, length: 62 },
+  net: { id: 'net', name: 'Net', says: 'Next cast scoops a bunch!', drag: 0, gait: 'drift', speed: [16, 28], depth: [0.15, 0.7], aspect: 1.12, length: 62 },
   'bonus-time': {
     id: 'bonus-time', name: 'Bonus Time', says: '+10 seconds!', drag: 0, gait: 'drift',
     speed: [16, 28], depth: [0.15, 0.7], aspect: 1.08, length: 56,

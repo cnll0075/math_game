@@ -1,7 +1,7 @@
 import { hand, type Bounds, type Point } from '@bundle/core';
 import { ITEMS, SPECIES, weightColour, type ItemId, type SpeciesId } from '../logic/species.js';
 import { BAY, sizeOf, type What } from '../logic/world.js';
-import { across, BUCKET, DEPTH, LAYOUT, RIG, TIMER, type RigPlace } from './geometry.js';
+import { BUCKET, LAYOUT, RIG, TIMER, type RigPlace } from './geometry.js';
 import type { Sprites } from './sprites.js';
 
 const INK = '#1e2a38';
@@ -257,17 +257,14 @@ function drawBucketInBoat(ctx: CanvasRenderingContext2D, sprites: Sprites, model
 /**
  * The boat with the boy sitting in it and the bucket at the stern. The boy and
  * the bucket go between the hull and its near wall, so they are in the boat
- * rather than in front of it. The whole rig leans together, and turning round
- * it swings through depth: narrower across, the far end higher, as a boat on
- * water seen from a little above would.
+ * rather than in front of it. The whole rig leans together.
  */
 export function drawRig(ctx: CanvasRenderingContext2D, sprites: Sprites, pose: RigPose, clock: number): void {
   const { place } = pose;
   const s = RIG.scale;
   ctx.save();
   ctx.translate(place.x, BAY.surfaceY + place.sink);
-  ctx.rotate(place.angle * Math.cos(place.swing));
-  ctx.transform(across(place.swing), -Math.sin(place.swing) * DEPTH, 0, 1, 0, 0);
+  ctx.rotate(place.angle);
   ctx.scale(s, s);
   ctx.translate(-RIG.pivot.x, -RIG.pivot.y);
   drawHull(ctx, sprites.boat, false);
@@ -281,24 +278,11 @@ export function drawRig(ctx: CanvasRenderingContext2D, sprites: Sprites, pose: R
   ctx.restore();
 }
 
-/**
- * The water the boat disturbs: rings spreading round the hull while it turns,
- * and a V of wake trailing from the stern while it sails.
- */
-export function drawWake(ctx: CanvasRenderingContext2D, x: number, swing: number, sailing: number, clock: number): void {
+/** The water the boat disturbs: a V of wake trailing behind it while it sails. */
+export function drawWake(ctx: CanvasRenderingContext2D, x: number, sailing: number, clock: number): void {
   ctx.save();
   ctx.strokeStyle = 'rgba(255,255,255,0.75)';
   ctx.lineWidth = 3;
-  const turning = Math.sin(swing);
-  if (turning > 0.02) {
-    for (let ring = 0; ring < 3; ring += 1) {
-      const grow = (clock * 1.4 + ring / 3) % 1;
-      ctx.globalAlpha = turning * (1 - grow);
-      ctx.beginPath();
-      ctx.ellipse?.(x, BAY.surfaceY + 6, 120 + grow * 90, 12 + grow * 10, 0, 0, TAU);
-      ctx.stroke();
-    }
-  }
   if (sailing !== 0) {
     // Behind the stern, opening out the way the boat has come from.
     const behind = -Math.sign(sailing);

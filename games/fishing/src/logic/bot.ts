@@ -1,5 +1,5 @@
 import { reachable, weightsIn } from './reach.js';
-import { BAY, hookX, PHYSICS, turning, sizeOf, total, weightOf, type Swimmer, type World, type WorldState } from './world.js';
+import { BAY, hookX, PHYSICS, sizeOf, total, weightOf, type Swimmer, type World, type WorldState } from './world.js';
 
 /**
  * A player that never misreads a number, for the tests that guard the levels
@@ -72,7 +72,7 @@ export function botTurn(world: World, policy: Policy): void {
     .filter((choice) => weight(choice) === best)
     .sort((a, b) => Math.abs(a.x - hookX(state)) - Math.abs(b.x - hookX(state)))[0]!;
 
-  if (Math.abs(target.x - hookX(state)) <= 8 && !turning(state)) {
+  if (Math.abs(target.x - hookX(state)) <= 8) {
     const first = firstCatch(state, hookX(state));
     // Something too heavy in the way: wait for it to pass rather than tip the boat.
     if (first && first.what.kind === 'fish' && !reachable(room - weightOf(first.what), weightsIn(state.def))) return;

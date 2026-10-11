@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { LevelDef } from './levels.data.js';
 import type { ItemId, SpeciesId } from './species.js';
-import { BAY, createWorld, hookX, PHYSICS, turning, reelSpeed, total, type What, type World, type WorldEvent } from './world.js';
+import { BAY, createWorld, hookX, PHYSICS, reelSpeed, total, type What, type World, type WorldEvent } from './world.js';
 
 const DEF: LevelDef = {
   id: 'test',
@@ -89,50 +89,24 @@ describe('the hook', () => {
     expect(hookX(world.state)).toBe(x);
   });
 
-  it('sails the hook to where the finger went, turning the boat to face it', () => {
+  it('sails the hook to where the finger went, the boat always facing right', () => {
     const world = bay();
     world.sail(900);
     world.step(5);
-    expect(world.state.boat.facing).toBe(1);
     expect(hookX(world.state)).toBeCloseTo(900);
-    world.sail(200);
-    expect(world.state.boat.facing).toBe(-1);
+    world.sail(300);
     world.step(5);
-    expect(hookX(world.state)).toBeCloseTo(200);
-    // Facing left, the hull is to the right of the hook: on the screen.
-    expect(world.state.boat.x).toBeGreaterThan(200);
+    expect(hookX(world.state)).toBeCloseTo(300);
+    expect(world.state.boat.x).toBeCloseTo(300 - BAY.rodReach);
   });
 
-  it('takes a moment to turn round, swinging the hook across with it', () => {
-    const world = bay();
-    const start = hookX(world.state);
-    world.sail(100);
-    expect(world.state.boat.facing).toBe(-1);
-    world.step(PHYSICS.turnSeconds / 2);
-    expect(turning(world.state)).toBe(true);
-    // Halfway round, the rod is over the middle of the hull, not yet on the far side.
-    expect(Math.abs(hookX(world.state) - world.state.boat.x)).toBeLessThan(BAY.rodReach * 0.3);
-    world.step(PHYSICS.turnSeconds / 2 + 0.05);
-    expect(turning(world.state)).toBe(false);
-    expect(hookX(world.state)).toBeLessThan(start);
-  });
-
-  it('drops the hook as soon as the boat has come round, when the button is tapped mid-turn', () => {
-    const world = bay();
-    world.sail(100);
-    world.step(0.1);
-    expect(world.cast()).toEqual([]);
-    expect(world.state.hook.state).toBe('ready');
-    const events = world.step(PHYSICS.turnSeconds);
-    expect(events).toContainEqual({ type: 'cast' });
-    expect(world.state.hook.state).toBe('dropping');
-  });
-
-  it('reaches nearly to either edge', () => {
+  it('reaches nearly to the right edge, and to the left with the hull half off the screen', () => {
     const world = bay();
     world.sail(-500);
     world.step(10);
     expect(hookX(world.state)).toBe(BAY.hookMin);
+    // Half the hull may slide off the left edge, and no further.
+    expect(world.state.boat.x).toBe(0);
     world.sail(5000);
     world.step(10);
     expect(hookX(world.state)).toBe(BAY.hookMax);

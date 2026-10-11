@@ -21,8 +21,7 @@ export const LAYOUT = {
  * The boat, the boy sitting in it and the bucket beside him, as one rig cut
  * from the board. In the rig's own pixels the boat (flipped, so the motor is
  * behind him and the bow ahead) has its top left at the origin; the boy and the
- * bucket are drawn between the hull and its near wall, so they are in it. All
- * of it is mirrored when the boat faces left.
+ * bucket are drawn between the hull and its near wall, so they are in it.
  */
 export const RIG = {
   scale: 1.25,
@@ -36,54 +35,29 @@ export const RIG = {
   pivot: { x: 110, y: 122 },
 } as const;
 
-/**
- * How much the far end of the boat rises as it turns away from us: the water is
- * seen from a little above, so turning round is a swing through depth, not a
- * flip on a card.
- */
-export const DEPTH = 0.32;
-
-/**
- * How wide the boat looks, across, as it swings round: the cosine of its swing,
- * but never thinner than a third. The pictures are flat, so seen truly end-on
- * the boat would be a sliver; held at a third and mirrored at the halfway mark,
- * with its far end lifted, it reads as the boat coming round rather than a card
- * flipping.
- */
-export function across(swing: number): number {
-  const cos = Math.cos(swing);
-  const side = cos > 0 || (cos === 0 && swing < Math.PI / 2) ? 1 : -1;
-  return side * Math.max(Math.abs(cos), 0.34);
-}
 
 export interface RigPlace {
   /** The middle of the hull. */
   x: number;
-  /** How far round it has turned: 0 facing right, π facing left. */
-  swing: number;
-  /** Lean, radians, towards the side the boat faces. */
+  /** Lean, radians, clockwise: towards the line over the bow. */
   angle: number;
   sink: number;
 }
 
 /** A point in rig pixels, in design pixels, for a boat placed and leaning so. */
 export function rigPoint(place: RigPlace, local: Point): Point {
-  const along = (local.x - RIG.pivot.x) * RIG.scale;
-  const up = (local.y - RIG.pivot.y) * RIG.scale;
-  // Swung round in depth: shorter across, and the far end higher.
-  const x = along * across(place.swing);
-  const y = up - along * Math.sin(place.swing) * DEPTH;
-  const angle = place.angle * Math.cos(place.swing);
-  const cos = Math.cos(angle);
-  const sin = Math.sin(angle);
+  const x = (local.x - RIG.pivot.x) * RIG.scale;
+  const y = (local.y - RIG.pivot.y) * RIG.scale;
+  const cos = Math.cos(place.angle);
+  const sin = Math.sin(place.angle);
   return { x: place.x + x * cos - y * sin, y: BAY.surfaceY + place.sink + x * sin + y * cos };
 }
 
 /** The boat, the boy and the bucket, for taps: a tap there casts. */
-export function onBoat(point: Point, boatX: number, swing: number): boolean {
-  const a = rigPoint({ x: boatX, swing, angle: 0, sink: 0 }, { x: RIG.bucket.x, y: RIG.fisherman.y });
-  const b = rigPoint({ x: boatX, swing, angle: 0, sink: 0 }, { x: RIG.boat.width, y: RIG.boat.height });
-  return point.x >= Math.min(a.x, b.x) && point.x <= Math.max(a.x, b.x) && point.y >= a.y && point.y <= b.y;
+export function onBoat(point: Point, boatX: number): boolean {
+  const a = rigPoint({ x: boatX, angle: 0, sink: 0 }, { x: RIG.bucket.x, y: RIG.fisherman.y });
+  const b = rigPoint({ x: boatX, angle: 0, sink: 0 }, { x: RIG.boat.width, y: RIG.boat.height });
+  return point.x >= a.x && point.x <= b.x && point.y >= a.y && point.y <= b.y;
 }
 
 /** Generous: small fingers miss by a lot. */

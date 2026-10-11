@@ -18,7 +18,7 @@ export function createInput(
   canvas: HTMLCanvasElement,
   scene: Scene,
   emit: (intent: Intent) => void,
-  current: () => { phase: Phase; boatX: number; swing: number },
+  current: () => { phase: Phase; boatX: number },
 ): InputHandle {
   /** The one finger being followed; a second finger is ignored. */
   let pressed: { pointerId: number; steering: boolean } | null = null;
@@ -38,11 +38,11 @@ export function createInput(
   const onPointerDown = (event: PointerEvent): void => {
     if (pressed && pressed.pointerId !== event.pointerId && !event.isPrimary) return;
     canvas.setPointerCapture?.(event.pointerId);
-    const { phase, boatX, swing } = current();
+    const { phase, boatX } = current();
     pressed = { pointerId: event.pointerId, steering: false };
     if (!playing(phase)) return;
     const at = designPoint(event);
-    if (onHookButton(at) || onBoat(at, boatX, swing)) {
+    if (onHookButton(at) || onBoat(at, boatX)) {
       emit({ kind: 'cast' });
       return;
     }

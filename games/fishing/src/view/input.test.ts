@@ -26,7 +26,7 @@ const pointer = (canvas: HTMLCanvasElement, type: string, x: number, y: number, 
 const setup = (phase: Phase = 'fishing', boatX = 500) => {
   const canvas = canvasOf(1152, 768);
   const intents: Intent[] = [];
-  const input = createInput(canvas, createScene(NO_SPRITES), (intent) => intents.push(intent), () => ({ phase, boatX, swing: 0 }));
+  const input = createInput(canvas, createScene(NO_SPRITES), (intent) => intents.push(intent), () => ({ phase, boatX }));
   return { canvas, intents, input };
 };
 

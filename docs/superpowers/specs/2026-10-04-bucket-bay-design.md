@@ -16,9 +16,9 @@ For ages 6–8. Totals up to 25.
 
 - **Tap the water** and the boat sails there. The hook hangs from the rod tip,
   and the rod tip goes exactly where the finger went, so "tap above the fish" is
-  all there is to aiming. The boat turns to face the way it sails, so the rod
-  is always out over that side and the hook reaches nearly to either edge with
-  the boat still on screen; half the boat may slide off an edge.
+  all there is to aiming. The boat always faces right, with the rod out over
+  the bow. To reach towards the left edge, half the hull slides off the screen,
+  and the bucket's count stays pinned on screen while it does.
 - **Tap the hook button** (bottom right), or the boat itself, to drop the hook.
   A finger held on the water and slid steers the boat.
   It falls straight down and grabs the **first thing it touches**, the way the

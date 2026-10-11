@@ -1,4 +1,4 @@
-import { createSpring, drawArrivingBanner, fitToScreen, visibleBounds, type Point, type Size } from '@bundle/core';
+import { createSpring, drawArrivingBanner, fitToScreen, visibleBounds, type Bounds, type Point, type Size } from '@bundle/core';
 import type { DriverEvent, SceneModel } from '../driver.js';
 import { ITEMS, speciesOfWeight, type ItemId } from '../logic/species.js';
 import { BAY, dragOf, hooked, hookX, total, weightOf, type What, type WorldState } from '../logic/world.js';
@@ -84,10 +84,8 @@ export function createScene(sprites: Sprites): Scene {
   /** Where the boat is drawn now, with any extra roll and sink a capsize adds. */
   const placeOf = (world: WorldState, roll = 0): RigPlace => ({
     x: world.boat.x,
-    swing: world.boat.swing,
     angle: lean.value + roll * roll * 2.6,
-    // The hull dips a little as it swings round, and settles as it comes about.
-    sink: sink.value + roll * 46 + Math.sin(world.boat.swing) * 6,
+    sink: sink.value + roll * 46,
   });
   const floats: Float[] = [];
   const splashes: Splash[] = [];
@@ -131,7 +129,7 @@ export function createScene(sprites: Sprites): Scene {
             break;
           case 'saved': {
             const species = speciesOfWeight(event.weight);
-            if (species) launch({ kind: 'fish', species }, { x, y: BAY.surfaceY - 30 }, { x: x + world.boat.facing * 120, y: BAY.surfaceY + 120 }, false);
+            if (species) launch({ kind: 'fish', species }, { x, y: BAY.surfaceY - 30 }, { x: x + 120, y: BAY.surfaceY + 120 }, false);
             floats.push({ text: `Too heavy! Back you go!`, at: above, life: 0 });
             break;
           }
@@ -241,11 +239,12 @@ export function createScene(sprites: Sprites): Scene {
       const bucket = { total: shown, capacity: world.def.capacity, bump, over: shown > world.def.capacity, fish };
       if (!capsized) {
         const sailing = Math.abs(world.boat.target - world.boat.x) > 1 ? Math.sign(world.boat.target - world.boat.x) : 0;
-        drawWake(ctx, world.boat.x, world.boat.swing, sailing, clock);
+        drawWake(ctx, world.boat.x, sailing, clock);
       }
       drawRig(ctx, sprites, { place, overboard, hop, bucket }, clock);
       drawSurface(ctx, bounds, clock);
-      if (!overboard) drawBucketCount(ctx, bucket, rigPoint(place, bucketLocal(BUCKET.label)));
+      // When the boat is half off the left edge, the count stays on the screen.
+      if (!overboard) drawBucketCount(ctx, bucket, onScreen(rigPoint(place, bucketLocal(BUCKET.label)), bounds, 60));
       if (overboard) {
         // Thrown off over the side the boat rolled towards.
         const beside = rigPoint({ ...place, angle: 0, sink: 0 }, { x: RIG.boat.width + 110, y: RIG.waterline });
@@ -259,7 +258,7 @@ export function createScene(sprites: Sprites): Scene {
       drawProgress(ctx, current.number, current.count, current.totalStars);
       if (world.def.showGap && playingPhase(current) && !capsized) {
         // Beside the bucket, out past the stern, so it never sits on the line under the title.
-        drawGap(ctx, world.def.capacity - shown, rigPoint(place, bucketLocal({ x: -62, y: 70 })));
+        drawGap(ctx, world.def.capacity - shown, onScreen(rigPoint(place, bucketLocal({ x: -62, y: 70 })), bounds, 70, 70));
       }
       drawHeld(ctx, sprites, world.fast, world.saves, world.net);
       drawTopBar(ctx, coachLine(current));
@@ -319,6 +318,12 @@ export function createScene(sprites: Sprites): Scene {
       return fitToScreen(screen).toDesign(point);
     },
   };
+}
+
+/** Kept inside the visible screen, `margin` from the left edge, `lift` higher when pushed. */
+function onScreen(at: Point, bounds: Bounds, margin: number, lift = 0): Point {
+  const left = bounds.left + margin;
+  return at.x >= left ? at : { x: left, y: at.y - lift };
 }
 
 const playingPhase = (model: SceneModel): boolean => model.phase === 'intro' || model.phase === 'fishing';

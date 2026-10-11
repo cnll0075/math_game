@@ -687,8 +687,8 @@ their weights; catch them until the bucket is **exactly** full before the
 stopwatch runs out. Gold Miner's hook, with arithmetic in the bucket.
 
 **Tap the water** and the boat sails there — the rod tip goes exactly where the
-finger went, and a finger slid along steers it. The boat turns to face the way
-it sails, so the hook reaches nearly to either edge. **Tap the hook button** (or the
+finger went, and a finger slid along steers it. The boat always faces right;
+to fish near the left edge, half of it slides off the screen. **Tap the hook button** (or the
 boat) and the hook drops straight down and grabs the first thing it touches,
 so a fish in the way is the fish you get. Arrow keys and space on a Mac.
 

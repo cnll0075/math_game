@@ -15,12 +15,14 @@ export const BAY = {
   swimBottom: 676,
   /** Where crabs walk and treasure rests. */
   sandY: 706,
-  /** How far the hook may reach: nearly to either edge. */
-  hookMin: 34,
+  /**
+   * How far the hook may reach. The boat always faces right with the rod out
+   * over the bow, so on the left the hull slides half off the screen to bring
+   * the hook as near the edge as it will go; on the right it reaches nearly to
+   * the edge with the whole boat in view.
+   */
+  hookMin: 174,
   hookMax: 1118,
-  /** How far the middle of the hull may go: half of it can slide off either side. */
-  boatMin: 0,
-  boatMax: 1152,
   /** From the middle of the hull out to the rod tip, which is over the bow. */
   rodReach: 174,
   /** Fish turn round once they are this far off either side. */
@@ -57,8 +59,6 @@ export const PHYSICS = {
   fleeSpeed: 300,
   /** The clock ticks out loud for the last few seconds. */
   tickFrom: 5,
-  /** How long the boat takes to turn round, end for end. */
-  turnSeconds: 0.75,
 } as const;
 
 export type What = { kind: 'fish'; species: SpeciesId } | { kind: 'item'; item: ItemId };
@@ -99,16 +99,8 @@ export interface WorldState {
   timeLeft: number;
   /** The clock does not run until the level has announced itself. */
   running: boolean;
-  /**
-   * The middle of the hull, where it is sailing to, and which way it means to
-   * face: the boat turns to face the way it sails, so the rod is always over
-   * the side the child tapped. `swing` is how far round it has turned, 0
-   * facing right to π facing left; it takes a moment, and the rod and the hook
-   * swing round with it.
-   */
-  boat: { x: number; target: number; facing: 1 | -1; swing: number };
-  /** The hook button was tapped mid-turn: it drops as soon as the boat has come round. */
-  castQueued: boolean;
+  /** The middle of the hull, and where it is sailing to. It always faces right. */
+  boat: { x: number; target: number };
   hook: Hook;
   swimmers: Swimmer[];
   /** Every weight in the bucket, in the order it went in. */
@@ -170,16 +162,10 @@ export function reelSpeed(state: WorldState, what: What | null): number {
 }
 
 /** The hook hangs from the rod tip, out over the side the boat faces. */
-export const hookX = (state: WorldState): number => state.boat.x + Math.cos(state.boat.swing) * BAY.rodReach;
-
-/** Where the boat is turning to: 0 facing right, π facing left. */
-const swingFor = (facing: 1 | -1): number => (facing === 1 ? 0 : Math.PI);
-
-/** Still coming round. */
-export const turning = (state: WorldState): boolean => state.boat.swing !== swingFor(state.boat.facing);
+export const hookX = (state: WorldState): number => state.boat.x + BAY.rodReach;
 
 /** Where the hook is heading: over where the boat is sailing to. */
-export const hookTarget = (state: WorldState): number => state.boat.target + state.boat.facing * BAY.rodReach;
+export const hookTarget = (state: WorldState): number => state.boat.target + BAY.rodReach;
 
 export const hooked = (state: WorldState): Swimmer | null =>
   state.hook.catch === null ? null : state.swimmers.find((swimmer) => swimmer.id === state.hook.catch) ?? null;
@@ -224,8 +210,7 @@ export function createWorld(def: LevelDef, options: WorldOptions = {}): World {
     time: 0,
     timeLeft: def.seconds,
     running: false,
-    boat: { x: 576 - BAY.rodReach, target: 576 - BAY.rodReach, facing: 1, swing: 0 },
-    castQueued: false,
+    boat: { x: 576 - BAY.rodReach, target: 576 - BAY.rodReach },
     hook: { state: 'ready', y: PHYSICS.restY, catch: null },
     swimmers: [],
     bucket: [...(def.start ?? [])],
@@ -308,7 +293,6 @@ export function createWorld(def: LevelDef, options: WorldOptions = {}): World {
 
   const dropHook = (): WorldEvent[] => {
     // Casting stops the boat where it is: the hook goes down here, now.
-    state.castQueued = false;
     state.boat.target = state.boat.x;
     state.hook = { state: 'dropping', y: PHYSICS.restY, catch: null };
     state.casts += 1;
@@ -356,11 +340,6 @@ export function createWorld(def: LevelDef, options: WorldOptions = {}): World {
       const move = Math.sign(gap) * Math.min(Math.abs(gap), speed * dt);
       state.boat.x += move;
 
-      const goal = swingFor(state.boat.facing);
-      const turn = state.boat.swing - goal;
-      const step = (Math.PI / PHYSICS.turnSeconds) * dt;
-      state.boat.swing = Math.abs(turn) <= step ? goal : state.boat.swing - Math.sign(turn) * step;
-      if (state.castQueued && !turning(state)) events.push(...dropHook());
     }
 
     for (const swimmer of state.swimmers) swim(swimmer, dt);
@@ -412,21 +391,13 @@ export function createWorld(def: LevelDef, options: WorldOptions = {}): World {
 
     sail(x) {
       if (state.outcome || state.hook.state !== 'ready') return [];
-      const want = Math.max(BAY.hookMin, Math.min(BAY.hookMax, x));
-      // Face the way it is going, so the rod reaches over that side.
-      if (want > state.boat.x + 1) state.boat.facing = 1;
-      else if (want < state.boat.x - 1) state.boat.facing = -1;
-      state.boat.target = Math.max(BAY.boatMin, Math.min(BAY.boatMax, want - state.boat.facing * BAY.rodReach));
+      state.boat.target = Math.max(BAY.hookMin, Math.min(BAY.hookMax, x)) - BAY.rodReach;
       state.sailed += 1;
       return [];
     },
 
     cast() {
       if (state.outcome || state.hook.state !== 'ready') return [];
-      if (turning(state)) {
-        state.castQueued = true;
-        return [];
-      }
       return dropHook();
     },
 

@@ -9,6 +9,8 @@ arithmetic is the mechanic rather than the subject:
   the sum on your fighter. One endless run on a tank of fuel.
 - **Bramble Dash** — a rabbit runs wearing a sum; three lanes come at it and
   exactly one wears the answer. Burst through that one.
+- **Bucket Bay** — fish wear their weights; fill the bucket exactly before the
+  clock runs out, and one fish too many tips the boat.
 
 ## Running it
 
@@ -82,6 +84,7 @@ games/seesaw/    the first game
   src/audio/     the seesaw's sound pack
 games/sky/       the second game, laid out the same way
 games/bramble/   the third, likewise
+games/fishing/   Bucket Bay, likewise, with its art in assets/
 packages/math/   the curriculum both number games share: bands, sums, traps
 docs/superpowers/specs/   design spec
 docs/superpowers/plans/   implementation plan
@@ -676,6 +679,52 @@ a child and the game. Tap it in mid-air and it spins and says "Ribbit!".
 `games/pond/src/logic/guards.test.ts` plays every board two ways. A bot with
 perfect memory that works every sum out must average at least 2.5 stars on
 every board; a bot that flips at random must average at most 1.5 from 4×4 up.
+
+## Bucket Bay
+
+A boy in a boat has a bucket that holds exactly so much. Fish swim past wearing
+their weights; catch them until the bucket is **exactly** full before the
+stopwatch runs out. Gold Miner's hook, with arithmetic in the bucket.
+
+**Tap the water** and the boat sails there — the rod tip goes exactly where the
+finger went, and a finger slid along steers it. The boat always faces right;
+to fish near the left edge, half of it slides off the screen. **Tap the hook button** (or the
+boat) and the hook drops straight down and grabs the first thing it touches,
+so a fish in the way is the fish you get. Arrow keys and space on a Mac.
+
+**Big fish are the quick way.** A heavy catch reels slowly — a 10 takes six
+times as long as a 1 — leans the boat and pulls the line taut, but one 10 is
+still far quicker than ten 1s. The boy sits in the boat with the bucket beside
+him, the count written on its side and the catch poking out of the top. So the play is to
+land the big ones, then work out exactly what is missing — *7 in a bucket for
+10 needs a 3.* The first three levels write "3 more!" under the bucket; after
+that the gap is the child's to find.
+
+**Over the top tips the boat**: the boy goes in, the fish leap out, and the card
+says why — `8 + 5 = 13`, *13 is more than 10*. Out of time, or a gap nothing in
+the sea can make ("Nothing here weighs 1!"), and the level starts again too,
+on a tap or by itself. Stars come from the clock: a third left is three.
+
+**Thirteen levels** bring in one new fish or item at a time: ten fish weighing 1
+to 10 (crabs walk the sand, jellyfish drift, swordfish race), a speed potion,
+a health potion that throws back the one catch that would tip the boat, a net
+whose one cast scoops up a bunch at once (`2 + 1 + 1 = 4`), bonus time, and treasure — heavy to wind up and
+worth nothing. `?game=fishing&level=jellyfish` opens any level by id.
+
+**The art** is cut from one asset board, `games/fishing/assets/source/board.png`,
+by `scripts/cut-fishing.py` (numpy and Pillow): each sprite by flooding the
+board's white in from the edge of its box, the boy and boat painted out of the
+backdrop, the boat's near wall cut out on its own so the boy can sit behind it,
+and the bucket's and stopwatch's painted numbers wiped so the game can write
+its own. Until a picture loads, a plain shape stands in.
+
+### The test that guards it
+
+`games/fishing/src/logic/guards.test.ts` plays every level with a bot over
+twelve ponds. Landing the biggest fish that still fits must fill at least ten,
+using under a third of the clock on average — the rest is the child's, who is
+far slower than a bot. Only ever landing the smallest must take well over one
+and a half times as many catches, or big fish have stopped being the quick way.
 
 ## Not built yet
 

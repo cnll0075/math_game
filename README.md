@@ -1,6 +1,6 @@
 # Math Park
 
-A bundle of ten little math games for iPad. Two are built, and in both the
+A bundle of little math games for iPad. In every one built so far the
 arithmetic is the mechanic rather than the subject:
 
 - **Seesaw Park** — animal weights drive a seesaw, and making it balance is
@@ -11,6 +11,8 @@ arithmetic is the mechanic rather than the subject:
   exactly one wears the answer. Burst through that one.
 - **Bucket Bay** — fish wear their weights; fill the bucket exactly before the
   clock runs out, and one fish too many tips the boat.
+- **Cargo Yard** — drag crates onto three trains, each wanting an exact load,
+  as crates come faster and faster. One endless run.
 
 ## Running it
 
@@ -85,6 +87,7 @@ games/seesaw/    the first game
 games/sky/       the second game, laid out the same way
 games/bramble/   the third, likewise
 games/fishing/   Bucket Bay, likewise, with its art in assets/
+games/train/     Cargo Yard, likewise, with its art in assets/
 packages/math/   the curriculum both number games share: bands, sums, traps
 docs/superpowers/specs/   design spec
 docs/superpowers/plans/   implementation plan
@@ -726,6 +729,45 @@ using under a third of the clock on average — the rest is the child's, who is
 far slower than a bot. Only ever landing the smallest must take well over one
 and a half times as many catches, or big fish have stopped being the quick way.
 
+## Cargo Yard
+
+Crates come out of the port wearing their weights and wait in a queue along the
+yard floor. Three trains wait on three tracks, each wanting an exact load.
+**Drag a crate onto a train**: exactly its target and it steams off, under and
+it waits for more, over and it breaks — smoke, a buckled track, a crew mending
+it for five seconds — and its crates tumble back onto the queue. Held over a
+train, a crate shows the sum on that train's sign first (`7 + 3 = 10`), green
+when it would be exact. One endless run, like Sky Patrol, ending when the queue
+reaches the signal at its end; the card says how many trains went and how long
+the yard lasted, against the best so far.
+
+**Faster and bigger by the minute.** A crate every two seconds at first, ten
+per cent faster every fifteen, levelling off at one every three quarters of a
+second. Targets grow from 5–10 (crates 1–5) to 5–15 (1–7) at a minute and 5–20
+(1–9) at two, each band arriving as a banner. Every crate fits some waiting
+train when it arrives, and the three trains never share a target.
+
+**Star trains**, from half a minute in, about one train in eight: a gold sign,
+an impatient judder and a five-second stopwatch. Their target is always a sum of
+two or three crates already in the queue; fill one in time and half the queue,
+the half nearest the signal, pops away. `?game=train&level=heavy` opens a run in
+any band.
+
+**The art** is cut from one sheet, `games/train/assets/source/board.png`, by
+`scripts/cut-train.py` (numpy and Pillow): each piece by flooding the sheet's
+white in from the edge of its box, the trains flipped to face the sea, and the
+example scene's trains, signs, caption and HUD painted out of the backdrop so
+the game can draw its own.
+
+### The test that guards it
+
+`games/train/src/logic/guards.test.ts` plays twelve runs with bots loading a
+crate every 1.2 seconds, a child's pace. One that reads every number must last
+two minutes in at least ten; one that freezes must be out inside thirty
+seconds; one that loads without reading must break trains and last well under
+the careful one. That last guard is why a broken train's crates come back:
+before, any load emptied the queue as well as a right one.
+
 ## Not built yet
 
 - **Real art and sound.** Seesaw's are swappable through `SeesawTheme` and
@@ -733,7 +775,7 @@ and a half times as many catches, or big fish have stopped being the quick way.
   only, behind the same `SoundPack` names a recorded pack would implement, and
   Bramble Dash the same. Balloon Rescue has a vector fox kit and a synthesised
   pack behind the same names.
-- **The other five games.** The shell has a tile each, marked "Soon".
+- **The other four games.** The shell has a tile each, marked "Soon".
 - **Timed or scored modes.** An arcade half was built and removed: it added
   pressure rather than arithmetic, and a player could win it by dropping each
   animal on the lighter side without reading a number. It is in the git history

@@ -166,3 +166,109 @@ describe('the clock', () => {
     expect(events.some((event) => event.type === 'band')).toBe(true);
   });
 });
+describe('star trains', () => {
+  /** A run past 0:30 whose next train will be a star, given a queue that can make one. */
+  const starRun = (seed = 5): Run => {
+    const yard = createRun({ seed, startBand: 'bigger' });
+    yard.state.queue.length = 0;
+    queue(yard, [2, 3, 4, 1, 5, 2]);
+    return yard;
+  };
+
+  /** Send track 0's train and step until a star train rolls in on some track. */
+  const awaitStar = (yard: Run): number => {
+    for (let tries = 0; tries < 400; tries += 1) {
+      const index = yard.state.tracks.findIndex((track) => track.star > 0);
+      if (index >= 0) return index;
+      const track = yard.state.tracks.find((entry) => entry.phase === 'waiting' && entry.star === 0)!;
+      const at = yard.state.tracks.indexOf(track);
+      yard.state.queue.unshift({ id: 5000 + tries, weight: gapOf(track) });
+      yard.load(5000 + tries, at);
+      for (let t = 0; t < TIMES.rollIn + 0.1; t += FRAME) {
+        yard.step(FRAME);
+        yard.state.queue.splice(6);
+      }
+    }
+    throw new Error('no star train in 400 trains');
+  };
+
+  it('come about one train in eight, never before 0:30, never two at once', () => {
+    let stars = 0;
+    let trains = 0;
+    for (let seed = 1; seed <= 40; seed += 1) {
+      const yard = starRun(seed);
+      for (let round = 0; round < 30; round += 1) {
+        const track = yard.state.tracks.find((entry) => entry.phase === 'waiting')!;
+        yard.state.queue.unshift({ id: 7000 + round, weight: gapOf(track) });
+        yard.load(7000 + round, yard.state.tracks.indexOf(track));
+        const events = steps(yard, TIMES.rollIn + 0.1);
+        yard.state.queue.splice(6);
+        for (const event of events) {
+          if (event.type !== 'arrived') continue;
+          trains += 1;
+          if (event.star) stars += 1;
+        }
+        expect(yard.state.tracks.filter((entry) => entry.star > 0).length).toBeLessThanOrEqual(1);
+      }
+    }
+    expect(stars / trains).toBeGreaterThan(0.06);
+    expect(stars / trains).toBeLessThan(0.2);
+
+    const early = createRun({ seed: 1 });
+    const events = steps(early, 29);
+    expect(events.some((event) => event.type === 'arrived' && event.star)).toBe(false);
+  });
+
+  it('want a sum of two or three crates in the queue', () => {
+    const yard = starRun();
+    const index = awaitStar(yard);
+    const weights = yard.state.queue.map((crate) => crate.weight);
+    const sums = new Set<number>();
+    weights.forEach((a, i) => weights.forEach((b, j) => {
+      if (j <= i) return;
+      sums.add(a + b);
+      weights.forEach((c, k) => { if (k > j) sums.add(a + b + c); });
+    }));
+    expect(sums.has(yard.state.tracks[index]!.target)).toBe(true);
+  });
+
+  it('tick down five seconds, then fade into an ordinary train with the same target', () => {
+    const yard = starRun();
+    const index = awaitStar(yard);
+    const target = yard.state.tracks[index]!.target;
+    const events: RunEvent[] = [];
+    for (let t = 0; t < TIMES.star + 0.1; t += FRAME) {
+      events.push(...yard.step(FRAME));
+      yard.state.queue.splice(6);
+    }
+    expect(events.filter((event) => event.type === 'starTick' && event.track === index).map((event) => (event.type === 'starTick' ? event.seconds : 0))).toEqual([4, 3, 2, 1]);
+    expect(events).toContainEqual({ type: 'starFaded', track: index });
+    expect(yard.state.tracks[index]).toMatchObject({ phase: 'waiting', star: 0, target });
+  });
+
+  it('filled in time, clear the half of the queue nearest the line', () => {
+    const yard = starRun();
+    const index = awaitStar(yard);
+    const track = yard.state.tracks[index]!;
+    yard.state.queue.length = 0;
+    queue(yard, [1, 1, 1, 1, 1, 1, track.target]);
+    const filler = yard.state.queue.at(-1)!;
+    const events = yard.load(filler.id, index);
+    expect(events).toContainEqual(expect.objectContaining({ type: 'sent', bonus: true }));
+    const cleared = events.find((event) => event.type === 'cleared');
+    // Six left after the filler went; half of them, the three nearest the line, go.
+    expect(cleared).toEqual({ type: 'cleared', crates: [{ id: 903, weight: 1 }, { id: 904, weight: 1 }, { id: 905, weight: 1 }] });
+    expect(yard.state.queue.map((crate) => crate.id)).toEqual([900, 901, 902]);
+  });
+
+  it('too heavy, break like any other train, and leave no star behind', () => {
+    const yard = starRun();
+    const index = awaitStar(yard);
+    const track = yard.state.tracks[index]!;
+    yard.state.queue.length = 0;
+    queue(yard, [track.target + 1]);
+    const events = yard.load(yard.state.queue.at(-1)!.id, index);
+    expect(events.map((event) => event.type)).toEqual(['loaded', 'broke']);
+    expect(track.star).toBe(0);
+  });
+});

@@ -131,13 +131,24 @@ export function createRun(options: RunOptions): Run {
 
   const arrive = (track: Track, index: number, events: RunEvent[]): void => {
     const band = bandAt(state.elapsed);
+    const taken = waitingTargets(track);
     track.phase = 'waiting';
     track.timer = 0;
     track.load = [];
     track.star = 0;
     track.train = nextTrain++;
-    track.target = chooseTarget(rng, band, waitingTargets(track));
-    events.push({ type: 'arrived', track: index, target: track.target, star: false });
+    // A star train now and then, once the run is under way, one at a time,
+    // and only when the queue already holds crates that make its target.
+    const starAllowed =
+      state.elapsed >= TIMES.starFrom && !state.tracks.some((other) => other.star > 0) && rng.next() < TIMES.starChance;
+    const star = starAllowed ? starTarget(rng, band, state.queue.map((crate) => crate.weight), taken) : null;
+    if (star !== null) {
+      track.target = star;
+      track.star = TIMES.star;
+    } else {
+      track.target = chooseTarget(rng, band, taken);
+    }
+    events.push({ type: 'arrived', track: index, target: track.target, star: star !== null });
   };
 
   const rollIn = (track: Track): void => {
@@ -177,7 +188,18 @@ export function createRun(options: RunOptions): Run {
     }
 
     state.tracks.forEach((track, index) => {
-      if (track.phase === 'waiting') return;
+      if (track.phase === 'waiting') {
+        if (track.star <= 0) return;
+        const shown = Math.ceil(track.star);
+        track.star = Math.max(0, track.star - dt);
+        const now = Math.ceil(track.star);
+        if (track.star <= 0) {
+          events.push({ type: 'starFaded', track: index });
+        } else if (now < shown) {
+          events.push({ type: 'starTick', track: index, seconds: now });
+        }
+        return;
+      }
       track.timer -= dt;
       if (track.timer > 0) return;
       if (track.phase === 'broken') {
@@ -219,8 +241,14 @@ export function createRun(options: RunOptions): Run {
       const load = loadOf(track);
       const events: RunEvent[] = [{ type: 'loaded', track: index, crate, load, target: track.target }];
       if (load === track.target) {
+        const bonus = track.star > 0;
         state.sent += 1;
-        events.push({ type: 'sent', track: index, target: track.target, load: [...track.load], bonus: false });
+        events.push({ type: 'sent', track: index, target: track.target, load: [...track.load], bonus });
+        if (bonus) {
+          // The half of the queue nearest the line, rounding down: seven leave four.
+          const crates = state.queue.splice(state.queue.length - Math.floor(state.queue.length / 2));
+          events.push({ type: 'cleared', crates });
+        }
         rollIn(track);
       } else if (load > track.target) {
         state.broken += 1;

@@ -24,7 +24,7 @@ export function previewText(load: number, weight: number, target: number): { tex
   return { text: `${load} + ${weight} = ${sum}`, tone: sum === target ? 'exact' : sum < target ? 'under' : 'over' };
 }
 
-const TONE_COLOURS = { exact: '#3fae4a', under: '#ffffff', over: '#e8543f' } as const;
+const TONE_COLOURS = { exact: '#5cc96a', under: '#ffffff', over: '#f07a62' } as const;
 
 interface Float {
   text: string;
@@ -48,6 +48,7 @@ interface Pop {
 }
 
 const LEAVE_SECONDS = 1.2;
+const DROP_SECONDS = 0.35;
 const POP_SECONDS = 0.6;
 
 export function createScene(sprites: Sprites): Scene {
@@ -60,6 +61,8 @@ export function createScene(sprites: Sprites): Scene {
   const floats: Float[] = [];
   const leavers: Leaver[] = [];
   const pops: Pop[] = [];
+  /** Crates dropping into their place, by id: seconds since they started. */
+  const drops = new Map<number, number>();
 
   const float = (text: string, icon: SpriteName | null, at: Point): void => void floats.push({ text, icon, at, life: 0 });
 
@@ -86,11 +89,12 @@ export function createScene(sprites: Sprites): Scene {
             break;
           case 'crate':
             // Out of the port: it slides along from the start of the belt.
-            slide.set(event.crate.id, createSpring(QUEUE.firstX - 80, { stiffness: 120 }));
+            // Set down by the crane at the end of the queue, dropping in from above.
+            drops.set(event.crate.id, 0);
             break;
           case 'sent':
             leavers.push({ track: event.track, load: event.load, life: 0 });
-            float(event.bonus ? 'Bonus!' : 'Train ready!', event.bonus ? 'star' : 'tick', { x: TRACKS[event.track]!.trainX, y: TRACKS[event.track]!.railY - 120 });
+            float(event.bonus ? 'Bonus!' : 'Train ready!', event.bonus ? 'star' : 'tick', { x: TRACKS[event.track]!.trainX, y: TRACKS[event.track]!.railY - 60 });
             break;
           case 'cleared':
             for (const crate of event.crates) {
@@ -100,7 +104,9 @@ export function createScene(sprites: Sprites): Scene {
             }
             break;
           case 'broke':
-            float('Too heavy!', 'cross', { x: TRACKS[event.track]!.trainX, y: TRACKS[event.track]!.railY - 120 });
+            // Its crates tumble back onto the end of the queue.
+            for (const crate of model?.run.queue.slice(-event.load.length) ?? []) drops.set(crate.id, 0);
+            float('Too heavy!', 'cross', { x: TRACKS[event.track]!.trainX, y: TRACKS[event.track]!.railY - 60 });
             break;
           default:
             break;
@@ -122,6 +128,10 @@ export function createScene(sprites: Sprites): Scene {
       while (leavers.length > 0 && leavers[0]!.life > LEAVE_SECONDS) leavers.shift();
       for (const pop of pops) pop.life += dt;
       while (pops.length > 0 && pops[0]!.life > POP_SECONDS) pops.shift();
+      for (const [id, life] of drops) {
+        if (life > DROP_SECONDS) drops.delete(id);
+        else drops.set(id, life + dt);
+      }
       next.run.queue.forEach((crate, index) => {
         const spring = slide.get(crate.id) ?? createSpring(slotCentre(index).x, { stiffness: 120 });
         spring.target = slotCentre(index).x;
@@ -141,11 +151,13 @@ export function createScene(sprites: Sprites): Scene {
       ctx.translate(transform.offsetX, transform.offsetY);
       ctx.scale(transform.scale, transform.scale);
 
-      drawYard(ctx, sprites, bounds.left, bounds.right, bounds.bottom);
+      drawYard(ctx, sprites, bounds.left, bounds.right, bounds.bottom, bounds.top);
 
       const heldCrate: Crate | undefined = held ? run.queue.find((crate) => crate.id === held!.crate) : undefined;
       const over = held && heldCrate ? trackAt(held.at) : null;
 
+      /** The sum a held crate would make: drawn over the crate, once it is drawn. */
+      const previews: { text: string; colour: string }[] = [];
       run.tracks.forEach((track, index) => {
         const place = TRACKS[index]!;
         if (track.phase === 'rolling') {
@@ -156,9 +168,10 @@ export function createScene(sprites: Sprites): Scene {
           return;
         }
         if (track.phase === 'broken') {
-          drawSprite(ctx, sprites, 'broken-track', { x: place.trainX + 40, y: place.railY - 8 }, 70);
-          drawTrain(ctx, sprites, { track: index, place, x: place.trainX, tilt: -0.08 + Math.sin(clock * 20) * 0.004, load: [] });
-          drawSmoke(ctx, { x: place.trainX + 60, y: place.railY - TRAIN.height }, clock);
+          drawTrain(ctx, sprites, { track: index, place, x: place.trainX, tilt: -0.11 + Math.sin(clock * 20) * 0.004, load: [] });
+          drawSprite(ctx, sprites, 'broken-track', { x: place.trainX + 20, y: place.railY + 4 }, 64);
+          drawSmoke(ctx, { x: place.trainX + 80, y: place.railY - TRAIN.height - 14 }, clock, '#464a52');
+          drawSprite(ctx, sprites, 'warning', { x: place.trainX - 60, y: place.railY - TRAIN.height * 0.5 }, 46, Math.floor(clock * 3) % 2 === 0 ? 1 : 0.5);
           drawSprite(ctx, sprites, 'worker-wrench', { x: place.trainX - 150, y: place.railY - 40 }, 80);
           drawSprite(ctx, sprites, 'worker-wheel', { x: place.trainX + 150, y: place.railY - 34 }, 70);
           drawSprite(ctx, sprites, 'repair', { x: place.sign.x - 70, y: place.sign.y }, 40);
@@ -169,11 +182,12 @@ export function createScene(sprites: Sprites): Scene {
         drawTrain(ctx, sprites, { track: index, place, x: place.trainX + judder, tilt: 0, load: track.load });
         const load = loadOf(track);
         const preview = over === index && heldCrate ? previewText(load, heldCrate.weight, track.target) : null;
-        drawSign(ctx, sprites, place.sign, preview?.text ?? `${load} / ${track.target}`, preview ? TONE_COLOURS[preview.tone] : '#ffffff', track.star > 0, clock);
+        drawSign(ctx, sprites, place.sign, `${load} / ${track.target}`, '#ffffff', track.star > 0, clock);
+        if (preview && held) previews.push({ text: preview.text, colour: TONE_COLOURS[preview.tone] });
         drawBar(ctx, { x: place.sign.x, y: place.sign.y + 40 }, 110, load / track.target, track.star > 0 ? '#ffcc3a' : '#5cb85c');
         if (track.star > 0) {
           drawSprite(ctx, sprites, 'star', { x: place.trainX - TRAIN.width * 0.25, y: place.railY - TRAIN.height * 0.55 }, 40);
-          drawStarClock(ctx, sprites, { x: place.sign.x, y: place.sign.y - 52 }, track.star);
+          drawStarClock(ctx, sprites, { x: place.sign.x - 128, y: place.sign.y + 2 }, track.star);
         }
       });
 
@@ -198,16 +212,21 @@ export function createScene(sprites: Sprites): Scene {
       run.queue.forEach((crate) => {
         if (held && crate.id === held.crate) return;
         const x = slide.get(crate.id)?.value ?? QUEUE.firstX;
-        drawCrate(ctx, sprites, crate.weight, { x, y: QUEUE.y }, QUEUE.crate);
+        const drop = drops.get(crate.id);
+        const fall = drop === undefined ? 0 : (1 - Math.min(1, drop / DROP_SECONDS)) ** 2 * 140;
+        drawCrate(ctx, sprites, crate.weight, { x, y: QUEUE.y - fall }, QUEUE.crate);
       });
       for (const pop of pops) {
         const t = pop.life / POP_SECONDS;
         drawSprite(ctx, sprites, 'star', { x: pop.at.x, y: pop.at.y - t * 50 }, 40 * (1 + t), 1 - t);
       }
-      if (held && heldCrate) drawCrate(ctx, sprites, heldCrate.weight, held.at, QUEUE.crate * 1.15);
+      if (held && heldCrate) {
+        drawCrate(ctx, sprites, heldCrate.weight, held.at, QUEUE.crate * 1.15);
+        for (const preview of previews) drawPreview(ctx, { x: held.at.x, y: held.at.y - 78 }, preview.text, preview.colour);
+      }
 
       drawTopBar(ctx, sprites, run.sent, current.seconds);
-      if (current.coach) label(ctx, COACH_LINE, 576, HUD.coachY, 30, 'center');
+      if (current.coach && current.phase === 'playing') label(ctx, COACH_LINE, 576, HUD.coachY, 30, 'center');
       for (const entry of floats) {
         const t = entry.life / TIMING.floatSeconds;
         ctx.save();
@@ -246,11 +265,37 @@ function drawSign(ctx: CanvasRenderingContext2D, sprites: Sprites, at: Point, te
     ctx.lineWidth = 5;
     ctx.strokeRect(-66, -34, 132, 68);
   }
-  ctx.font = hand(700, text.length > 7 ? 22 : 30);
+  // To the right of the sign's painted crate.
+  ctx.font = hand(700, text.length > 7 ? 19 : 27);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = colour;
-  ctx.fillText(text, 8, 1);
+  ctx.fillText(text, 20, 1);
+  ctx.restore();
+}
+
+/** The sum a held crate would make, in a bubble over it: green if exact, red if too heavy. */
+function drawPreview(ctx: CanvasRenderingContext2D, at: Point, text: string, colour: string): void {
+  const width = 170;
+  const height = 54;
+  ctx.save();
+  ctx.fillStyle = colour;
+  ctx.strokeStyle = '#1e2a38';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(at.x - width / 2 + 20, at.y - height / 2);
+  ctx.arcTo(at.x + width / 2, at.y - height / 2, at.x + width / 2, at.y + height / 2, 20);
+  ctx.arcTo(at.x + width / 2, at.y + height / 2, at.x - width / 2, at.y + height / 2, 20);
+  ctx.arcTo(at.x - width / 2, at.y + height / 2, at.x - width / 2, at.y - height / 2, 20);
+  ctx.arcTo(at.x - width / 2, at.y - height / 2, at.x + width / 2, at.y - height / 2, 20);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.font = hand(700, 32);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#1e2a38';
+  ctx.fillText(text, at.x, at.y + 1);
   ctx.restore();
 }
 

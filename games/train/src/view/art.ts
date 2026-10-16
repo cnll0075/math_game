@@ -8,15 +8,22 @@ export const TRAIN_SPRITES: readonly SpriteName[] = ['train-red', 'train-blue', 
 const TRAIN_COLOURS = ['#d8443a', '#2f6fd6', '#3e9a3e'];
 
 /** The painted yard across the top, and the drawn floor below it, edge to edge. */
-export function drawYard(ctx: CanvasRenderingContext2D, sprites: Sprites, left: number, right: number, bottom: number): void {
+export function drawYard(ctx: CanvasRenderingContext2D, sprites: Sprites, left: number, right: number, bottom: number, top = 0): void {
   ctx.fillStyle = FLOOR.colour;
   ctx.fillRect(left, FLOOR.top, right - left, bottom - FLOOR.top);
   ctx.fillStyle = FLOOR.kerb;
   ctx.fillRect(left, FLOOR.top, right - left, 6);
   const image = sprites.backdrop;
   const height = BACKDROP.height * BACKDROP.scale;
-  if (image) ctx.drawImage(image, 0, 0, 1152, height);
-  else {
+  if (image) {
+    ctx.drawImage(image, 0, 0, 1152, height);
+    // On a screen wider than the design, the outermost pixels are stretched out
+    // to the edges: a soft continuation, never a bar, and no landmark repeated.
+    if (left < 0) ctx.drawImage(image, 0, 0, 2, image.height, left, 0, -left, height);
+    if (right > 1152) ctx.drawImage(image, image.width - 2, 0, 2, image.height, 1152, 0, right - 1152, height);
+    ctx.fillStyle = '#7cc3ea';
+    if (top < 0) ctx.fillRect(left, top, right - left, -top);
+  } else {
     ctx.fillStyle = '#7cc3ea';
     ctx.fillRect(left, 0, right - left, FLOOR.top);
   }
@@ -88,29 +95,29 @@ export function drawTrain(ctx: CanvasRenderingContext2D, sprites: Sprites, pose:
   ctx.globalAlpha = pose.alpha ?? 1;
   ctx.translate(pose.x, pose.place.railY);
   ctx.rotate(pose.tilt);
-  // The wagon is the back (left) half; crates stack on it, small, in rows of four.
-  pose.load.forEach((weight, index) => {
-    const column = index % 4;
-    const row = Math.floor(index / 4);
-    drawCrate(ctx, sprites, weight, { x: -TRAIN.width * 0.4 + column * 28, y: -TRAIN.height - 10 - row * 26 }, 30);
-  });
   if (image) ctx.drawImage(image, -TRAIN.width / 2, -TRAIN.height, TRAIN.width, TRAIN.height);
   else {
     ctx.fillStyle = TRAIN_COLOURS[pose.track]!;
     ctx.fillRect(-TRAIN.width / 2, -TRAIN.height, TRAIN.width, TRAIN.height - 12);
   }
+  // The wagon is the back (left) half; its crates ride on its roof, three to a row.
+  pose.load.forEach((weight, index) => {
+    const column = index % 3;
+    const row = Math.floor(index / 3);
+    drawCrate(ctx, sprites, weight, { x: -TRAIN.width * 0.38 + column * 38, y: -TRAIN.height * 0.84 - 17 - row * 32 }, 36);
+  });
   ctx.restore();
 }
 
-/** Grey puffs over a broken train, drifting up. */
-export function drawSmoke(ctx: CanvasRenderingContext2D, at: Point, clock: number): void {
+/** Puffs from the chimney, drifting up: pale steam leaving, dark smoke broken. */
+export function drawSmoke(ctx: CanvasRenderingContext2D, at: Point, clock: number, colour = '#9aa0a8'): void {
   ctx.save();
   for (let puff = 0; puff < 5; puff += 1) {
     const t = (clock * 0.6 + puff / 5) % 1;
-    ctx.globalAlpha = 0.55 * (1 - t);
-    ctx.fillStyle = '#9aa0a8';
+    ctx.globalAlpha = 0.8 * (1 - t * t);
+    ctx.fillStyle = colour;
     ctx.beginPath();
-    ctx.arc(at.x + Math.sin(puff * 1.7 + clock) * 12, at.y - t * 80, 12 + t * 18, 0, TAU);
+    ctx.arc(at.x + Math.sin(puff * 1.7 + clock) * 16 - t * 30, at.y - t * 110, 16 + t * 30, 0, TAU);
     ctx.fill();
   }
   ctx.restore();

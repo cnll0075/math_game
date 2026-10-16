@@ -32,7 +32,7 @@ export const QUEUE = {
   y: 700,
   firstX: 120,
   pitch: 78,
-  crate: 66,
+  crate: 72,
   /** The marker the queue must not reach, at its right end. */
   markerX: 1060,
 } as const;

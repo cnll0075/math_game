@@ -69,12 +69,15 @@ describe('dragging', () => {
     input.dispose();
   });
 
-  it('drops a crate still held when the run ends, and taps carry on after it', () => {
+  it('drops a crate still held when the run ends, without dismissing the summary; a fresh tap carries on', () => {
     let phase: Phase = 'playing';
     const { canvas, intents, input } = setup(() => phase);
     pointer(canvas, 'pointerdown', slotCentre(0).x, slotCentre(0).y);
     phase = 'over';
     pointer(canvas, 'pointerup', 700, TRACKS[0]!.railY - 40);
+    expect(intents).toEqual([]);
+    pointer(canvas, 'pointerdown', 500, 500);
+    pointer(canvas, 'pointerup', 500, 500);
     expect(intents).toEqual([{ kind: 'next' }]);
     input.dispose();
   });

@@ -42,6 +42,24 @@ describe('the scene', () => {
     expect(texts).toContain(`0 + ${crate.weight} = ${crate.weight}`);
   });
 
+  it('slides a crate let go off the trains back to its place, from where it was let go', () => {
+    const driver = createDriver({ best: 0, seed: () => 2 });
+    const scene = createScene(NO_SPRITES);
+    for (let t = 0; t < 3; t += FRAME) {
+      scene.observe(driver.step(FRAME));
+      scene.update(FRAME, driver.model());
+    }
+    const crate = driver.run.state.queue[0]!;
+    const release = { x: 900, y: 640 };
+    scene.drag(crate.id, release);
+    scene.drag(null);
+    scene.update(FRAME, driver.model());
+    const recording = recordingContext();
+    scene.render(recording.ctx, SCREEN);
+    const near = recording.translations.some((at) => Math.abs(at.x - release.x) < 60 && Math.abs(at.y - release.y) < 60);
+    expect(near).toBe(true);
+  });
+
   it('shows the summary when the run is over, balanced and readable', () => {
     const driver = createDriver({ best: 0, seed: () => 2 });
     const { ctx, texts } = render(driver, 70);

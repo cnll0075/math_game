@@ -21,8 +21,12 @@ export function createInput(
   emit: (intent: Intent) => void,
   current: () => { phase: Phase; queue: readonly Crate[] },
 ): InputHandle {
-  /** The one finger followed; `paused` when its press hit the pause button, so its lifting does not unpause. */
-  let pressed: { pointerId: number; crate: number | null; paused: boolean } | null = null;
+  /**
+   * The one finger followed. `paused` when its press hit the pause button, so
+   * its lifting does not unpause; `playing` when it pressed during play, so a
+   * crate still held when the run ends is dropped rather than read as a tap.
+   */
+  let pressed: { pointerId: number; crate: number | null; paused: boolean; playing: boolean } | null = null;
 
   const screenSize = (): Size => ({ width: canvas.clientWidth || DESIGN.width, height: canvas.clientHeight || DESIGN.height });
   const designPoint = (event: PointerEvent): Point => {
@@ -33,8 +37,8 @@ export function createInput(
   const onPointerDown = (event: PointerEvent): void => {
     if (pressed) return;
     canvas.setPointerCapture?.(event.pointerId);
-    pressed = { pointerId: event.pointerId, crate: null, paused: false };
     const { phase, queue } = current();
+    pressed = { pointerId: event.pointerId, crate: null, paused: false, playing: phase === 'playing' };
     if (phase !== 'playing') return;
     const at = designPoint(event);
     if (onPause(at)) {
@@ -55,14 +59,15 @@ export function createInput(
 
   const onPointerUp = (event: PointerEvent): void => {
     if (!pressed || pressed.pointerId !== event.pointerId) return;
-    const { crate, paused } = pressed;
+    const { crate, paused, playing } = pressed;
     pressed = null;
     canvas.releasePointerCapture?.(event.pointerId);
     scene.drag(null);
     if (paused) return;
     const { phase } = current();
     if (phase !== 'playing') {
-      emit({ kind: 'next' });
+      // Only a tap that began on the card carries on.
+      if (!playing) emit({ kind: 'next' });
       return;
     }
     if (crate === null) return;

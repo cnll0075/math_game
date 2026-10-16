@@ -51,28 +51,29 @@ export function drawBelt(ctx: CanvasRenderingContext2D, clock: number): void {
 export function drawCrate(ctx: CanvasRenderingContext2D, sprites: Sprites, weight: number, at: Point, size: number, tint: string | null = null): void {
   const image = sprites[`cargo-${Math.min(10, Math.max(1, weight)) as 1}`];
   ctx.save();
-  if (image) ctx.drawImage(image, at.x - size / 2, at.y - size / 2, size, size);
+  ctx.translate(at.x, at.y);
+  if (image) ctx.drawImage(image, -size / 2, -size / 2, size, size);
   else {
     ctx.fillStyle = '#c98a4b';
-    ctx.fillRect(at.x - size / 2, at.y - size / 2, size, size);
+    ctx.fillRect(-size / 2, -size / 2, size, size);
   }
   if (tint) {
     ctx.fillStyle = tint;
-    ctx.fillRect(at.x - size / 2, at.y - size / 2, size, size);
+    ctx.fillRect(-size / 2, -size / 2, size, size);
   }
   const radius = size * 0.26;
   ctx.fillStyle = '#ffffff';
   ctx.strokeStyle = INK;
   ctx.lineWidth = 3;
   ctx.beginPath();
-  ctx.arc(at.x, at.y + size * 0.08, radius, 0, TAU);
+  ctx.arc(0, size * 0.08, radius, 0, TAU);
   ctx.fill();
   ctx.stroke();
   ctx.font = hand(700, radius * 1.45);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = INK;
-  ctx.fillText(String(weight), at.x, at.y + size * 0.08 + 1);
+  ctx.fillText(String(weight), 0, size * 0.08 + 1);
   ctx.restore();
 }
 

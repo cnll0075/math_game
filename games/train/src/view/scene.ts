@@ -61,6 +61,8 @@ export function createScene(sprites: Sprites): Scene {
   const floats: Float[] = [];
   const leavers: Leaver[] = [];
   const pops: Pop[] = [];
+  /** Crates let go off the trains, springing back down to the belt: how far above it they are. */
+  const lifts = new Map<number, Spring>();
   /** Crates dropping into their place, by id: seconds since they started. */
   const drops = new Map<number, number>();
 
@@ -68,6 +70,15 @@ export function createScene(sprites: Sprites): Scene {
 
   return {
     drag(crate, at) {
+      if ((crate === null || !at) && held) {
+        // Let go: it springs home from where the finger left it, rather than
+        // jumping back. A crate that was loaded leaves the queue and is not drawn.
+        const spring = slide.get(held.crate);
+        if (spring) {
+          spring.snap(held.at.x);
+          lifts.set(held.crate, createSpring(held.at.y - QUEUE.y, { stiffness: 120 }));
+        }
+      }
       held = crate === null || !at ? null : { crate, at };
     },
 
@@ -77,6 +88,7 @@ export function createScene(sprites: Sprites): Scene {
           case 'start':
             banner = { title: event.band.title, life: 0 };
             floats.length = 0;
+            lifts.clear();
             leavers.length = 0;
             pops.length = 0;
             slide.clear();
@@ -128,6 +140,11 @@ export function createScene(sprites: Sprites): Scene {
       while (leavers.length > 0 && leavers[0]!.life > LEAVE_SECONDS) leavers.shift();
       for (const pop of pops) pop.life += dt;
       while (pops.length > 0 && pops[0]!.life > POP_SECONDS) pops.shift();
+      for (const [id, lift] of lifts) {
+        lift.target = 0;
+        lift.step(dt);
+        if (lift.settled) lifts.delete(id);
+      }
       for (const [id, life] of drops) {
         if (life > DROP_SECONDS) drops.delete(id);
         else drops.set(id, life + dt);
@@ -214,7 +231,8 @@ export function createScene(sprites: Sprites): Scene {
         const x = slide.get(crate.id)?.value ?? QUEUE.firstX;
         const drop = drops.get(crate.id);
         const fall = drop === undefined ? 0 : (1 - Math.min(1, drop / DROP_SECONDS)) ** 2 * 140;
-        drawCrate(ctx, sprites, crate.weight, { x, y: QUEUE.y - fall }, QUEUE.crate);
+        const lift = lifts.get(crate.id)?.value ?? 0;
+        drawCrate(ctx, sprites, crate.weight, { x, y: QUEUE.y + lift - fall }, QUEUE.crate);
       });
       for (const pop of pops) {
         const t = pop.life / POP_SECONDS;

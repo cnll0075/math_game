@@ -115,6 +115,30 @@ describe('loading', () => {
     expect(track.phase).toBe('waiting');
   });
 
+  it('tips a broken train\'s crates back onto the queue, at the end nearest the line', () => {
+    const yard = run();
+    yard.state.queue.length = 0;
+    const track = yard.state.tracks[0]!;
+    track.target = 5;
+    queue(yard, [3, 4, 1]);
+    yard.load(900, 0);
+    const events = yard.load(901, 0);
+    expect(events.find((event) => event.type === 'broke')).toEqual({ type: 'broke', track: 0, target: 5, load: [3, 4] });
+    expect(yard.state.queue.map((crate) => crate.weight)).toEqual([1, 3, 4]);
+  });
+
+  it('ends the run when a broken train\'s crates tip the queue past the marker', () => {
+    const yard = run();
+    yard.state.queue.length = 0;
+    const track = yard.state.tracks[0]!;
+    track.target = 5;
+    queue(yard, [3, 4, ...Array.from({ length: 11 }, () => 1)]);
+    yard.load(900, 0);
+    const events = yard.load(901, 0);
+    expect(events.map((event) => event.type)).toEqual(['loaded', 'broke', 'over']);
+    expect(yard.state.over).toBe(true);
+  });
+
   it('refuses a crate for a train that is not waiting, or a crate that is not in the queue', () => {
     const yard = run();
     yard.state.tracks[0]!.phase = 'broken';

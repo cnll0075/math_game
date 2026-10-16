@@ -253,10 +253,17 @@ export function createRun(options: RunOptions): Run {
       } else if (load > track.target) {
         state.broken += 1;
         events.push({ type: 'broke', track: index, target: track.target, load: [...track.load] });
+        // Its crates tumble back onto the floor at the end nearest the line: a
+        // wrong load costs room in the queue, so the numbers matter.
+        for (const weight of track.load) state.queue.push({ id: nextCrate++, weight });
         track.phase = 'broken';
         track.timer = TIMES.repair;
         track.load = [];
         track.star = 0;
+        if (state.queue.length > QUEUE_SLOTS) {
+          state.over = true;
+          events.push({ type: 'over', elapsed: state.elapsed, sent: state.sent });
+        }
       }
       return events;
     },

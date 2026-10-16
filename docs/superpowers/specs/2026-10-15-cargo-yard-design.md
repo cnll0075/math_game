@@ -42,7 +42,7 @@ queue closes up behind it.
 | --- | --- |
 | On a train, load still **under** its target | The crate goes into the wagon; the sign and bar go up |
 | On a train, load **exactly** its target | Tick, "Train ready!", a whistle, the train steams off right. A new train with a new target rolls in from the left |
-| On a train, load **over** its target | "Too heavy!", the train breaks: smoke, the broken-track piece, and its crates are lost. Workers come and fix it while a repairing bar fills. When they are done, a fresh train rolls in |
+| On a train, load **over** its target | "Too heavy!", the train breaks: smoke, the broken-track piece, and its crates tumble back onto the queue at the end nearest the line — a wrong load costs room, so the numbers matter. If that takes the queue past the marker, the run ends. Workers come and fix the train while a repairing bar fills. When they are done, a fresh train rolls in |
 | Anywhere else, or on a broken track | The crate slides back to its place in the queue. No cost |
 
 While a crate is held over a train, that train's sign previews the drop —

@@ -15,6 +15,7 @@ export default defineConfig({
       '@bundle/balloon': resolvePath('../../games/balloon/src/index.ts'),
       '@bundle/pond': resolvePath('../../games/pond/src/index.ts'),
       '@bundle/fishing': resolvePath('../../games/fishing/src/index.ts'),
+      '@bundle/train': resolvePath('../../games/train/src/index.ts'),
     },
   },
   build: {

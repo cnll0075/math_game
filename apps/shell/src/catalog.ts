@@ -4,6 +4,7 @@ import { brambleGame } from '@bundle/bramble';
 import { balloonGame } from '@bundle/balloon';
 import { pondGame } from '@bundle/pond';
 import { fishingGame } from '@bundle/fishing';
+import { trainGame } from '@bundle/train';
 import type { GameModule } from '@bundle/core';
 
 export interface GameTile {
@@ -29,7 +30,7 @@ export const CATALOG: readonly GameTile[] = [
   { id: 'fishing', title: 'Bucket Bay', blurb: 'Fill the bucket exactly', colors: ['#47b3dc', '#2786c0'], module: fishingGame },
   { id: 'shapes', title: 'Shape Workshop', blurb: 'Build with shapes', colors: ['#e4695f', '#f2a65a'] },
   { id: 'patterns', title: 'Pattern Path', blurb: 'What comes next?', colors: ['#b48ee0', '#7b6bd6'] },
-  { id: 'measure', title: 'Measuring Yard', blurb: 'How long is it?', colors: ['#5aa9d6', '#3f7fbf'] },
+  { id: 'train', title: 'Cargo Yard', blurb: 'Load the trains exactly', colors: ['#e0533f', '#3f7fbf'], module: trainGame },
   { id: 'clock', title: 'Clock Tower', blurb: 'Tell the time', colors: ['#7fc4c9', '#3f9f8f'] },
   { id: 'halves', title: 'Sharing Table', blurb: 'Share it fairly', colors: ['#ef8fa6', '#d9607f'] },
 ];

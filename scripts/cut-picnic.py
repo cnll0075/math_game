@@ -59,7 +59,7 @@ SPRITES = {
 }
 
 # Pieces whose box catches a corner of a neighbour: only their largest part is kept.
-LARGEST_ONLY = {'basket'}
+LARGEST_ONLY = {'basket', 'dog-caught'}
 
 # The chair's blue seat reaches into the corner of the basket's box: its blue
 # is made white there before anything is cut.

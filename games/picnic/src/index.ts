@@ -87,11 +87,14 @@ export const picnicGame: PicnicModule = {
             break;
           case 'refused':
           case 'short':
-          case 'unseated':
+          case 'uneven':
             sounds.play('nope');
             break;
+          case 'invited':
+            sounds.play('pop', { step: event.seated ? 7 : 0 });
+            break;
           case 'leftover':
-            sounds.play('woof', { delay: 0.5 });
+            sounds.play('woof', { delay: 0.9 });
             break;
           case 'cut':
             sounds.play(event.ok ? 'chop' : 'nope');
@@ -131,7 +134,16 @@ export const picnicGame: PicnicModule = {
       () => {
         const state = driver.table.state;
         const course = courseOf(state);
-        return { phase: driver.phase, table: state.phase, seated: state.seated.length, food: course.kind === 'cut' ? course.food : null };
+        const seatedFriends = state.seated.map((friend) => state.def.friends.indexOf(friend));
+        const waiting = state.def.friends.map((_, index) => index).filter((index) => index > 0 && !seatedFriends.includes(index));
+        return {
+          phase: driver.phase,
+          table: state.phase,
+          seated: state.seated.length,
+          food: course.kind === 'cut' ? course.food : null,
+          waiting,
+          seatedFriends,
+        };
       },
     );
 
@@ -181,6 +193,7 @@ export const picnicGame: PicnicModule = {
             tap: (plate: number) => (act({ kind: 'tap', plate }), []),
             turnDial: (step: 1 | -1) => (act({ kind: 'dial', step }), []),
             share: () => (act({ kind: 'share' }), []),
+            invite: (friend: number) => (act({ kind: 'invite', friend }), []),
             cut: (from: { x: number; y: number }, to: { x: number; y: number }) => (act({ kind: 'cut', from, to }), []),
             nextCourse: () => {
               for (let i = 0; i < 60 * 5 && table.state.phase === 'between'; i += 1) frame(1 / 60);

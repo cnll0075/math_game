@@ -16,7 +16,8 @@ For ages 6–8. Levels, like Bucket Bay, with stars.
 ## The table
 
 - A painted picnic table in the middle of a park, with 2 to 4 friends sitting
-  behind it, each with their own plate on the table: **Teddy** (the host,
+  behind it — the table hides them below the shoulders — each with their own
+  plate on the cloth in front of them: **Teddy** (the host,
   welcoming), **Bunny** (loves strawberries), **Fox** (excited whenever food
   arrives), **Raccoon** (notices when things are not fair). Each has four faces
   from the sheet: happy, eating, puzzled, grumpy.
@@ -24,7 +25,8 @@ For ages 6–8. Levels, like Bucket Bay, with stars.
   rows of five so they can be counted, with the number on a tag (`12`).
 - Bottom right: the **dial** (how many each friend gets in one share, 1 to 10)
   and the **Share** button.
-- **Biscuit** the dog lives just off the right edge.
+- **Biscuit** the dog sits beside the table the whole time, hoping, with his
+  own bowl: so it is plain from the start where anything left over will go.
 
 ## Sharing
 
@@ -51,8 +53,9 @@ child turns the dial down.
 
 **A course ends** when the basket cannot give everyone one more. If it is
 empty, that is it; if some are left — only ever fewer than there are friends —
-Biscuit trots in and takes them, which is how remainders are met. Biscuit only
-appears when there really are leftovers.
+they fly into Biscuit's bowl, just as treats fly to plates, and he hops and
+eats: that is how remainders are met. While the dial is set, the ghosts show
+what a share would leave in his bowl too.
 
 Plates with the same number glow together, so fair is visible without words.
 When the last course is done the friends eat together — the signature moment —
@@ -61,10 +64,11 @@ and a card says what happened: `12 cookies, 3 friends: 4 each!`, and
 
 ## Other courses
 
-- **Chairs** (round 9): a fixed number of treats, and the dial chooses how many
-  chairs to set, 2 to 4. The preview shows how the treats would go; only a
-  number of chairs that leaves nothing over will seat the friends (Biscuit
-  peeks in hopefully at any other). Then it is shared like any course.
+- **Inviting** (round 9): Teddy, the host, sits alone; the other friends peek
+  over the fence. Tap a friend to bring them to the table, tap a guest to send
+  them back. Ghosts show how many each would get and what Biscuit's bowl would
+  hold; **Share** shares everything in one go, but only once nothing would be
+  left over. Which groups share 9 equally — met with the friends themselves.
 - **Cutting** (rounds 10–11): a whole pizza or cake on the table. Swipe across
   it to cut. A cut must pass through the middle, or it is uneven — Raccoon
   frowns and the cut fades. Pizza needs one cut for two halves; cake needs two
@@ -90,7 +94,7 @@ earns at least one star. Best stars per round are kept in `host.storage`.
 | 6 | Three Plates | Teddy, Bunny, Fox | 12 strawberries, dial | Groups of 4 |
 | 7 | Four Friends | all four | 16 grapes, dial | Sharing into 4 |
 | 8 | Sandwich Stack | all four | 14 sandwiches, dial | Groups and a remainder |
-| 9 | Surprise Guests | up to four | 9 cookies, chairs | Reverse: how many can share |
+| 9 | Who Can Come? | Teddy, and who he invites | 9 cookies, inviting | Reverse: how many can share |
 | 10 | Pizza Halves | Teddy, Bunny | a pizza, one cut | Halves |
 | 11 | Cake Quarters | all four | a cake, two cuts | Quarters |
 | 12 | Picnic Party | Teddy, Fox, Raccoon | 6 cookies, then 9 strawberries, dial | Mixed review |
@@ -107,8 +111,8 @@ The sheet has four friends, so a table seats at most four.
 - Faces: happy waiting; puzzled when the preview shows a share running out;
   grumpy (Raccoon first) at an uneven cut or a plate that would get too many;
   eating at the end, all together.
-- Biscuit runs in with a cookie in his mouth for leftovers, and sits up
-  surprised when he peeks at chairs that would leave him some.
+- Biscuit sits up hopefully all round; when leftovers land in his bowl he hops
+  in his place with one in his mouth.
 - Sound, synthesised: pops as treats land, a whoosh as a share flies, a soft
   "uh-uh" for a refused tap, munching and a cheer at the end, a woof.
 
@@ -136,7 +140,7 @@ every game, replacing the "Sharing Table" placeholder tile ("Share it fairly").
   is one
 - a tap never makes plates unequal; leftovers are always fewer than the friends
 - the dial never makes a share that would run out
-- chairs only seat a number that leaves nothing over
+- inviting shares only among a number of friends that leaves nothing over
 - a cut through the middle counts, an off-centre one does not; two crossing cuts
   make quarters
 - stars count shares only

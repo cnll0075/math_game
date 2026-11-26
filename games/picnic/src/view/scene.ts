@@ -3,25 +3,29 @@ import type { DriverEvent, SceneModel } from '../driver.js';
 import { treatName, type Mood, type TreatId } from '../logic/friends.js';
 import { courseOf, preview, type Summary, type TableState } from '../logic/table.js';
 import {
+  bowlSpot,
   drawBasket,
-  drawChair,
+  drawBowl,
   drawCentred,
   drawDial,
+  drawDog,
+  drawFence,
   drawFood,
   drawFriend,
   drawHeap,
   drawPark,
   drawPiece,
+  drawPlate,
   drawPool,
   drawQuestion,
   drawShare,
-  drawStanding,
   drawTable,
   drawTag,
+  drawWaiting,
   heapSpot,
   poolSpot,
 } from './art.js';
-import { DOG, fromFood, HUD, seats } from './geometry.js';
+import { fenceSpot, fromFood, HUD, seats } from './geometry.js';
 import { drawDone, drawFinished, drawProgress, drawTopBar } from './hud.js';
 import type { Sprites } from './sprites.js';
 import { TIMING } from './timing.js';
@@ -47,11 +51,17 @@ export function courseLines(summary: Summary): string[] {
   return lines;
 }
 
-/** A treat on its way from the grass to a plate. */
+/** Biscuit's bowl, as a flyer's destination. */
+const BOWL_PLATE = -1;
+
+/** A treat on its way from the grass to a plate, or to Biscuit's bowl. */
 interface Flyer {
   treat: TreatId;
   from: Point;
+  /** A plate, or `BOWL_PLATE`. */
   plate: number;
+  /** Where in the heap (or the bowl) it lands. */
+  slot: number;
   /** Below zero, still waiting its turn. */
   life: number;
 }
@@ -70,8 +80,9 @@ interface Held {
 }
 
 const FLY_SECONDS = 0.42;
-const DOG_SECONDS = 1.9;
 const TRAIL_SECONDS = 0.9;
+/** Biscuit eats for this long when something lands in his bowl. */
+const DOG_EAT_SECONDS = 1.6;
 
 const shareTreat = (table: TableState): TreatId | null => {
   const course = courseOf(table);
@@ -85,13 +96,16 @@ export function createScene(sprites: Sprites): Scene {
   const flyers: Flyer[] = [];
   const floats: Float[] = [];
   const held = new Map<number, Held>();
-  let dog: { life: number; count: number; treat: TreatId } | null = null;
+  /** What lies in Biscuit's bowl this course. */
+  let bowl: { treat: TreatId; count: number } | null = null;
+  /** How long Biscuit has been eating; zero when he is sitting, hoping. */
+  let eating = 0;
   let trail: { from: Point; to: Point; life: number; ok: boolean | null } | null = null;
   let dialPulse = 0;
 
   const above = (plate: number, count: number): Point => {
-    const seat = seats(count)[plate] ?? { x: 576, y: 418 };
-    return { x: seat.x, y: seat.y - 210 };
+    const seat = seats(count)[plate] ?? { x: 576, y: 392 };
+    return { x: seat.x, y: seat.y - 230 };
   };
 
   const hold = (plate: number, mood: Mood, seconds: number): void => void held.set(plate, { mood, life: 0, seconds });
@@ -107,7 +121,8 @@ export function createScene(sprites: Sprites): Scene {
           if (event.type === 'level') banner = { title: event.level.title, life: 0 };
           flyers.length = 0;
           held.clear();
-          dog = null;
+          bowl = null;
+          eating = 0;
           trail = null;
           continue;
         }
@@ -117,14 +132,24 @@ export function createScene(sprites: Sprites): Scene {
         const treat = shareTreat(table);
         switch (event.type) {
           case 'gave':
-            if (treat) flyers.push({ treat, from: poolSpot(table.basket, table.basket + 1), plate: event.plate, life: 0 });
+            if (treat) flyers.push({ treat, from: poolSpot(table.basket, table.basket + 1), plate: event.plate, slot: (table.plates[event.plate] ?? 1) - 1, life: 0 });
             break;
           case 'shared':
             for (let plate = 0; plate < count; plate += 1) {
               for (let one = 0; one < event.each; one += 1) {
-                const spot = poolSpot(table.basket + plate * event.each + one, table.basket + count * event.each);
-                if (treat) flyers.push({ treat, from: spot, plate, life: -(plate * 0.12 + one * 0.06) });
+                const spot = poolSpot(plate * event.each + one, count * event.each);
+                const slot = (table.plates[plate] ?? event.each) - event.each + one;
+                if (treat) flyers.push({ treat, from: spot, plate, slot, life: -(plate * 0.12 + one * 0.06) });
               }
+            }
+            break;
+          case 'leftover':
+            // What cannot go round flies into Biscuit's bowl, after the last share has landed.
+            if (treat) {
+              for (let one = 0; one < event.count; one += 1) {
+                flyers.push({ treat, from: poolSpot(one, event.count), plate: BOWL_PLATE, slot: one, life: -(0.5 + one * 0.12) });
+              }
+              bowl = { treat, count: event.count };
             }
             break;
           case 'refused':
@@ -133,19 +158,21 @@ export function createScene(sprites: Sprites): Scene {
             break;
           case 'short':
             for (let plate = 0; plate < count; plate += 1) hold(plate, 'puzzled', 1.2);
-            floats.push({ text: 'Not enough to go round!', at: { x: 576, y: 230 }, life: 0 });
+            floats.push({ text: 'Not enough to go round!', at: { x: 576, y: 150 }, life: 0 });
             break;
-          case 'unseated':
-            floats.push({ text: `${event.chairs} chairs: ${event.leftover} left over!`, at: { x: 576, y: 230 }, life: 0 });
-            break;
-          case 'leftover':
-            if (treat) dog = { life: 0, count: event.count, treat };
+          case 'uneven':
+            for (let plate = 0; plate < count; plate += 1) hold(plate, 'puzzled', 1.2);
+            floats.push({
+              text: event.friends < 2 ? 'Invite some friends!' : `${event.friends} friends: ${event.leftover} left over!`,
+              at: { x: 576, y: 150 },
+              life: 0,
+            });
             break;
           case 'cut':
             if (trail) trail.ok = event.ok;
             if (!event.ok) {
               for (let plate = 0; plate < count; plate += 1) hold(plate, plate === count - 1 ? 'grumpy' : 'puzzled', 1.1);
-              floats.push({ text: event.why === 'cross' ? 'Cut across the first one!' : 'Through the middle!', at: { x: 576, y: 230 }, life: 0 });
+              floats.push({ text: event.why === 'cross' ? 'Cut across the first one!' : 'Through the middle!', at: { x: 576, y: 150 }, life: 0 });
             }
             break;
           default:
@@ -164,17 +191,25 @@ export function createScene(sprites: Sprites): Scene {
         banner.life += dt;
         if (banner.life > TIMING.introSeconds) banner = null;
       }
-      for (const flyer of flyers) flyer.life += dt;
+      for (const flyer of flyers) {
+        const was = flyer.life;
+        flyer.life += dt;
+        // Biscuit starts eating as the first of his leftovers lands.
+        if (flyer.plate === BOWL_PLATE && was < FLY_SECONDS && flyer.life >= FLY_SECONDS && eating === 0) eating = 0.001;
+      }
       for (let index = flyers.length - 1; index >= 0; index -= 1) if (flyers[index]!.life >= FLY_SECONDS) flyers.splice(index, 1);
+      if (eating > 0) {
+        eating += dt;
+        if (eating > DOG_EAT_SECONDS) {
+          eating = 0;
+          bowl = null;
+        }
+      }
       for (const entry of floats) entry.life += dt;
       while (floats.length > 0 && floats[0]!.life > TIMING.floatSeconds) floats.shift();
       for (const [plate, face] of held) {
         face.life += dt;
         if (face.life > face.seconds) held.delete(plate);
-      }
-      if (dog) {
-        dog.life += dt;
-        if (dog.life > DOG_SECONDS) dog = null;
       }
       if (trail) {
         trail.life += dt;
@@ -194,89 +229,102 @@ export function createScene(sprites: Sprites): Scene {
       const playing = current.phase === 'playing' || current.phase === 'intro';
       const feasting = current.phase === 'done' || table.phase === 'between';
       const dialing = playing && table.phase === 'sharing' && !(course.kind === 'share' && course.mode === 'tap');
+      const inviting = playing && table.phase === 'inviting';
       const look = preview(table);
+      const treat = shareTreat(table);
 
       ctx.save();
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.translate(transform.offsetX, transform.offsetY);
       ctx.scale(transform.scale, transform.scale);
 
-      drawPark(ctx, sprites, bounds);
-      if (table.phase === 'chairs') for (const seat of seats(table.dial)) drawChair(ctx, sprites, seat);
-      drawTable(ctx, sprites);
+      drawPark(ctx, bounds);
+      // Friends not yet asked wait behind the fence, peeking over it.
+      if (table.phase === 'inviting') {
+        table.def.friends.forEach((friend, index) => {
+          if (index === 0 || table.seated.includes(friend)) return;
+          drawWaiting(ctx, sprites, friend, fenceSpot(index), Math.abs(Math.sin(clock * 2 + index)) * 6);
+        });
+      }
+      drawFence(ctx, sprites, bounds);
 
       // How many each plate shows: what it has, less what is still in the air.
       const shown = table.plates.map((count, plate) => count - flyers.filter((flyer) => flyer.plate === plate).length);
       // A share that would run out fills these plates and not the rest.
       const canFill = dialing ? Math.min(seated, Math.floor(table.basket / Math.max(1, table.dial))) : seated;
+      const short = (plate: number): boolean => dialing && !look.fits && plate >= canFill;
 
+      // The friends sit behind the table, so it hides them below the shoulders.
       table.seated.forEach((friend, plate) => {
-        const seat = places[plate]!;
         const face = held.get(plate);
         let mood: Mood = 'happy';
         if (feasting && (table.plates[plate] ?? 0) > 0) mood = 'eating';
         else if (face) mood = face.mood;
-        else if (dialing && !look.fits && plate >= canFill) mood = 'puzzled';
+        else if (short(plate)) mood = 'puzzled';
         const bob = mood === 'eating' ? Math.abs(Math.sin(clock * 6 + plate)) * 5 : 0;
-        drawFriend(ctx, sprites, friend, mood, seat, bob);
-        if (dialing && !look.fits && plate >= canFill) drawQuestion(ctx, { x: seat.x + 78, y: seat.y - 205 });
+        drawFriend(ctx, sprites, friend, mood, places[plate]!, bob);
+      });
+      drawTable(ctx, sprites);
+      places.forEach((seat, plate) => {
+        drawPlate(ctx, seat);
+        if (short(plate)) drawQuestion(ctx, { x: seat.x + 70, y: seat.y - 190 });
       });
 
       if (course.kind === 'cut') {
         if (table.phase === 'cutting') drawFood(ctx, sprites, course.food, table.cuts.map((cut) => cut.angle), null);
         else places.forEach((seat) => drawPiece(ctx, sprites, course.food, seat));
-      } else {
-        const treat = course.treat;
+      } else if (treat) {
         places.forEach((seat, plate) => drawHeap(ctx, sprites, treat, Math.max(0, shown[plate] ?? 0), seat));
+        const lift = 30 + Math.sin(clock * 3) * 5;
+        // Ghosts of the next share, hovering over the plates they would go to.
         if (dialing) {
-          // Ghosts of the next share, hovering over the plates they would go to.
-          const lift = 30 + Math.sin(clock * 3) * 5;
           for (let plate = 0; plate < canFill; plate += 1) drawHeap(ctx, sprites, treat, table.dial, places[plate]!, 0.55, table.plates[plate] ?? 0, lift);
         }
+        if (inviting && seated >= 2) places.forEach((seat) => drawHeap(ctx, sprites, treat, look.each, seat, 0.55, 0, lift));
       }
 
       // The count on each plate, glowing together when they are all the same.
       if (course.kind !== 'cut') {
         const equal = shown.length > 0 && shown.every((count) => count === shown[0]) && (shown[0] ?? 0) > 0;
-        places.forEach((seat, plate) => drawTag(ctx, String(Math.max(0, shown[plate] ?? 0)), { x: seat.x, y: seat.y + 40 }, 21, equal));
+        places.forEach((seat, plate) => drawTag(ctx, String(Math.max(0, shown[plate] ?? 0)), { x: seat.x, y: seat.y + 34 }, 20, equal));
       } else if (table.phase !== 'cutting') {
-        places.forEach((seat) => drawTag(ctx, seated === 2 ? '1/2' : '1/4', { x: seat.x, y: seat.y + 40 }, 24, true));
+        places.forEach((seat) => drawTag(ctx, seated === 2 ? '1/2' : '1/4', { x: seat.x, y: seat.y + 34 }, 24, true));
       }
 
-      const treat = shareTreat(table);
       if (treat) {
         const waiting = table.basket + flyers.filter((flyer) => flyer.life < 0).length;
         drawBasket(ctx, sprites, waiting);
         drawPool(ctx, sprites, treat, waiting);
       }
 
-      if (table.phase === 'chairs' && course.kind === 'chairs') {
-        seats(table.dial).forEach((seat) => drawHeap(ctx, sprites, course.treat, look.each, seat, 0.55, 0, 30 + Math.sin(clock * 3) * 5));
-        // Biscuit peeks in hopefully at any number that would leave him some.
-        if (!look.fits) drawStanding(ctx, sprites, 'dog-caught', { x: 930, y: 594 }, 0.5);
+      // Biscuit and his bowl, always there: what cannot go round goes in it.
+      drawBowl(ctx);
+      if (bowl) {
+        const landed = bowl.count - flyers.filter((flyer) => flyer.plate === BOWL_PLATE).length;
+        for (let one = 0; one < landed; one += 1) drawCentred(ctx, sprites, bowl.treat, bowlSpot(one), 34);
       }
+      const leftoverShown = treat && look.leftover > 0 && ((dialing && look.fits) || (inviting && seated >= 2));
+      if (treat && leftoverShown) {
+        // The leftovers this share, or this table, would leave: hovering over his bowl.
+        const lift = 26 + Math.sin(clock * 3) * 5;
+        for (let one = 0; one < look.leftover; one += 1) {
+          const spot = bowlSpot(one);
+          drawCentred(ctx, sprites, treat, { x: spot.x, y: spot.y - lift }, 34, 0.55);
+        }
+      }
+      drawDog(ctx, sprites, eating, clock);
 
-      if (playing && (dialing || table.phase === 'chairs')) {
-        drawDial(ctx, sprites, table.dial, dialPulse);
-        drawShare(ctx, sprites, table.phase === 'chairs' ? look.fits : look.fits, table.phase === 'chairs' ? 'Sit down' : 'Share');
+      if (playing && (dialing || inviting)) {
+        if (dialing) drawDial(ctx, sprites, table.dial, dialPulse);
+        drawShare(ctx, sprites, look.fits);
       }
 
       for (const flyer of flyers) {
         if (flyer.life < 0) continue;
         const t = Math.min(1, flyer.life / FLY_SECONDS);
-        const index = Math.max(0, (table.plates[flyer.plate] ?? 1) - 1);
-        const to = heapSpot(places[flyer.plate] ?? { x: 576, y: 418 }, index);
+        const to = flyer.plate === BOWL_PLATE ? bowlSpot(flyer.slot) : heapSpot(places[flyer.plate] ?? { x: 576, y: 392 }, flyer.slot);
         const at = { x: flyer.from.x + (to.x - flyer.from.x) * t, y: flyer.from.y + (to.y - flyer.from.y) * t - Math.sin(t * Math.PI) * 120 };
         drawCentred(ctx, sprites, flyer.treat, at, 46 - t * 12);
-      }
-
-      if (dog) {
-        // In from the right, a grab, and away again with the leftovers.
-        const t = dog.life;
-        const inward = t < 0.7;
-        const x = inward ? DOG.offX + (DOG.grabX - DOG.offX) * (t / 0.7) : t < 1 ? DOG.grabX : DOG.grabX + (DOG.offX - DOG.grabX) * ((t - 1) / 0.9);
-        if (t < 0.85) for (let one = 0; one < dog.count; one += 1) drawCentred(ctx, sprites, dog.treat, { x: DOG.grabX - 70 - one * 40, y: DOG.y + 20 }, 42);
-        drawStanding(ctx, sprites, 'dog-sneak', { x, y: DOG.y + 70 }, 0.62, { flip: inward });
       }
 
       if (trail && course.kind === 'cut') {
@@ -304,7 +352,7 @@ export function createScene(sprites: Sprites): Scene {
         ctx.restore();
       }
 
-      if (current.phase !== 'intro') drawTopBar(ctx, current.level.line);
+      if (current.phase !== 'intro' && !banner) drawTopBar(ctx, current.level.line);
       drawProgress(ctx, current.number, current.count, current.totalStars);
       if (banner) drawArrivingBanner(ctx, banner.title, banner.life / TIMING.introSeconds, TIMING.introSettleFraction, HUD.bannerY);
 

@@ -784,8 +784,9 @@ before anyone gets two — so a tap can never make it unfair. From round five th
 **dial** sets how many each friend gets per share; ghost treats over the plates
 show what pressing **Share** would do, and a share that would run out is never
 made — the friends who would go short look puzzled instead. What cannot go round
-is always fewer than the friends, and Biscuit the dog runs in for it: that is
-how remainders, and odd and even, are met.
+is always fewer than the friends, and goes in the bowl of Biscuit the dog, who
+sits by the table hoping the whole round: that is how remainders, and odd and
+even, are met.
 
 **Stars count shares**, never dial turns or taps: one share, the dial turned
 straight to the answer, is three stars; one more is two; finishing is always at
@@ -794,15 +795,15 @@ the card says what it came to — `12 cookies, 3 friends: 4 each!`,
 `1 for Biscuit!`.
 
 **Twelve rounds**: two friends, then odd numbers and Biscuit, the dial with
-three and four friends, a round where the dial chooses how many **chairs** to
-set (only a number that leaves nothing over seats anyone), **cutting** a pizza
+three and four friends, a round of **inviting** friends from behind the fence
+(only a table that shares 9 with nothing over can share), **cutting** a pizza
 into halves and a cake into quarters with a swipe through the middle, and a
 party of two courses. `?game=picnic&level=cake-quarters` opens any round.
 
 **The art** is cut from the Picnic Pals sheet,
 `games/picnic/assets/source/board.png`, by `scripts/cut-picnic.py`: the
-friends in four moods each, padded so their plates line up whichever face they
-wear; the table with its painted plates filled from the cloth beside them, at
+friends in four moods each, padded so they line up whichever face they wear and
+drawn behind the table so it hides their laps, with plates drawn on the cloth; the table with its painted plates filled from the cloth beside them, at
 whichever offset makes the checks line up; and the dial with its number wiped.
 The sky is drawn.
 

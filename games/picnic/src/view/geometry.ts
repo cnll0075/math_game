@@ -14,12 +14,21 @@ export const FENCE = { y: 176, scale: 0.82 } as const;
 /** The table picture, centred, and how big it is drawn. */
 export const TABLE = { x: 576, top: 318, scale: 1.38 } as const;
 
-/** Where the friends' plates rest on the table top. */
-const PLATE_Y = 440;
+/**
+ * Where the friends' plates rest on the cloth. The friends sit behind the
+ * table, on its far bench: drawn before it, so it hides all but their heads
+ * and shoulders, with their plates on the cloth in front of them.
+ */
+const PLATE_Y = 392;
+/** Where a seated friend's picture stands, behind the table: its foot hides under the cloth. */
+export const BODY_Y = 382;
 /** How far apart the friends sit, by how many there are. */
 const SPACING: Readonly<Record<number, number>> = { 1: 0, 2: 300, 3: 250, 4: 204 };
 
-export const FRIEND = { scale: 1.34 } as const;
+export const FRIEND = { scale: 1.3 } as const;
+
+/** A plate on the cloth, drawn: the friends' own are hidden with their laps. */
+export const PLATE = { rx: 46, ry: 15 } as const;
 
 /** The middle of each seated friend's plate, left to right. */
 export function seats(count: number): Point[] {
@@ -31,7 +40,7 @@ export function seats(count: number): Point[] {
 /** The plate under a tap: anywhere on the friend or their plate, for small fingers. */
 export function plateAt(point: Point, count: number): number | null {
   const reach = Math.min(90, (SPACING[count] ?? 182) / 2);
-  const index = seats(count).findIndex((seat) => Math.abs(point.x - seat.x) <= reach && point.y >= seat.y - 250 && point.y <= seat.y + 50);
+  const index = seats(count).findIndex((seat) => Math.abs(point.x - seat.x) <= reach && point.y >= seat.y - 230 && point.y <= seat.y + 50);
   return index >= 0 ? index : null;
 }
 
@@ -42,9 +51,9 @@ export const POOL = { x: 576, y: 640, size: 46, gap: 52, groupGap: 22 } as const
 export const BASKET = { x: 112, y: 560, scale: 0.92 } as const;
 
 /** The dial: its middle and how big it is drawn. Its left half turns it down, its right half up. */
-export const DIAL = { x: 1030, y: 600, scale: 0.78, halfWidth: 95, halfHeight: 66 } as const;
+export const DIAL = { x: 1054, y: 626, scale: 0.74, halfWidth: 90, halfHeight: 62 } as const;
 
-export const SHARE = { x: 1030, y: 712, scale: 0.68, halfWidth: 96, halfHeight: 32 } as const;
+export const SHARE = { x: 1054, y: 726, scale: 0.66, halfWidth: 93, halfHeight: 30 } as const;
 
 export function onDial(point: Point): 1 | -1 | null {
   if (Math.abs(point.y - DIAL.y) > DIAL.halfHeight + 10 || Math.abs(point.x - DIAL.x) > DIAL.halfWidth + 10) return null;
@@ -77,5 +86,24 @@ export const fromFood = (food: FoodId, point: Point): Point => {
 /** Along the top: the round's line in the middle once its title has gone, progress on the right. */
 export const HUD = { lineX: 560, lineY: 36, progressX: 1132, progressY: 36, bannerY: 36 } as const;
 
-/** Where Biscuit comes in from, and where he grabs the leftovers. */
-export const DOG = { offX: 1260, grabX: 860, y: 640 } as const;
+/** Biscuit sits by the table, hoping, with his bowl beside him: what cannot go round goes in it. */
+export const DOG = { x: 1082, y: 548, scale: 0.68 } as const;
+export const BOWL = { x: 972, y: 556, rx: 52, ry: 17 } as const;
+
+/**
+ * Friends not yet asked to the table peek over the fence, each at their own
+ * spot (by their place in the round's list; the host is never there).
+ */
+const FENCE_X: readonly number[] = [0, 122, 1030, 236];
+export const FENCE_FRIEND = { y: 262, scale: 0.92 } as const;
+
+export const fenceSpot = (friend: number): Point => ({ x: FENCE_X[friend] ?? 576, y: FENCE_FRIEND.y });
+
+/** The waiting friend under a tap, by their place in the round's list. */
+export function fenceAt(point: Point, waiting: readonly number[]): number | null {
+  const friend = waiting.find((index) => {
+    const spot = fenceSpot(index);
+    return Math.abs(point.x - spot.x) <= 62 && point.y <= spot.y && point.y >= spot.y - 170;
+  });
+  return friend ?? null;
+}

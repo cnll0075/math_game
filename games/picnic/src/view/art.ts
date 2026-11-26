@@ -1,6 +1,6 @@
 import { hand, type Bounds, type Point } from '@bundle/core';
 import type { FoodId, FriendId, Mood, TreatId } from '../logic/friends.js';
-import { BASKET, DIAL, FENCE, FOOD, FRIEND, fromFood, POOL, SHARE, SKY, TABLE } from './geometry.js';
+import { BASKET, BODY_Y, BOWL, DIAL, DOG, FENCE, FENCE_FRIEND, FOOD, FRIEND, fromFood, PLATE, POOL, SHARE, SKY, TABLE } from './geometry.js';
 import type { SpriteName, Sprites } from './sprites.js';
 
 const INK = '#1e2a38';
@@ -47,8 +47,8 @@ export function drawCentred(ctx: CanvasRenderingContext2D, sprites: Sprites, nam
   ctx.restore();
 }
 
-/** Sky, the fence along the back, and grass to the edges of the screen. */
-export function drawPark(ctx: CanvasRenderingContext2D, sprites: Sprites, bounds: Bounds): void {
+/** Sky and grass to the edges of the screen; the fence is drawn on its own, so friends can wait behind it. */
+export function drawPark(ctx: CanvasRenderingContext2D, bounds: Bounds): void {
   const sky = ctx.createLinearGradient(0, bounds.top, 0, SKY.horizon);
   sky.addColorStop(0, '#7cc8f0');
   sky.addColorStop(1, '#d6f0fb');
@@ -66,6 +66,10 @@ export function drawPark(ctx: CanvasRenderingContext2D, sprites: Sprites, bounds
     ctx.arc(x, y, r, 0, TAU);
     ctx.fill();
   }
+}
+
+/** The fence along the back of the park. */
+export function drawFence(ctx: CanvasRenderingContext2D, sprites: Sprites, bounds: Bounds): void {
   const fence = sprites.fence;
   if (fence) {
     const width = fence.width * FENCE.scale * 0.86;
@@ -86,13 +90,75 @@ export function drawTable(ctx: CanvasRenderingContext2D, sprites: Sprites): void
   ctx.fillRect(TABLE.x - 400, TABLE.top + 40, 800, 140);
 }
 
-/** A friend behind the table, their plate where it rests on it. */
+/** A friend sitting behind the table: drawn before it, so it hides them below the shoulders. */
 export function drawFriend(ctx: CanvasRenderingContext2D, sprites: Sprites, friend: FriendId, mood: Mood, seat: Point, bob = 0): void {
-  drawStanding(ctx, sprites, `${friend}-${mood}`, { x: seat.x, y: seat.y + 12 - bob }, FRIEND.scale, { fallback: '#b07a4a' });
+  drawStanding(ctx, sprites, `${friend}-${mood}`, { x: seat.x, y: BODY_Y - bob }, FRIEND.scale, { fallback: '#b07a4a' });
 }
 
-export function drawChair(ctx: CanvasRenderingContext2D, sprites: Sprites, seat: Point, alpha = 1): void {
-  drawStanding(ctx, sprites, 'chair', { x: seat.x, y: seat.y - 8 }, 0.92, { alpha, fallback: '#3f6fd6' });
+/** A friend waiting to be asked, peeking over the fence. */
+export function drawWaiting(ctx: CanvasRenderingContext2D, sprites: Sprites, friend: FriendId, at: Point, bob: number): void {
+  drawStanding(ctx, sprites, `${friend}-happy`, { x: at.x, y: at.y - bob }, FENCE_FRIEND.scale, { fallback: '#b07a4a' });
+}
+
+/** A white plate with a blue rim, on the cloth. */
+export function drawPlate(ctx: CanvasRenderingContext2D, seat: Point): void {
+  ctx.save();
+  ctx.fillStyle = 'rgba(30,42,56,0.18)';
+  ctx.beginPath();
+  ctx.ellipse?.(seat.x + 3, seat.y + 4, PLATE.rx, PLATE.ry, 0, 0, TAU);
+  ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = '#3f6fd6';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.ellipse?.(seat.x, seat.y, PLATE.rx, PLATE.ry, 0, 0, TAU);
+  ctx.fill();
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(63,111,214,0.35)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse?.(seat.x, seat.y, PLATE.rx * 0.68, PLATE.ry * 0.62, 0, 0, TAU);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** Biscuit's bowl, red, on the grass beside him. */
+export function drawBowl(ctx: CanvasRenderingContext2D): void {
+  ctx.save();
+  ctx.fillStyle = 'rgba(30,42,56,0.2)';
+  ctx.beginPath();
+  ctx.ellipse?.(BOWL.x + 3, BOWL.y + 16, BOWL.rx + 4, BOWL.ry, 0, 0, TAU);
+  ctx.fill();
+  ctx.fillStyle = '#c93a32';
+  ctx.beginPath();
+  ctx.moveTo(BOWL.x - BOWL.rx, BOWL.y);
+  ctx.lineTo(BOWL.x - BOWL.rx + 8, BOWL.y + 18);
+  ctx.lineTo(BOWL.x + BOWL.rx - 8, BOWL.y + 18);
+  ctx.lineTo(BOWL.x + BOWL.rx, BOWL.y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#e8574c';
+  ctx.beginPath();
+  ctx.ellipse?.(BOWL.x, BOWL.y, BOWL.rx, BOWL.ry, 0, 0, TAU);
+  ctx.fill();
+  ctx.fillStyle = '#7a1f1a';
+  ctx.beginPath();
+  ctx.ellipse?.(BOWL.x, BOWL.y + 1, BOWL.rx - 7, BOWL.ry - 5, 0, 0, TAU);
+  ctx.fill();
+  ctx.restore();
+}
+
+/** Where the n-th leftover sits in Biscuit's bowl. */
+export const bowlSpot = (index: number): Point => ({ x: BOWL.x + (index - 1) * 22, y: BOWL.y - 6 - (index % 2) * 4 });
+
+/**
+ * Biscuit: sitting, hoping, by the table; or eating, with a happy hop in his
+ * place, when something has gone in his bowl. He faces the table.
+ */
+export function drawDog(ctx: CanvasRenderingContext2D, sprites: Sprites, eating: number, clock: number): void {
+  const hop = eating > 0 ? Math.abs(Math.sin(eating * 9)) * 16 : Math.abs(Math.sin(clock * 1.4)) * 2;
+  if (eating > 0) drawStanding(ctx, sprites, 'dog-sneak', { x: DOG.x, y: DOG.y - hop }, DOG.scale * 0.86, { flip: true, fallback: '#c98a4b' });
+  else drawStanding(ctx, sprites, 'dog-caught', { x: DOG.x, y: DOG.y - hop }, DOG.scale, { flip: true, fallback: '#c98a4b' });
 }
 
 /** Where the n-th treat on a plate sits: a little heap, four to a row. */

@@ -8,7 +8,7 @@ export type StarBook = Record<string, number>;
  * dial, the dial turned straight to the answer. Tapping and cutting need none.
  */
 export const bestShares = (def: LevelDef): number =>
-  def.courses.filter((course) => (course.kind === 'share' && course.mode === 'dial') || course.kind === 'chairs').length;
+  def.courses.filter((course) => (course.kind === 'share' && course.mode === 'dial') || course.kind === 'invite').length;
 
 /**
  * Stars count shares, never dial turns or taps: the fewest possible is three,

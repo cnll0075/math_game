@@ -3,7 +3,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import type { Phase } from '../driver.js';
 import type { Intent } from '../intent.js';
 import type { TablePhase } from '../logic/table.js';
-import { DIAL, FOOD, SHARE, seats } from './geometry.js';
+import { DIAL, fenceSpot, FOOD, SHARE, seats } from './geometry.js';
 import { createInput, type InputState } from './input.js';
 import { createScene } from './scene.js';
 import { NO_SPRITES } from './sprites.js';
@@ -36,7 +36,7 @@ const setup = (state: () => InputState) => {
   return { canvas, intents, input };
 };
 
-const playing = (table: TablePhase, seated = 3): (() => InputState) => () => ({ phase: 'playing' as Phase, table, seated, food: 'pizza' });
+const playing = (table: TablePhase, seated = 3): (() => InputState) => () => ({ phase: 'playing' as Phase, table, seated, food: 'pizza', waiting: [], seatedFriends: [] });
 
 afterEach(() => document.body.replaceChildren());
 
@@ -46,6 +46,20 @@ describe('input', () => {
     const seat = seats(3)[2]!;
     tap(canvas, seat.x, seat.y - 60);
     expect(intents).toEqual([{ kind: 'tap', plate: 2 }]);
+    input.dispose();
+  });
+
+  it('invites a friend waiting at the fence, and sends back a friend at the table, but not the host', () => {
+    const state = (): InputState => ({ phase: 'playing', table: 'inviting', seated: 2, food: null, waiting: [2, 3], seatedFriends: [0, 1] });
+    const { canvas, intents, input } = setup(state);
+    const spot = fenceSpot(3);
+    tap(canvas, spot.x, spot.y - 60);
+    const [, guest] = seats(2);
+    tap(canvas, guest!.x, guest!.y - 80);
+    const [host] = seats(2);
+    tap(canvas, host!.x, host!.y - 80);
+    tap(canvas, SHARE.x, SHARE.y);
+    expect(intents).toEqual([{ kind: 'invite', friend: 3 }, { kind: 'invite', friend: 1 }, { kind: 'share' }]);
     input.dispose();
   });
 
@@ -94,7 +108,7 @@ describe('input', () => {
 
   it('moves on with a tap between rounds, but not with a finger that was already down', () => {
     let phase: Phase = 'playing';
-    const { canvas, intents, input } = setup(() => ({ phase, table: 'sharing', seated: 3, food: null }));
+    const { canvas, intents, input } = setup(() => ({ phase, table: 'sharing', seated: 3, food: null, waiting: [], seatedFriends: [] }));
     pointer(canvas, 'pointerdown', 500, 700);
     phase = 'done';
     pointer(canvas, 'pointerup', 500, 700);

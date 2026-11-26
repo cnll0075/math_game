@@ -2,7 +2,7 @@ import { courseOf, preview, type Table } from './table.js';
 
 /**
  * Players for the tests. `best` reads every number: the dial straight to the
- * answer, the right chairs, cuts through the middle. `ones` shares one at a
+ * answer, the right friends invited, cuts through the middle. `ones` shares one at a
  * time, which always works and is slow.
  */
 export type Policy = 'best' | 'ones';
@@ -14,9 +14,10 @@ export function playRound(table: Table, policy: Policy): void {
     const course = courseOf(state);
     if (state.phase === 'between') {
       table.nextCourse();
-    } else if (state.phase === 'chairs') {
+    } else if (state.phase === 'inviting') {
+      // Ask friends in one at a time until the treats share with none over.
       if (preview(state).fits) table.share();
-      else table.turnDial(1);
+      else table.invite(state.seated.length);
     } else if (state.phase === 'cutting') {
       const across = state.cuts.length === 0;
       table.cut(across ? { x: -1.3, y: 0 } : { x: 0, y: -1.3 }, across ? { x: 1.3, y: 0 } : { x: 0, y: 1.3 });

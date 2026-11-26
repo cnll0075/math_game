@@ -144,48 +144,51 @@ describe('a round of several courses', () => {
   });
 });
 
-describe('choosing chairs', () => {
-  const chairsRound = () =>
-    createTable(round([{ kind: 'chairs', treat: 'cookie', count: 9, choices: [2, 3, 4] }], ['teddy', 'bunny', 'fox', 'raccoon']));
+describe('inviting friends', () => {
+  const inviteRound = () =>
+    createTable(round([{ kind: 'invite', treat: 'cookie', count: 9 }], ['teddy', 'bunny', 'fox', 'raccoon']));
 
-  it('starts with no one seated and the dial on the fewest chairs', () => {
-    const table = chairsRound();
-    expect(table.state).toMatchObject({ phase: 'chairs', seated: [], dial: 2, basket: 9 });
+  it('starts with only Teddy, the host, at the table', () => {
+    const table = inviteRound();
+    expect(table.state).toMatchObject({ phase: 'inviting', seated: ['teddy'], plates: [0], basket: 9 });
   });
 
-  it('turns the dial only through the chairs on offer', () => {
-    const table = chairsRound();
-    table.turnDial(-1);
-    expect(table.state.dial).toBe(2);
-    table.turnDial(1);
-    table.turnDial(1);
-    table.turnDial(1);
-    expect(table.state.dial).toBe(4);
+  it('brings a friend to the table, or sends them back, but never sends the host away', () => {
+    const table = inviteRound();
+    expect(table.invite(2)).toEqual([{ type: 'invited', friend: 2, seated: true }]);
+    expect(table.invite(1)).toEqual([{ type: 'invited', friend: 1, seated: true }]);
+    expect(table.state.seated).toEqual(['teddy', 'bunny', 'fox']);
+    expect(table.invite(2)).toEqual([{ type: 'invited', friend: 2, seated: false }]);
+    expect(table.state.seated).toEqual(['teddy', 'bunny']);
+    expect(table.invite(0)).toEqual([]);
+    expect(table.invite(9)).toEqual([]);
   });
 
-  it('previews what each would get, and what would be left over', () => {
-    const table = chairsRound();
+  it('previews what each would get, and what would be left for Biscuit', () => {
+    const table = inviteRound();
+    expect(preview(table.state)).toMatchObject({ fits: false });
+    table.invite(1);
     expect(preview(table.state)).toEqual({ each: 4, fits: false, leftover: 1 });
-    table.turnDial(1);
+    table.invite(2);
     expect(preview(table.state)).toEqual({ each: 3, fits: true, leftover: 0 });
   });
 
-  it('will not seat a number that leaves some over', () => {
-    const table = chairsRound();
-    expect(table.share()).toEqual([{ type: 'unseated', chairs: 2, leftover: 1 }]);
-    expect(table.state).toMatchObject({ phase: 'chairs', seated: [] });
+  it('will not share while some would be left over, and says how many', () => {
+    const table = inviteRound();
+    table.invite(1);
+    expect(table.share()).toEqual([{ type: 'uneven', friends: 2, leftover: 1 }]);
     expect(table.state.shares).toBe(0);
   });
 
-  it('seats the right number, and then they share with the dial', () => {
-    const table = chairsRound();
-    table.turnDial(1);
-    expect(table.share()).toEqual([{ type: 'seated', chairs: 3 }]);
-    expect(table.state).toMatchObject({ phase: 'sharing', seated: ['teddy', 'bunny', 'fox'], plates: [0, 0, 0], dial: 1, basket: 9 });
-    table.turnDial(1);
-    table.turnDial(1);
+  it('shares in one go once everyone would get the same with nothing over', () => {
+    const table = inviteRound();
+    table.invite(1);
+    table.invite(2);
     expect(types(table.share())).toEqual(['shared', 'course', 'done']);
+    expect(table.state.plates).toEqual([3, 3, 3]);
+    expect(table.state.shares).toBe(1);
     expect(table.state.summaries[0]).toEqual({ item: 'cookie', count: 9, friends: 3, each: 3, leftover: 0 });
+    expect(table.invite(3)).toEqual([]);
   });
 });
 

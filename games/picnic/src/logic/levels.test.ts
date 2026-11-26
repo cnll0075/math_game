@@ -39,13 +39,12 @@ describe('the rounds', () => {
     expect(remainders.map(({ level }) => level.id)).toEqual(['one-for-biscuit', 'odd-grapes', 'sandwich-stack']);
   });
 
-  it('have one chairs round, where exactly one number of chairs shares with nothing over', () => {
-    const chairs = LEVELS.flatMap((level) => level.courses.flatMap((course) => (course.kind === 'chairs' ? [{ level, course }] : [])));
-    expect(chairs).toHaveLength(1);
-    const { level, course } = chairs[0]!;
-    const fair = course.choices.filter((count) => course.count % count === 0);
-    expect(fair).toHaveLength(1);
-    expect(Math.max(...course.choices)).toBeLessThanOrEqual(level.friends.length);
+  it('have one round of inviting friends, where exactly one number at the table shares with nothing over', () => {
+    const invites = LEVELS.flatMap((level) => level.courses.flatMap((course) => (course.kind === 'invite' ? [{ level, course }] : [])));
+    expect(invites).toHaveLength(1);
+    const { level, course } = invites[0]!;
+    const sizes = Array.from({ length: level.friends.length - 1 }, (_, index) => index + 2);
+    expect(sizes.filter((size) => course.count % size === 0)).toHaveLength(1);
   });
 
   it('cut a pizza in halves for two, and a cake in quarters for four', () => {

@@ -139,6 +139,8 @@ export function createDriver(options: DriverOptions): Driver {
           return settle(table.turnDial(intent.step));
         case 'share':
           return settle(table.share());
+        case 'invite':
+          return settle(table.invite(intent.friend));
         case 'cut':
           return settle(table.cut(intent.from, intent.to));
       }

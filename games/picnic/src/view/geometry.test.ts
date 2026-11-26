@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { DIAL, FOOD, fromFood, onDial, onShare, plateAt, seats, SHARE, toFood } from './geometry.js';
+import { DIAL, fenceAt, fenceSpot, FOOD, fromFood, onDial, onShare, plateAt, seats, SHARE, toFood } from './geometry.js';
 
 describe('the table', () => {
   it('seats two, three or four across the table, left to right and evenly', () => {
@@ -20,6 +20,15 @@ describe('the table', () => {
       expect(plateAt({ x: 576, y: 740 }, count)).toBeNull();
       expect(plateAt({ x: 30, y: seats(count)[0]!.y }, count)).toBeNull();
     }
+  });
+
+  it('finds a friend waiting at the fence, and only those waiting', () => {
+    for (const friend of [1, 2, 3]) {
+      const spot = fenceSpot(friend);
+      expect(fenceAt({ x: spot.x, y: spot.y - 60 }, [1, 2, 3])).toBe(friend);
+      expect(fenceAt({ x: spot.x, y: spot.y - 60 }, [])).toBeNull();
+    }
+    expect(fenceAt({ x: 576, y: 700 }, [1, 2, 3])).toBeNull();
   });
 
   it('turns the dial down on its left and up on its right, and finds Share', () => {

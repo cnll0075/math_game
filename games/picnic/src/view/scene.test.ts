@@ -24,7 +24,7 @@ describe('the scene', () => {
   it('draws the round\'s line, the progress, what is left to share, and every plate\'s count', () => {
     const driver = createDriver({ book: {}, startLevel: 'two-friends' });
     driver.act({ kind: 'tap', plate: 0 });
-    const { ctx, texts } = render(driver, 1);
+    const { ctx, texts } = render(driver, TIMING.introSeconds + 0.2);
     expect(depthOf(ctx)).toBe(0);
     expect(texts).toContain('Tap a plate to give a cookie. Everyone the same!');
     expect(texts).toContain('1 of 12');
@@ -43,12 +43,13 @@ describe('the scene', () => {
     expect(texts).toContain('9');
   });
 
-  it('shows the number of chairs on the dial while choosing them', () => {
-    const driver = createDriver({ book: {}, startLevel: 'surprise-guests' });
-    driver.act({ kind: 'dial', step: 1 });
+  it('draws the friends being invited, and what each would get', () => {
+    const driver = createDriver({ book: {}, startLevel: 'who-can-come' });
+    driver.act({ kind: 'invite', friend: 1 });
     const { ctx, texts } = render(driver);
     expect(depthOf(ctx)).toBe(0);
-    expect(texts).toContain('3');
+    expect(texts).toContain('Share');
+    expect(texts).toContain('9');
   });
 
   it('draws a pizza waiting to be cut, and the cut', () => {

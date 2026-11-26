@@ -3,13 +3,13 @@ import type { FoodId, FriendId, TreatId } from './friends.js';
 /**
  * One thing to share in a round.
  * `share` — a basket of treats, shared by tapping plates (`tap`) or with the dial.
- * `chairs` — the dial sets how many sit down; only a number that shares with
- *            nothing over will seat them, and then it is shared with the dial.
+ * `invite` — Teddy, the host, chooses who comes to the table: only a number of
+ *            friends that shares the treats with nothing over can share them.
  * `cut` — one pizza or cake, cut through the middle into pieces.
  */
 export type Course =
   | { kind: 'share'; treat: TreatId; count: number; mode: 'tap' | 'dial' }
-  | { kind: 'chairs'; treat: TreatId; count: number; choices: readonly number[] }
+  | { kind: 'invite'; treat: TreatId; count: number }
   | { kind: 'cut'; food: FoodId; pieces: 2 | 4 };
 
 export interface LevelDef {
@@ -17,7 +17,7 @@ export interface LevelDef {
   title: string;
   /** Under the title for the whole round: the new idea. */
   line: string;
-  /** Who sits at the table, left to right. A chairs course seats the first few. */
+  /** Who sits at the table, left to right. In an invite course the first is the host and the rest wait to be asked. */
   friends: readonly FriendId[];
   courses: readonly Course[];
 }
@@ -80,11 +80,11 @@ export const LEVELS: readonly LevelDef[] = [
     courses: [{ kind: 'share', treat: 'sandwich', count: 14, mode: 'dial' }],
   },
   {
-    id: 'surprise-guests',
-    title: 'Surprise Guests',
-    line: 'How many chairs, so nothing is left over?',
+    id: 'who-can-come',
+    title: 'Who Can Come?',
+    line: 'Tap friends to invite them. Share 9 with none left over!',
     friends: ['teddy', 'bunny', 'fox', 'raccoon'],
-    courses: [{ kind: 'chairs', treat: 'cookie', count: 9, choices: [2, 3, 4] }],
+    courses: [{ kind: 'invite', treat: 'cookie', count: 9 }],
   },
   {
     id: 'pizza-halves',

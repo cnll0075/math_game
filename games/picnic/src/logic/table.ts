@@ -30,12 +30,12 @@ export interface Cut {
 
 /**
  * `sharing` — treats in the basket, going onto plates.
- * `chairs` — choosing how many sit down.
+ * `inviting` — choosing who comes to the table.
  * `cutting` — a whole pizza or cake, being cut.
  * `between` — a course is finished and shown; the next is about to come out.
  * `done` — the round is over.
  */
-export type TablePhase = 'sharing' | 'chairs' | 'cutting' | 'between' | 'done';
+export type TablePhase = 'sharing' | 'inviting' | 'cutting' | 'between' | 'done';
 
 export interface TableState {
   def: LevelDef;
@@ -47,7 +47,7 @@ export interface TableState {
   plates: number[];
   /** Treats still to share. */
   basket: number;
-  /** How many each per share, or how many chairs. */
+  /** How many each per share. */
   dial: number;
   /** Shares made with the dial, over the whole round: what the stars count. */
   shares: number;
@@ -66,8 +66,10 @@ export type TableEvent =
   | { type: 'leftover'; count: number }
   | { type: 'course'; summary: Summary }
   | { type: 'next'; course: number }
-  | { type: 'seated'; chairs: number }
-  | { type: 'unseated'; chairs: number; leftover: number }
+  /** A friend came to the table, or went back; `friend` is their place in the round's list. */
+  | { type: 'invited'; friend: number; seated: boolean }
+  /** Shared among these friends, some would be left over: no share. */
+  | { type: 'uneven'; friends: number; leftover: number }
   /** A refused cut says why: it missed the middle, or it does not cross the first one square. */
   | { type: 'cut'; ok: true }
   | { type: 'cut'; ok: false; why: 'middle' | 'cross' }
@@ -80,8 +82,10 @@ export interface Table {
   tap(plate: number): TableEvent[];
   /** Turn the dial up or down one. */
   turnDial(step: 1 | -1): TableEvent[];
-  /** Share the dial's number to every plate; in a chairs course, seat that many. */
+  /** Share the dial's number to every plate; in an invite course, share it all among whoever came. */
   share(): TableEvent[];
+  /** Bring a friend to the table, or send them back (never the host). */
+  invite(friend: number): TableEvent[];
   /** Cut across the food, from one point to another, relative to its middle in radii. */
   cut(from: Point, to: Point): TableEvent[];
   /** Bring out the next course, after the last has been shown. */
@@ -93,8 +97,10 @@ export const courseOf = (state: TableState): Course => state.def.courses[state.c
 /** What the next share would do: how many each would have, whether it fits, what would be left for Biscuit. */
 export function preview(state: TableState): { each: number; fits: boolean; leftover: number } {
   const course = courseOf(state);
-  if (state.phase === 'chairs' && course.kind === 'chairs') {
-    return { each: Math.floor(course.count / state.dial), fits: course.count % state.dial === 0, leftover: course.count % state.dial };
+  if (state.phase === 'inviting' && course.kind === 'invite') {
+    // Sharing needs friends: the host alone is not a share.
+    const friends = state.seated.length;
+    return { each: Math.floor(course.count / friends), fits: friends >= 2 && course.count % friends === 0, leftover: course.count % friends };
   }
   const friends = Math.max(1, state.seated.length);
   const need = state.dial * friends;
@@ -126,11 +132,10 @@ export function createTable(def: LevelDef): Table {
       state.phase = 'sharing';
       state.seated = [...def.friends];
       state.basket = course.count;
-    } else if (course.kind === 'chairs') {
-      state.phase = 'chairs';
-      state.seated = [];
+    } else if (course.kind === 'invite') {
+      state.phase = 'inviting';
+      state.seated = [def.friends[0]!];
       state.basket = course.count;
-      state.dial = course.choices[0]!;
     } else {
       state.phase = 'cutting';
       state.seated = [...def.friends];
@@ -185,12 +190,6 @@ export function createTable(def: LevelDef): Table {
     },
 
     turnDial(step) {
-      const course = courseOf(state);
-      if (state.phase === 'chairs' && course.kind === 'chairs') {
-        const at = course.choices.indexOf(state.dial);
-        state.dial = course.choices[Math.max(0, Math.min(course.choices.length - 1, at + step))]!;
-        return [];
-      }
       if (state.phase !== 'sharing') return [];
       state.dial = Math.max(1, Math.min(DIAL_MAX, state.dial + step));
       return [];
@@ -198,16 +197,16 @@ export function createTable(def: LevelDef): Table {
 
     share() {
       const course = courseOf(state);
-      if (state.phase === 'chairs' && course.kind === 'chairs') {
-        const chairs = state.dial;
-        const leftover = course.count % chairs;
-        // Only a number of chairs that shares with nothing over seats anyone.
-        if (leftover !== 0) return [{ type: 'unseated', chairs, leftover }];
-        state.seated = def.friends.slice(0, chairs);
-        state.plates = state.seated.map(() => 0);
-        state.phase = 'sharing';
-        state.dial = 1;
-        return [{ type: 'seated', chairs }];
+      if (state.phase === 'inviting' && course.kind === 'invite') {
+        const look = preview(state);
+        if (!look.fits) return [{ type: 'uneven', friends: state.seated.length, leftover: look.leftover }];
+        // Everyone at the table gets the same, all at once: one share.
+        state.plates = state.seated.map(() => look.each);
+        state.basket = 0;
+        state.shares += 1;
+        const events: TableEvent[] = [{ type: 'shared', each: look.each }];
+        finish(events, course.treat, course.count);
+        return events;
       }
       if (state.phase !== 'sharing' || (course.kind === 'share' && course.mode === 'tap')) return [];
       const need = state.dial * state.seated.length;
@@ -218,6 +217,16 @@ export function createTable(def: LevelDef): Table {
       const events: TableEvent[] = [{ type: 'shared', each: state.dial }];
       settle(events);
       return events;
+    },
+
+    invite(friend) {
+      if (state.phase !== 'inviting' || friend <= 0 || friend >= def.friends.length) return [];
+      const who = def.friends[friend]!;
+      const coming = !state.seated.includes(who);
+      // Whoever is at the table sits in the round's order, left to right.
+      state.seated = def.friends.filter((other) => (other === who ? coming : state.seated.includes(other)));
+      state.plates = state.seated.map(() => 0);
+      return [{ type: 'invited', friend, seated: coming }];
     },
 
     cut(from, to) {

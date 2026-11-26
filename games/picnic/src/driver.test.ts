@@ -44,6 +44,14 @@ describe('the driver', () => {
     expect(driver.act({ kind: 'next' })[0]).toMatchObject({ type: 'level', level: { id: 'three-plates' } });
   });
 
+  it('invites friends, and shares once nothing would be left over', () => {
+    const driver = createDriver({ book: {}, startLevel: 'who-can-come' });
+    expect(driver.act({ kind: 'invite', friend: 1 })).toEqual([{ type: 'invited', friend: 1, seated: true }]);
+    expect(driver.act({ kind: 'share' })).toEqual([{ type: 'uneven', friends: 2, leftover: 1 }]);
+    driver.act({ kind: 'invite', friend: 2 });
+    expect(driver.act({ kind: 'share' })).toContainEqual(expect.objectContaining({ type: 'won', stars: 3 }));
+  });
+
   it('brings out the next course by itself after a moment', () => {
     const driver = createDriver({ book: {}, startLevel: 'picnic-party' });
     driver.act({ kind: 'dial', step: 1 });

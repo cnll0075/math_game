@@ -3,7 +3,7 @@ import type { Phase } from '../driver.js';
 import type { Intent } from '../intent.js';
 import type { FoodId } from '../logic/friends.js';
 import type { TablePhase } from '../logic/table.js';
-import { onDial, onShare, plateAt, toFood } from './geometry.js';
+import { fenceAt, onDial, onShare, plateAt, toFood } from './geometry.js';
 import type { Scene } from './scene.js';
 
 export interface InputHandle {
@@ -17,13 +17,17 @@ export interface InputState {
   seated: number;
   /** What is on the table to cut, if anything. */
   food: FoodId | null;
+  /** While inviting: who waits at the fence, and who sits at the table, by place in the round's list. */
+  waiting: readonly number[];
+  seatedFriends: readonly number[];
 }
 
 /** A swipe that starts this far from the middle of the food, in radii, is not a cut. */
 const CUT_START = 1.6;
 
 /**
- * Taps, and one swipe. A tap on a friend or their plate gives them one; on the
+ * Taps, and one swipe. While inviting, a tap on a friend at the fence brings
+ * them to the table and a tap on a guest sends them back. A tap on a friend or their plate gives them one; on the
  * dial's left or right half turns it; on Share shares. While a pizza or cake is
  * on the table, a swipe across it cuts. Between rounds a tap (on lifting) moves
  * on, but only a tap that began there. One finger at a time.
@@ -49,6 +53,22 @@ export function createInput(canvas: HTMLCanvasElement, scene: Scene, emit: (inte
     if (state.table === 'cutting' && state.food) {
       const from = toFood(state.food, at);
       if (Math.hypot(from.x, from.y) <= CUT_START) pressed.cutFrom = from;
+      return;
+    }
+    if (state.table === 'inviting') {
+      const waiting = fenceAt(at, state.waiting);
+      if (waiting !== null) {
+        emit({ kind: 'invite', friend: waiting });
+        return;
+      }
+      const plate = plateAt(at, state.seated);
+      // A friend at the table goes back to the fence; the host stays.
+      const friend = plate === null ? undefined : state.seatedFriends[plate];
+      if (friend !== undefined && friend > 0) {
+        emit({ kind: 'invite', friend });
+        return;
+      }
+      if (onShare(at)) emit({ kind: 'share' });
       return;
     }
     const step = onDial(at);

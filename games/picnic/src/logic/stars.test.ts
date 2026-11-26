@@ -8,7 +8,7 @@ describe('stars', () => {
   it('count the dial shares a round needs at best: one a course', () => {
     expect(bestShares(level('two-friends'))).toBe(0);
     expect(bestShares(level('the-dial'))).toBe(1);
-    expect(bestShares(level('surprise-guests'))).toBe(1);
+    expect(bestShares(level('who-can-come'))).toBe(1);
     expect(bestShares(level('pizza-halves'))).toBe(0);
     expect(bestShares(level('picnic-party'))).toBe(2);
   });

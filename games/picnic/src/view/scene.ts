@@ -219,7 +219,7 @@ export function createScene(sprites: Sprites): Scene {
         else if (dialing && !look.fits && plate >= canFill) mood = 'puzzled';
         const bob = mood === 'eating' ? Math.abs(Math.sin(clock * 6 + plate)) * 5 : 0;
         drawFriend(ctx, sprites, friend, mood, seat, bob);
-        if (dialing && !look.fits && plate >= canFill) drawQuestion(ctx, { x: seat.x + 58, y: seat.y - 170 });
+        if (dialing && !look.fits && plate >= canFill) drawQuestion(ctx, { x: seat.x + 78, y: seat.y - 205 });
       });
 
       if (course.kind === 'cut') {
@@ -229,7 +229,9 @@ export function createScene(sprites: Sprites): Scene {
         const treat = course.treat;
         places.forEach((seat, plate) => drawHeap(ctx, sprites, treat, Math.max(0, shown[plate] ?? 0), seat));
         if (dialing) {
-          for (let plate = 0; plate < canFill; plate += 1) drawHeap(ctx, sprites, treat, table.dial, places[plate]!, 0.38, table.plates[plate] ?? 0);
+          // Ghosts of the next share, hovering over the plates they would go to.
+          const lift = 30 + Math.sin(clock * 3) * 5;
+          for (let plate = 0; plate < canFill; plate += 1) drawHeap(ctx, sprites, treat, table.dial, places[plate]!, 0.55, table.plates[plate] ?? 0, lift);
         }
       }
 
@@ -238,7 +240,7 @@ export function createScene(sprites: Sprites): Scene {
         const equal = shown.length > 0 && shown.every((count) => count === shown[0]) && (shown[0] ?? 0) > 0;
         places.forEach((seat, plate) => drawTag(ctx, String(Math.max(0, shown[plate] ?? 0)), { x: seat.x, y: seat.y + 40 }, 21, equal));
       } else if (table.phase !== 'cutting') {
-        places.forEach((seat) => drawTag(ctx, seated === 2 ? '½' : '¼', { x: seat.x, y: seat.y + 40 }, 21, true));
+        places.forEach((seat) => drawTag(ctx, seated === 2 ? '1/2' : '1/4', { x: seat.x, y: seat.y + 40 }, 24, true));
       }
 
       const treat = shareTreat(table);
@@ -249,7 +251,7 @@ export function createScene(sprites: Sprites): Scene {
       }
 
       if (table.phase === 'chairs' && course.kind === 'chairs') {
-        seats(table.dial).forEach((seat) => drawHeap(ctx, sprites, course.treat, look.each, { x: seat.x, y: seat.y - 30 }, 0.38));
+        seats(table.dial).forEach((seat) => drawHeap(ctx, sprites, course.treat, look.each, seat, 0.55, 0, 30 + Math.sin(clock * 3) * 5));
         // Biscuit peeks in hopefully at any number that would leave him some.
         if (!look.fits) drawStanding(ctx, sprites, 'dog-caught', { x: 930, y: 594 }, 0.5);
       }
@@ -283,7 +285,7 @@ export function createScene(sprites: Sprites): Scene {
         ctx.save();
         ctx.globalAlpha = 1 - trail.life / TRAIL_SECONDS;
         ctx.strokeStyle = trail.ok === false ? '#e8543f' : 'rgba(255,255,255,0.9)';
-        ctx.lineWidth = 6;
+        ctx.lineWidth = 9;
         ctx.lineCap = 'round';
         if (trail.ok === false) ctx.setLineDash?.([14, 10]);
         ctx.beginPath();

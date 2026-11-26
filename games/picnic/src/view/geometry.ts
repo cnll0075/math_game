@@ -14,11 +14,11 @@ export const FENCE = { y: 176, scale: 0.82 } as const;
 export const TABLE = { x: 576, top: 318, scale: 1.38 } as const;
 
 /** Where the friends' plates rest on the table top. */
-const PLATE_Y = 418;
+const PLATE_Y = 440;
 /** How far apart the friends sit, by how many there are. */
-const SPACING: Readonly<Record<number, number>> = { 1: 0, 2: 290, 3: 236, 4: 182 };
+const SPACING: Readonly<Record<number, number>> = { 1: 0, 2: 300, 3: 250, 4: 204 };
 
-export const FRIEND = { scale: 1.06 } as const;
+export const FRIEND = { scale: 1.34 } as const;
 
 /** The middle of each seated friend's plate, left to right. */
 export function seats(count: number): Point[] {
@@ -30,7 +30,7 @@ export function seats(count: number): Point[] {
 /** The plate under a tap: anywhere on the friend or their plate, for small fingers. */
 export function plateAt(point: Point, count: number): number | null {
   const reach = Math.min(90, (SPACING[count] ?? 182) / 2);
-  const index = seats(count).findIndex((seat) => Math.abs(point.x - seat.x) <= reach && point.y >= seat.y - 200 && point.y <= seat.y + 50);
+  const index = seats(count).findIndex((seat) => Math.abs(point.x - seat.x) <= reach && point.y >= seat.y - 250 && point.y <= seat.y + 50);
   return index >= 0 ? index : null;
 }
 
@@ -54,7 +54,7 @@ export const onShare = (point: Point): boolean =>
   Math.abs(point.x - SHARE.x) <= SHARE.halfWidth + 10 && Math.abs(point.y - SHARE.y) <= SHARE.halfHeight + 12;
 
 /** A pizza or cake to cut: its middle on the table, and its radii (it is seen at a slant). */
-export const FOOD = { x: 576, y: 446, rx: 190, ry: 104, scale: 1.62 } as const;
+export const FOOD = { x: 576, y: 478, rx: 150, ry: 80 } as const;
 
 /** A point measured from the middle of the food, in its radii. */
 export const toFood = (point: Point): Point => ({ x: (point.x - FOOD.x) / FOOD.rx, y: (point.y - FOOD.y) / FOOD.ry });

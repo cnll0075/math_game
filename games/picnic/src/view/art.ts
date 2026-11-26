@@ -99,12 +99,14 @@ export function drawChair(ctx: CanvasRenderingContext2D, sprites: Sprites, seat:
 export const heapSpot = (seat: Point, index: number): Point => {
   const row = Math.floor(index / 4);
   const inRow = index % 4;
-  const across = Math.min(4, 4) - 1;
-  return { x: seat.x + (inRow - across / 2) * 24 + (row % 2) * 10, y: seat.y - 8 - row * 16 };
+  return { x: seat.x + (inRow - 1.5) * 30 + (row % 2) * 12, y: seat.y - 10 - row * 20 };
 };
 
-export function drawHeap(ctx: CanvasRenderingContext2D, sprites: Sprites, treat: TreatId, count: number, seat: Point, alpha = 1, from = 0): void {
-  for (let index = from; index < from + count; index += 1) drawCentred(ctx, sprites, treat, heapSpot(seat, index), 34, alpha);
+export function drawHeap(ctx: CanvasRenderingContext2D, sprites: Sprites, treat: TreatId, count: number, seat: Point, alpha = 1, from = 0, lift = 0): void {
+  for (let index = from; index < from + count; index += 1) {
+    const spot = heapSpot(seat, index);
+    drawCentred(ctx, sprites, treat, { x: spot.x, y: spot.y - lift }, 42, alpha);
+  }
 }
 
 /** A round tag with a number: how many each plate has, or what is left to share. */
@@ -123,7 +125,8 @@ export function drawTag(ctx: CanvasRenderingContext2D, text: string, at: Point, 
   ctx.arc(at.x, at.y, radius, 0, TAU);
   ctx.fill();
   ctx.stroke();
-  ctx.font = hand(700, radius * 1.2);
+  // A fraction is three characters: smaller, so it stays inside the tag.
+  ctx.font = hand(700, radius * (text.length > 2 ? 0.78 : 1.2));
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = INK;
@@ -204,8 +207,11 @@ export function drawFood(ctx: CanvasRenderingContext2D, sprites: Sprites, food: 
   const image = sprites[food];
   ctx.save();
   if (image) {
-    const scale = (FOOD.rx * 2.05) / image.width;
-    ctx.drawImage(image, FOOD.x - (image.width * scale) / 2, FOOD.y - (image.height * scale) / 2 - (food === 'cake' ? 30 : 0), image.width * scale, image.height * scale);
+    // A pizza is all top; a cake is drawn so its top, where it is cut, is the oval cut across.
+    const width = food === 'pizza' ? FOOD.rx * 2.05 : FOOD.rx * 1.5;
+    const scale = width / image.width;
+    const lift = food === 'pizza' ? 0 : image.height * scale * 0.22;
+    ctx.drawImage(image, FOOD.x - width / 2, FOOD.y - (image.height * scale) / 2 + lift, width, image.height * scale);
   } else {
     ctx.fillStyle = food === 'pizza' ? '#f0a840' : '#f7b8c8';
     ctx.beginPath();

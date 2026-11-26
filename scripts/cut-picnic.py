@@ -258,6 +258,26 @@ def largest_part(sprite):
     return out.crop(out.getbbox())
 
 
+MOODS = ('eating', 'happy', 'puzzled', 'grumpy')
+
+
+def centre_on_plate(sprite):
+    """
+    Widened so the friend's plate sits in the middle of the bottom edge. Each
+    mood is cut to its own outline (a cookie held out, a tail), so without this
+    the plate would jump about as the faces change.
+    """
+    rgba = np.asarray(sprite)
+    bottom = rgba[-14:]
+    light = (bottom[..., 3] > 200) & (bottom[..., :3].min(axis=2) > 200)
+    xs = np.nonzero(light)[1]
+    centre = (xs.min() + xs.max()) / 2
+    half = int(np.ceil(max(centre, sprite.width - centre)))
+    out = Image.new('RGBA', (half * 2, sprite.height), (0, 0, 0, 0))
+    out.paste(sprite, (int(round(half - centre)), 0))
+    return out
+
+
 def prepare(sheet):
     """The sheet with the table's plates and the dial's number painted out."""
     pixels = np.asarray(sheet).astype(int).copy()
@@ -281,6 +301,8 @@ def main():
         sprite = cut(board, box)
         if name in LARGEST_ONLY:
             sprite = largest_part(sprite)
+        if '-' in name and name.split('-')[1] in MOODS:
+            sprite = centre_on_plate(sprite)
         sprite.save(f'{OUT}/{name}.png')
     print(f'cut {len(SPRITES)} pieces into {OUT}')
 

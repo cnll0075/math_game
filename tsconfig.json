@@ -11,7 +11,8 @@
       "@bundle/balloon": ["games/balloon/src/index.ts"],
       "@bundle/pond": ["games/pond/src/index.ts"],
       "@bundle/fishing": ["games/fishing/src/index.ts"],
-      "@bundle/train": ["games/train/src/index.ts"]
+      "@bundle/train": ["games/train/src/index.ts"],
+      "@bundle/picnic": ["games/picnic/src/index.ts"]
     }
   },
   "include": ["packages/*/src", "games/*/src", "apps/*/src", "vitest.config.ts"]

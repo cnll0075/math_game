@@ -143,3 +143,90 @@ describe('a round of several courses', () => {
     expect(table.state.shares).toBe(2);
   });
 });
+
+describe('choosing chairs', () => {
+  const chairsRound = () =>
+    createTable(round([{ kind: 'chairs', treat: 'cookie', count: 9, choices: [2, 3, 4] }], ['teddy', 'bunny', 'fox', 'raccoon']));
+
+  it('starts with no one seated and the dial on the fewest chairs', () => {
+    const table = chairsRound();
+    expect(table.state).toMatchObject({ phase: 'chairs', seated: [], dial: 2, basket: 9 });
+  });
+
+  it('turns the dial only through the chairs on offer', () => {
+    const table = chairsRound();
+    table.turnDial(-1);
+    expect(table.state.dial).toBe(2);
+    table.turnDial(1);
+    table.turnDial(1);
+    table.turnDial(1);
+    expect(table.state.dial).toBe(4);
+  });
+
+  it('previews what each would get, and what would be left over', () => {
+    const table = chairsRound();
+    expect(preview(table.state)).toEqual({ each: 4, fits: false, leftover: 1 });
+    table.turnDial(1);
+    expect(preview(table.state)).toEqual({ each: 3, fits: true, leftover: 0 });
+  });
+
+  it('will not seat a number that leaves some over', () => {
+    const table = chairsRound();
+    expect(table.share()).toEqual([{ type: 'unseated', chairs: 2, leftover: 1 }]);
+    expect(table.state).toMatchObject({ phase: 'chairs', seated: [] });
+    expect(table.state.shares).toBe(0);
+  });
+
+  it('seats the right number, and then they share with the dial', () => {
+    const table = chairsRound();
+    table.turnDial(1);
+    expect(table.share()).toEqual([{ type: 'seated', chairs: 3 }]);
+    expect(table.state).toMatchObject({ phase: 'sharing', seated: ['teddy', 'bunny', 'fox'], plates: [0, 0, 0], dial: 1, basket: 9 });
+    table.turnDial(1);
+    table.turnDial(1);
+    expect(types(table.share())).toEqual(['shared', 'course', 'done']);
+    expect(table.state.summaries[0]).toEqual({ item: 'cookie', count: 9, friends: 3, each: 3, leftover: 0 });
+  });
+});
+
+describe('cutting', () => {
+  const pizza = () => createTable(round([{ kind: 'cut', food: 'pizza', pieces: 2 }], ['teddy', 'bunny']));
+  const cake = () => createTable(round([{ kind: 'cut', food: 'cake', pieces: 4 }], ['teddy', 'bunny', 'fox', 'raccoon']));
+
+  it('starts with the food whole and everyone seated', () => {
+    expect(pizza().state).toMatchObject({ phase: 'cutting', seated: ['teddy', 'bunny'], plates: [0, 0], cuts: [] });
+  });
+
+  it('cuts a pizza in half with one swipe through the middle, and serves a half each', () => {
+    const table = pizza();
+    expect(table.cut({ x: -1.2, y: 0.05 }, { x: 1.2, y: -0.05 })).toEqual([
+      { type: 'cut', ok: true },
+      { type: 'served' },
+      { type: 'course', summary: { item: 'pizza', count: 1, friends: 2, each: 1, leftover: 0 } },
+      { type: 'done' },
+    ]);
+    expect(table.state.plates).toEqual([1, 1]);
+  });
+
+  it('refuses a cut that misses the middle', () => {
+    const table = pizza();
+    expect(table.cut({ x: -1.2, y: 0.5 }, { x: 1.2, y: 0.5 })).toEqual([{ type: 'cut', ok: false }]);
+    expect(table.state.cuts).toEqual([]);
+    expect(table.state.phase).toBe('cutting');
+  });
+
+  it('ignores a swipe too short to cut anything', () => {
+    expect(pizza().cut({ x: -0.2, y: 0 }, { x: 0.2, y: 0 })).toEqual([]);
+  });
+
+  it('needs two crossing cuts for a cake in quarters', () => {
+    const table = cake();
+    expect(table.cut({ x: -1.2, y: 0 }, { x: 1.2, y: 0 })).toEqual([{ type: 'cut', ok: true }]);
+    // Nearly along the first cut: that would not make quarters.
+    expect(table.cut({ x: -1.2, y: -0.2 }, { x: 1.2, y: 0.2 })).toEqual([{ type: 'cut', ok: false }]);
+    const events = table.cut({ x: 0.05, y: -1.2 }, { x: -0.05, y: 1.2 });
+    expect(types(events)).toEqual(['cut', 'served', 'course', 'done']);
+    expect(table.state.plates).toEqual([1, 1, 1, 1]);
+    expect(table.state.cuts).toHaveLength(2);
+  });
+});

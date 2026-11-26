@@ -5,6 +5,15 @@ import type { Course, LevelDef } from './levels.data.js';
 /** The dial shares this many each at most. */
 export const DIAL_MAX = 10;
 
+export const CUTTING = {
+  /** A cut counts only if its line passes this near the middle, in radii. */
+  centre: 0.2,
+  /** A swipe shorter than this, in radii, is not a cut at all. */
+  shortest: 1.2,
+  /** Two cuts for quarters must cross at least this steeply, radians. */
+  crossing: Math.PI / 4,
+} as const;
+
 /** What a finished course came to, for the card: `12 cookies, 3 friends: 4 each`. */
 export interface Summary {
   item: TreatId | FoodId;
@@ -115,6 +124,15 @@ export function createTable(def: LevelDef): Table {
       state.phase = 'sharing';
       state.seated = [...def.friends];
       state.basket = course.count;
+    } else if (course.kind === 'chairs') {
+      state.phase = 'chairs';
+      state.seated = [];
+      state.basket = course.count;
+      state.dial = course.choices[0]!;
+    } else {
+      state.phase = 'cutting';
+      state.seated = [...def.friends];
+      state.basket = 0;
     }
     state.plates = state.seated.map(() => 0);
   };
@@ -165,6 +183,12 @@ export function createTable(def: LevelDef): Table {
     },
 
     turnDial(step) {
+      const course = courseOf(state);
+      if (state.phase === 'chairs' && course.kind === 'chairs') {
+        const at = course.choices.indexOf(state.dial);
+        state.dial = course.choices[Math.max(0, Math.min(course.choices.length - 1, at + step))]!;
+        return [];
+      }
       if (state.phase !== 'sharing') return [];
       state.dial = Math.max(1, Math.min(DIAL_MAX, state.dial + step));
       return [];
@@ -172,6 +196,17 @@ export function createTable(def: LevelDef): Table {
 
     share() {
       const course = courseOf(state);
+      if (state.phase === 'chairs' && course.kind === 'chairs') {
+        const chairs = state.dial;
+        const leftover = course.count % chairs;
+        // Only a number of chairs that shares with nothing over seats anyone.
+        if (leftover !== 0) return [{ type: 'unseated', chairs, leftover }];
+        state.seated = def.friends.slice(0, chairs);
+        state.plates = state.seated.map(() => 0);
+        state.phase = 'sharing';
+        state.dial = 1;
+        return [{ type: 'seated', chairs }];
+      }
       if (state.phase !== 'sharing' || (course.kind === 'share' && course.mode === 'tap')) return [];
       const need = state.dial * state.seated.length;
       if (need > state.basket) return [{ type: 'short', need, have: state.basket }];
@@ -183,8 +218,29 @@ export function createTable(def: LevelDef): Table {
       return events;
     },
 
-    cut() {
-      return [];
+    cut(from, to) {
+      const course = courseOf(state);
+      if (state.phase !== 'cutting' || course.kind !== 'cut') return [];
+      const dx = to.x - from.x;
+      const dy = to.y - from.y;
+      const length = Math.hypot(dx, dy);
+      if (length < CUTTING.shortest) return [];
+      // How far the cut's line passes from the middle.
+      const miss = Math.abs(from.x * dy - from.y * dx) / length;
+      const angle = ((Math.atan2(dy, dx) % Math.PI) + Math.PI) % Math.PI;
+      const crosses = state.cuts.every((cut) => {
+        const apart = Math.abs(cut.angle - angle);
+        return Math.min(apart, Math.PI - apart) >= CUTTING.crossing;
+      });
+      if (miss > CUTTING.centre || !crosses) return [{ type: 'cut', ok: false }];
+      state.cuts.push({ angle });
+      const events: TableEvent[] = [{ type: 'cut', ok: true }];
+      if (state.cuts.length * 2 >= course.pieces) {
+        state.plates = state.seated.map(() => 1);
+        events.push({ type: 'served' });
+        finish(events, course.food, 1);
+      }
+      return events;
     },
 
     nextCourse() {

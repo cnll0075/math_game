@@ -145,7 +145,7 @@ export function createScene(sprites: Sprites): Scene {
             if (trail) trail.ok = event.ok;
             if (!event.ok) {
               for (let plate = 0; plate < count; plate += 1) hold(plate, plate === count - 1 ? 'grumpy' : 'puzzled', 1.1);
-              floats.push({ text: 'Through the middle!', at: { x: 576, y: 230 }, life: 0 });
+              floats.push({ text: event.why === 'cross' ? 'Cut across the first one!' : 'Through the middle!', at: { x: 576, y: 230 }, life: 0 });
             }
             break;
           default:
@@ -279,9 +279,9 @@ export function createScene(sprites: Sprites): Scene {
         drawStanding(ctx, sprites, 'dog-sneak', { x, y: DOG.y + 70 }, 0.62, { flip: inward });
       }
 
-      if (trail) {
-        const from = fromFood(trail.from);
-        const to = fromFood(trail.to);
+      if (trail && course.kind === 'cut') {
+        const from = fromFood(course.food, trail.from);
+        const to = fromFood(course.food, trail.to);
         ctx.save();
         ctx.globalAlpha = 1 - trail.life / TRAIL_SECONDS;
         ctx.strokeStyle = trail.ok === false ? '#e8543f' : 'rgba(255,255,255,0.9)';

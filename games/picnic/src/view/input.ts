@@ -1,6 +1,7 @@
 import { DESIGN, type Point, type Size } from '@bundle/core';
 import type { Phase } from '../driver.js';
 import type { Intent } from '../intent.js';
+import type { FoodId } from '../logic/friends.js';
 import type { TablePhase } from '../logic/table.js';
 import { onDial, onShare, plateAt, toFood } from './geometry.js';
 import type { Scene } from './scene.js';
@@ -14,6 +15,8 @@ export interface InputState {
   phase: Phase;
   table: TablePhase;
   seated: number;
+  /** What is on the table to cut, if anything. */
+  food: FoodId | null;
 }
 
 /** A swipe that starts this far from the middle of the food, in radii, is not a cut. */
@@ -27,7 +30,7 @@ const CUT_START = 1.6;
  */
 export function createInput(canvas: HTMLCanvasElement, scene: Scene, emit: (intent: Intent) => void, current: () => InputState): InputHandle {
   /** The one finger followed: where a cut began, and whether it pressed during play. */
-  let pressed: { pointerId: number; cutFrom: Point | null; playing: boolean } | null = null;
+  let pressed: { pointerId: number; cutFrom: Point | null; food: FoodId | null; playing: boolean } | null = null;
 
   const screenSize = (): Size => ({ width: canvas.clientWidth || DESIGN.width, height: canvas.clientHeight || DESIGN.height });
   const designPoint = (event: PointerEvent): Point => {
@@ -40,11 +43,11 @@ export function createInput(canvas: HTMLCanvasElement, scene: Scene, emit: (inte
     if (pressed) return;
     canvas.setPointerCapture?.(event.pointerId);
     const state = current();
-    pressed = { pointerId: event.pointerId, cutFrom: null, playing: isPlaying(state.phase) };
+    pressed = { pointerId: event.pointerId, cutFrom: null, food: state.food, playing: isPlaying(state.phase) };
     if (!pressed.playing) return;
     const at = designPoint(event);
-    if (state.table === 'cutting') {
-      const from = toFood(at);
+    if (state.table === 'cutting' && state.food) {
+      const from = toFood(state.food, at);
       if (Math.hypot(from.x, from.y) <= CUT_START) pressed.cutFrom = from;
       return;
     }
@@ -63,15 +66,15 @@ export function createInput(canvas: HTMLCanvasElement, scene: Scene, emit: (inte
 
   const onPointerUp = (event: PointerEvent): void => {
     if (!pressed || pressed.pointerId !== event.pointerId) return;
-    const { cutFrom, playing } = pressed;
+    const { cutFrom, food, playing } = pressed;
     pressed = null;
     canvas.releasePointerCapture?.(event.pointerId);
     if (!isPlaying(current().phase)) {
       if (!playing) emit({ kind: 'next' });
       return;
     }
-    if (cutFrom) {
-      const to = toFood(designPoint(event));
+    if (cutFrom && food) {
+      const to = toFood(food, designPoint(event));
       scene.swipe(cutFrom, to);
       emit({ kind: 'cut', from: cutFrom, to });
     }

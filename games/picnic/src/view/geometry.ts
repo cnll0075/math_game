@@ -1,4 +1,5 @@
 import type { Point } from '@bundle/core';
+import type { FoodId } from '../logic/friends.js';
 
 /**
  * Where everything sits, in design pixels. A park: sky, the fence along the
@@ -53,13 +54,25 @@ export function onDial(point: Point): 1 | -1 | null {
 export const onShare = (point: Point): boolean =>
   Math.abs(point.x - SHARE.x) <= SHARE.halfWidth + 10 && Math.abs(point.y - SHARE.y) <= SHARE.halfHeight + 12;
 
-/** A pizza or cake to cut: its middle on the table, and its radii (it is seen at a slant). */
-export const FOOD = { x: 576, y: 478, rx: 150, ry: 80 } as const;
+/**
+ * A pizza or cake to cut: the middle of the face that is cut, on the table,
+ * and its radii (it is seen at a slant). The cake is cut across its top.
+ */
+export const FOOD: Readonly<Record<FoodId, { x: number; y: number; rx: number; ry: number }>> = {
+  pizza: { x: 576, y: 478, rx: 150, ry: 80 },
+  cake: { x: 576, y: 452, rx: 124, ry: 32 },
+};
 
 /** A point measured from the middle of the food, in its radii. */
-export const toFood = (point: Point): Point => ({ x: (point.x - FOOD.x) / FOOD.rx, y: (point.y - FOOD.y) / FOOD.ry });
+export const toFood = (food: FoodId, point: Point): Point => {
+  const shape = FOOD[food];
+  return { x: (point.x - shape.x) / shape.rx, y: (point.y - shape.y) / shape.ry };
+};
 
-export const fromFood = (point: Point): Point => ({ x: FOOD.x + point.x * FOOD.rx, y: FOOD.y + point.y * FOOD.ry });
+export const fromFood = (food: FoodId, point: Point): Point => {
+  const shape = FOOD[food];
+  return { x: shape.x + point.x * shape.rx, y: shape.y + point.y * shape.ry };
+};
 
 /** Along the top: the round's line in the middle once its title has gone, progress on the right. */
 export const HUD = { lineX: 560, lineY: 36, progressX: 1132, progressY: 36, bannerY: 36 } as const;

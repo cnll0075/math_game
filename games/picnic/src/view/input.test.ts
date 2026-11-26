@@ -36,7 +36,7 @@ const setup = (state: () => InputState) => {
   return { canvas, intents, input };
 };
 
-const playing = (table: TablePhase, seated = 3): (() => InputState) => () => ({ phase: 'playing' as Phase, table, seated });
+const playing = (table: TablePhase, seated = 3): (() => InputState) => () => ({ phase: 'playing' as Phase, table, seated, food: 'pizza' });
 
 afterEach(() => document.body.replaceChildren());
 
@@ -60,9 +60,10 @@ describe('input', () => {
 
   it('cuts with a swipe across the food, measured from its middle', () => {
     const { canvas, intents, input } = setup(playing('cutting', 2));
-    pointer(canvas, 'pointerdown', FOOD.x - FOOD.rx * 1.2, FOOD.y);
-    pointer(canvas, 'pointermove', FOOD.x, FOOD.y);
-    pointer(canvas, 'pointerup', FOOD.x + FOOD.rx * 1.2, FOOD.y);
+    const pizza = FOOD.pizza;
+    pointer(canvas, 'pointerdown', pizza.x - pizza.rx * 1.2, pizza.y);
+    pointer(canvas, 'pointermove', pizza.x, pizza.y);
+    pointer(canvas, 'pointerup', pizza.x + pizza.rx * 1.2, pizza.y);
     expect(intents).toHaveLength(1);
     const cut = intents[0]!;
     expect(cut.kind).toBe('cut');
@@ -93,7 +94,7 @@ describe('input', () => {
 
   it('moves on with a tap between rounds, but not with a finger that was already down', () => {
     let phase: Phase = 'playing';
-    const { canvas, intents, input } = setup(() => ({ phase, table: 'sharing', seated: 3 }));
+    const { canvas, intents, input } = setup(() => ({ phase, table: 'sharing', seated: 3, food: null }));
     pointer(canvas, 'pointerdown', 500, 700);
     phase = 'done';
     pointer(canvas, 'pointerup', 500, 700);

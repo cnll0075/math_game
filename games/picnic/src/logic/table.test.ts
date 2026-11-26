@@ -210,8 +210,14 @@ describe('cutting', () => {
 
   it('refuses a cut that misses the middle', () => {
     const table = pizza();
-    expect(table.cut({ x: -1.2, y: 0.5 }, { x: 1.2, y: 0.5 })).toEqual([{ type: 'cut', ok: false }]);
+    expect(table.cut({ x: -1.2, y: 0.5 }, { x: 1.2, y: 0.5 })).toEqual([{ type: 'cut', ok: false, why: 'middle' }]);
     expect(table.state.cuts).toEqual([]);
+    expect(table.state.phase).toBe('cutting');
+  });
+
+  it('judges the swipe as drawn: one that heads away from the food never reaches the middle', () => {
+    const table = pizza();
+    expect(table.cut({ x: 1, y: 0 }, { x: 2.5, y: 0 })).toEqual([{ type: 'cut', ok: false, why: 'middle' }]);
     expect(table.state.phase).toBe('cutting');
   });
 
@@ -223,7 +229,9 @@ describe('cutting', () => {
     const table = cake();
     expect(table.cut({ x: -1.2, y: 0 }, { x: 1.2, y: 0 })).toEqual([{ type: 'cut', ok: true }]);
     // Nearly along the first cut: that would not make quarters.
-    expect(table.cut({ x: -1.2, y: -0.2 }, { x: 1.2, y: 0.2 })).toEqual([{ type: 'cut', ok: false }]);
+    expect(table.cut({ x: -1.2, y: -0.2 }, { x: 1.2, y: 0.2 })).toEqual([{ type: 'cut', ok: false, why: 'cross' }]);
+    // Through the middle but slanting at 45°: two thin pieces and two fat ones.
+    expect(table.cut({ x: -1, y: -1 }, { x: 1, y: 1 })).toEqual([{ type: 'cut', ok: false, why: 'cross' }]);
     const events = table.cut({ x: 0.05, y: -1.2 }, { x: -0.05, y: 1.2 });
     expect(types(events)).toEqual(['cut', 'served', 'course', 'done']);
     expect(table.state.plates).toEqual([1, 1, 1, 1]);

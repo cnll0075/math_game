@@ -4,7 +4,7 @@ import type { Intent } from './intent.js';
 import { playRound, type Policy } from './logic/bot.js';
 import { readBook } from './logic/progress.js';
 import type { StarBook } from './logic/stars.js';
-import type { TableState } from './logic/table.js';
+import { courseOf, type TableState } from './logic/table.js';
 import { createPicnicSoundPack } from './audio/picnic-sounds.js';
 import { createInput } from './view/input.js';
 import { createScene } from './view/scene.js';
@@ -128,7 +128,11 @@ export const picnicGame: PicnicModule = {
         void host.audio.unlock();
         act(intent);
       },
-      () => ({ phase: driver.phase, table: driver.table.state.phase, seated: driver.table.state.seated.length }),
+      () => {
+        const state = driver.table.state;
+        const course = courseOf(state);
+        return { phase: driver.phase, table: state.phase, seated: state.seated.length, food: course.kind === 'cut' ? course.food : null };
+      },
     );
 
     const resize = (): void => {

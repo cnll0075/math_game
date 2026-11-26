@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { DIAL, FOOD, onDial, onShare, plateAt, seats, SHARE, toFood } from './geometry.js';
+import { DIAL, FOOD, fromFood, onDial, onShare, plateAt, seats, SHARE, toFood } from './geometry.js';
 
 describe('the table', () => {
   it('seats two, three or four across the table, left to right and evenly', () => {
@@ -30,8 +30,14 @@ describe('the table', () => {
     expect(onShare({ x: DIAL.x, y: DIAL.y })).toBe(false);
   });
 
-  it('measures a swipe from the middle of the food, in its radii', () => {
-    expect(toFood({ x: FOOD.x, y: FOOD.y })).toEqual({ x: 0, y: 0 });
-    expect(toFood({ x: FOOD.x + FOOD.rx, y: FOOD.y - FOOD.ry })).toEqual({ x: 1, y: -1 });
+  it('measures a swipe from the middle of whichever food it is, in its own radii', () => {
+    for (const food of ['pizza', 'cake'] as const) {
+      const shape = FOOD[food];
+      expect(toFood(food, { x: shape.x, y: shape.y })).toEqual({ x: 0, y: 0 });
+      expect(toFood(food, { x: shape.x + shape.rx, y: shape.y - shape.ry })).toEqual({ x: 1, y: -1 });
+      expect(fromFood(food, { x: 1, y: -1 })).toEqual({ x: shape.x + shape.rx, y: shape.y - shape.ry });
+    }
+    // The cake is narrower than the pizza, so a cut across it is shorter.
+    expect(FOOD.cake.rx).toBeLessThan(FOOD.pizza.rx);
   });
 });

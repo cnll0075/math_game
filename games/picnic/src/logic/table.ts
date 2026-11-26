@@ -10,8 +10,8 @@ export const CUTTING = {
   centre: 0.2,
   /** A swipe shorter than this, in radii, is not a cut at all. */
   shortest: 1.2,
-  /** Two cuts for quarters must cross at least this steeply, radians. */
-  crossing: Math.PI / 4,
+  /** Two cuts for quarters must cross square, give or take this, radians: else the pieces are not equal. */
+  square: Math.PI / 9,
 } as const;
 
 /** What a finished course came to, for the card: `12 cookies, 3 friends: 4 each`. */
@@ -68,7 +68,9 @@ export type TableEvent =
   | { type: 'next'; course: number }
   | { type: 'seated'; chairs: number }
   | { type: 'unseated'; chairs: number; leftover: number }
-  | { type: 'cut'; ok: boolean }
+  /** A refused cut says why: it missed the middle, or it does not cross the first one square. */
+  | { type: 'cut'; ok: true }
+  | { type: 'cut'; ok: false; why: 'middle' | 'cross' }
   | { type: 'served' }
   | { type: 'done' };
 
@@ -225,14 +227,14 @@ export function createTable(def: LevelDef): Table {
       const dy = to.y - from.y;
       const length = Math.hypot(dx, dy);
       if (length < CUTTING.shortest) return [];
-      // How far the cut's line passes from the middle.
-      const miss = Math.abs(from.x * dy - from.y * dx) / length;
+      // How near the swipe itself, as drawn, comes to the middle: a swipe
+      // heading away from the food never reaches it, wherever its line would go.
+      const along = Math.max(0, Math.min(1, -(from.x * dx + from.y * dy) / (length * length)));
+      const miss = Math.hypot(from.x + dx * along, from.y + dy * along);
       const angle = ((Math.atan2(dy, dx) % Math.PI) + Math.PI) % Math.PI;
-      const crosses = state.cuts.every((cut) => {
-        const apart = Math.abs(cut.angle - angle);
-        return Math.min(apart, Math.PI - apart) >= CUTTING.crossing;
-      });
-      if (miss > CUTTING.centre || !crosses) return [{ type: 'cut', ok: false }];
+      const square = state.cuts.every((cut) => Math.abs(Math.abs(cut.angle - angle) - Math.PI / 2) <= CUTTING.square);
+      if (miss > CUTTING.centre) return [{ type: 'cut', ok: false, why: 'middle' }];
+      if (!square) return [{ type: 'cut', ok: false, why: 'cross' }];
       state.cuts.push({ angle });
       const events: TableEvent[] = [{ type: 'cut', ok: true }];
       if (state.cuts.length * 2 >= course.pieces) {

@@ -205,23 +205,26 @@ export function drawShare(ctx: CanvasRenderingContext2D, sprites: Sprites, enabl
 /** The whole pizza or cake on the table, and the cuts made in it so far. */
 export function drawFood(ctx: CanvasRenderingContext2D, sprites: Sprites, food: FoodId, cuts: readonly number[], flash: { angle: number; miss: Point; life: number } | null): void {
   const image = sprites[food];
+  const shape = FOOD[food];
   ctx.save();
   if (image) {
-    // A pizza is all top; a cake is drawn so its top, where it is cut, is the oval cut across.
-    const width = food === 'pizza' ? FOOD.rx * 2.05 : FOOD.rx * 1.5;
+    // A pizza is all top, centred on its oval; a cake is drawn so that its
+    // top, the face that is cut, is the oval.
+    const width = shape.rx * (food === 'pizza' ? 2.05 : 2.12);
     const scale = width / image.width;
-    const lift = food === 'pizza' ? 0 : image.height * scale * 0.22;
-    ctx.drawImage(image, FOOD.x - width / 2, FOOD.y - (image.height * scale) / 2 + lift, width, image.height * scale);
+    const height = image.height * scale;
+    const top = food === 'pizza' ? shape.y - height / 2 : shape.y - height * CAKE_TOP;
+    ctx.drawImage(image, shape.x - width / 2, top, width, height);
   } else {
     ctx.fillStyle = food === 'pizza' ? '#f0a840' : '#f7b8c8';
     ctx.beginPath();
-    ctx.ellipse?.(FOOD.x, FOOD.y, FOOD.rx, FOOD.ry, 0, 0, TAU);
+    ctx.ellipse?.(shape.x, shape.y, shape.rx, shape.ry, 0, 0, TAU);
     ctx.fill();
   }
   ctx.lineCap = 'round';
   for (const angle of cuts) {
-    const a = fromFood({ x: Math.cos(angle) * 1.02, y: Math.sin(angle) * 1.02 });
-    const b = fromFood({ x: -Math.cos(angle) * 1.02, y: -Math.sin(angle) * 1.02 });
+    const a = fromFood(food, { x: Math.cos(angle) * 1.02, y: Math.sin(angle) * 1.02 });
+    const b = fromFood(food, { x: -Math.cos(angle) * 1.02, y: -Math.sin(angle) * 1.02 });
     ctx.strokeStyle = 'rgba(255,255,255,0.95)';
     ctx.lineWidth = 7;
     ctx.beginPath();
@@ -234,8 +237,8 @@ export function drawFood(ctx: CanvasRenderingContext2D, sprites: Sprites, food: 
   }
   if (flash && flash.life < 1) {
     // A cut that missed the middle: drawn where it went, red, and fading.
-    const a = fromFood({ x: flash.miss.x - Math.cos(flash.angle) * 1.1, y: flash.miss.y - Math.sin(flash.angle) * 1.1 });
-    const b = fromFood({ x: flash.miss.x + Math.cos(flash.angle) * 1.1, y: flash.miss.y + Math.sin(flash.angle) * 1.1 });
+    const a = fromFood(food, { x: flash.miss.x - Math.cos(flash.angle) * 1.1, y: flash.miss.y - Math.sin(flash.angle) * 1.1 });
+    const b = fromFood(food, { x: flash.miss.x + Math.cos(flash.angle) * 1.1, y: flash.miss.y + Math.sin(flash.angle) * 1.1 });
     ctx.globalAlpha = 1 - flash.life;
     ctx.strokeStyle = '#e8543f';
     ctx.lineWidth = 6;
@@ -248,6 +251,9 @@ export function drawFood(ctx: CanvasRenderingContext2D, sprites: Sprites, food: 
   }
   ctx.restore();
 }
+
+/** How far down the cake picture the middle of its top is: the top is the face that is cut. */
+const CAKE_TOP = 0.28;
 
 /** A piece of pizza or cake on a friend's plate. */
 export function drawPiece(ctx: CanvasRenderingContext2D, sprites: Sprites, food: FoodId, seat: Point): void {

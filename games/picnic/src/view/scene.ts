@@ -2,7 +2,7 @@ import { drawArrivingBanner, fitToScreen, label, visibleBounds, type Point, type
 import type { DriverEvent, SceneModel } from '../driver.js';
 import { treatName, type Mood, type TreatId } from '../logic/friends.js';
 import { hasLeftovers, LEVELS } from '../logic/levels.data.js';
-import { courseOf, preview, type Summary, type TableState } from '../logic/table.js';
+import { courseOf, DIAL_MAX, preview, type Summary, type TableState } from '../logic/table.js';
 import {
   bowlSpot,
   drawBasket,
@@ -358,7 +358,7 @@ export function createScene(sprites: Sprites): Scene {
       }
 
       if (playing && (dialing || inviting)) {
-        if (dialing) drawDial(ctx, sprites, table.dial, dialPulse);
+        if (dialing && treat) drawDial(ctx, sprites, table.dial, treat, dialPulse, { least: table.dial <= 1, most: table.dial >= DIAL_MAX });
         drawShare(ctx, sprites, look.fits);
       }
 

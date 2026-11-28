@@ -199,38 +199,43 @@ export function drawBubble(ctx: CanvasRenderingContext2D, text: string, alpha: n
 /** Where Biscuit's mouth is, from where he sits, as he is drawn facing the table. */
 const DOG_MOUTH = { x: -22, y: -84 } as const;
 
-/** A knife: silver blade, wooden handle, its tip at a point and pointing along an angle. */
+/**
+ * A knife: silver blade, wooden handle, its tip at a point and pointing along
+ * an angle. Its edge is always underneath, whichever way it points.
+ */
 export function drawKnife(ctx: CanvasRenderingContext2D, tip: Point, angle: number, alpha = 1): void {
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.translate(tip.x, tip.y);
   ctx.rotate(angle);
-  // Drawn pointing left from the handle to the tip at the origin.
+  // Drawn with the tip at the origin and the handle off to the right; turned
+  // over when it points back on itself, so the spine stays on top.
+  if (Math.cos(angle) < 0) ctx.scale(1, -1);
   ctx.fillStyle = 'rgba(30,42,56,0.25)';
   ctx.beginPath();
-  ctx.ellipse?.(70, 12, 72, 8, 0, 0, TAU);
+  ctx.ellipse?.(70, 14, 72, 8, 0, 0, TAU);
   ctx.fill();
   ctx.fillStyle = '#dfe6ee';
   ctx.strokeStyle = '#8a97a6';
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(0, 0);
-  ctx.quadraticCurveTo(30, -16, 78, -14);
-  ctx.lineTo(78, 6);
-  ctx.lineTo(10, 6);
+  ctx.lineTo(80, -8);
+  ctx.lineTo(80, 12);
+  ctx.quadraticCurveTo(28, 14, 0, 0);
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
   ctx.fillStyle = '#9a5b2e';
   ctx.strokeStyle = '#6b3d1c';
   ctx.beginPath();
-  ctx.roundRect?.(76, -10, 62, 18, 8);
+  ctx.roundRect?.(78, -8, 62, 18, 8);
   ctx.fill();
   ctx.stroke();
   ctx.fillStyle = '#e8d8b8';
-  for (const x of [92, 108, 124]) {
+  for (const x of [94, 110, 126]) {
     ctx.beginPath();
-    ctx.arc(x, -1, 2.5, 0, TAU);
+    ctx.arc(x, 1, 2.5, 0, TAU);
     ctx.fill();
   }
   ctx.restore();
@@ -295,29 +300,61 @@ export function drawBasket(ctx: CanvasRenderingContext2D, sprites: Sprites, left
 }
 
 /** The dial, with its number written in its face. */
-export function drawDial(ctx: CanvasRenderingContext2D, sprites: Sprites, value: number, pulse: number): void {
-  const image = sprites.dial;
+/**
+ * How many each friend gets per share: the number, big, with the treat and
+ * "each" under it, between a minus and a plus. Tapping its left half takes
+ * one away, its right half adds one.
+ */
+export function drawDial(
+  ctx: CanvasRenderingContext2D,
+  sprites: Sprites,
+  value: number,
+  treat: TreatId,
+  pulse: number,
+  limits: { least: boolean; most: boolean },
+): void {
   ctx.save();
   ctx.translate(DIAL.x, DIAL.y);
-  const grow = 1 + pulse * 0.06;
-  ctx.scale(grow, grow);
-  if (image) {
-    ctx.drawImage(image, (-image.width * DIAL.scale) / 2, (-image.height * DIAL.scale) / 2, image.width * DIAL.scale, image.height * DIAL.scale);
-  } else {
-    ctx.fillStyle = '#2f6fd6';
+  const width = DIAL.halfWidth * 2;
+  const height = DIAL.halfHeight * 2;
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = '#2f6fd6';
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.roundRect?.(-width / 2, -height / 2, width, height, 28);
+  ctx.fill();
+  ctx.stroke();
+  // Minus and plus, either side.
+  for (const [side, sign, faded] of [[-1, '−', limits.least], [1, '+', limits.most]] as const) {
+    ctx.save();
+    ctx.globalAlpha = faded ? 0.35 : 1;
+    ctx.fillStyle = '#3f8fe0';
     ctx.beginPath();
-    ctx.arc(0, 0, 60, 0, TAU);
+    ctx.arc(side * (DIAL.halfWidth - 32), 0, 26, 0, TAU);
     ctx.fill();
+    ctx.font = hand(700, 44);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
     ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(0, 0, 44, 0, TAU);
-    ctx.fill();
+    ctx.fillText(sign, side * (DIAL.halfWidth - 32), 2);
+    ctx.restore();
   }
+  const grow = 1 + pulse * 0.15;
+  ctx.save();
+  ctx.translate(0, -14);
+  ctx.scale(grow, grow);
   ctx.font = hand(700, 54);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = '#1f3f7f';
-  ctx.fillText(String(value), 0, 8);
+  ctx.fillText(String(value), 0, 2);
+  ctx.restore();
+  drawCentred(ctx, sprites, treat, { x: -22, y: 34 }, 26);
+  ctx.font = hand(700, 20);
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#1f3f7f';
+  ctx.fillText('each', -6, 35);
   ctx.restore();
 }
 

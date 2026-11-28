@@ -23,7 +23,7 @@ For ages 6–8. Eleven levels, like Bucket Bay, with stars.
   from the sheet: happy, eating, puzzled, grumpy.
 - The basket, and in front of the table the treats it brought, laid out in
   even rows, with the number on a tag (`12`).
-- Bottom right: the **dial** (how many each friend gets in one share, 1 to 10)
+- Bottom right: the **dial** — a number between a minus and a plus, with the treat and "each" under it (how many each friend gets in one share, 1 to 10)
   and the **Share** button.
 - **Biscuit** the dog sits beside the table, hoping, with his own bowl — but
   only in the rounds where something will be left over, so he always gets

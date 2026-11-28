@@ -56,7 +56,8 @@ export const POOL = { x: 576, y: 640, size: 46, gap: 52 } as const;
 export const BASKET = { x: 112, y: 560, scale: 0.92 } as const;
 
 /** The dial: its middle and how big it is drawn. Its left half turns it down, its right half up. */
-export const DIAL = { x: 1054, y: 626, scale: 0.74, halfWidth: 90, halfHeight: 62 } as const;
+/** The each-friend-gets control: a panel with minus on its left half and plus on its right. */
+export const DIAL = { x: 1054, y: 626, halfWidth: 92, halfHeight: 58 } as const;
 
 export const SHARE = { x: 1054, y: 726, scale: 0.66, halfWidth: 93, halfHeight: 30 } as const;
 

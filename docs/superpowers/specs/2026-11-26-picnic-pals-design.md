@@ -11,7 +11,7 @@ groups, odd and even, remainders, and halves and quarters — division and early
 fractions met as fairness, which children of 6 to 8 feel keenly. It is the
 bundle's calm game: no clock, no way to lose a round.
 
-For ages 6–8. Levels, like Bucket Bay, with stars.
+For ages 6–8. Eleven levels, like Bucket Bay, with stars.
 
 ## The table
 
@@ -22,11 +22,14 @@ For ages 6–8. Levels, like Bucket Bay, with stars.
   arrives), **Raccoon** (notices when things are not fair). Each has four faces
   from the sheet: happy, eating, puzzled, grumpy.
 - The basket, and in front of the table the treats it brought, laid out in
-  rows of five so they can be counted, with the number on a tag (`12`).
+  even rows, with the number on a tag (`12`).
 - Bottom right: the **dial** (how many each friend gets in one share, 1 to 10)
   and the **Share** button.
-- **Biscuit** the dog sits beside the table the whole time, hoping, with his
-  own bowl: so it is plain from the start where anything left over will go.
+- **Biscuit** the dog sits beside the table, hoping, with his own bowl — but
+  only in the rounds where something will be left over, so he always gets
+  something when he comes. The first time, he says so in a speech bubble
+  ("Just the one left over, please!"). He is never offered chocolate-chip
+  cookies or grapes, which are bad for dogs.
 
 ## Sharing
 
@@ -69,10 +72,13 @@ and a card says what happened: `12 cookies, 3 friends: 4 each!`, and
   them back. Ghosts show how many each would get and what Biscuit's bowl would
   hold; **Share** shares everything in one go, but only once nothing would be
   left over. Which groups share 9 equally — met with the friends themselves.
-- **Cutting** (rounds 10–11): a whole pizza or cake on the table. Swipe across
-  it to cut. A cut must pass through the middle, or it is uneven — Raccoon
-  frowns and the cut fades. Pizza needs one cut for two halves; cake needs two
-  cuts, crossing, for four quarters. Then each friend gets a piece.
+- **Cutting** (rounds 10–11): a whole pizza or cake on the table, and a knife
+  beside it. Drag the knife across: it follows the finger, drawing the cut as
+  it goes. A cut snaps to a clean line — across, down or corner to corner — and
+  counts if it passes near the middle; one that misses is uneven, Raccoon
+  frowns and the cut fades. Pizza needs one cut for two halves; cake needs a
+  second cut square across the first for four quarters. Then each friend gets
+  a piece.
 
 ## Stars
 
@@ -88,8 +94,8 @@ earns at least one star. Best stars per round are kept in `host.storage`.
 | --- | --- | --- | --- | --- |
 | 1 | Two Friends | Teddy, Bunny | 6 cookies, tapping | Equal sharing |
 | 2 | Strawberry Share | Teddy, Bunny | 10 strawberries, tapping | Halves |
-| 3 | One for Biscuit | Teddy, Fox | 7 cookies, tapping | Remainders |
-| 4 | Odd Grapes | Bunny, Fox | 9 grapes, tapping | Odd and even |
+| 3 | One for Biscuit | Teddy, Fox | 7 strawberries, tapping | Remainders |
+| 4 | Nine Sandwiches | Bunny, Fox | 9 sandwiches, tapping | Odd and even |
 | 5 | The Dial | Teddy, Bunny, Fox | 9 cookies, dial | Sharing into 3 |
 | 6 | Three Plates | Teddy, Bunny, Fox | 12 strawberries, dial | Groups of 4 |
 | 7 | Four Friends | all four | 16 grapes, dial | Sharing into 4 |
@@ -97,7 +103,6 @@ earns at least one star. Best stars per round are kept in `host.storage`.
 | 9 | Who Can Come? | Teddy, and who he invites | 9 cookies, inviting | Reverse: how many can share |
 | 10 | Pizza Halves | Teddy, Bunny | a pizza, one cut | Halves |
 | 11 | Cake Quarters | all four | a cake, two cuts | Quarters |
-| 12 | Picnic Party | Teddy, Fox, Raccoon | 6 cookies, then 9 strawberries, dial | Mixed review |
 
 The dial arrives in round 5, after four rounds of sharing one at a time. No
 round introduces two new ideas.

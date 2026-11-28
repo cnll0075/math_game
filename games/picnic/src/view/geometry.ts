@@ -22,8 +22,13 @@ export const TABLE = { x: 576, top: 318, scale: 1.38 } as const;
 const PLATE_Y = 392;
 /** Where a seated friend's picture stands, behind the table: its foot hides under the cloth. */
 export const BODY_Y = 382;
-/** How far apart the friends sit, by how many there are. */
-const SPACING: Readonly<Record<number, number>> = { 1: 0, 2: 300, 3: 250, 4: 204 };
+/**
+ * How far apart the friends sit, by how many there are, about the middle of
+ * the cloth's back edge — which runs from x 264 to 819, left of the screen's
+ * middle because of the table's slant — so no one sits at a corner.
+ */
+const SPACING: Readonly<Record<number, number>> = { 1: 0, 2: 250, 3: 205, 4: 168 };
+export const SEAT_CENTRE = 542;
 
 export const FRIEND = { scale: 1.3 } as const;
 
@@ -32,20 +37,20 @@ export const PLATE = { rx: 46, ry: 15 } as const;
 
 /** The middle of each seated friend's plate, left to right. */
 export function seats(count: number): Point[] {
-  const spacing = SPACING[count] ?? 182;
-  const first = 576 - (spacing * (count - 1)) / 2;
+  const spacing = SPACING[count] ?? 168;
+  const first = SEAT_CENTRE - (spacing * (count - 1)) / 2;
   return Array.from({ length: count }, (_, index) => ({ x: first + index * spacing, y: PLATE_Y }));
 }
 
 /** The plate under a tap: anywhere on the friend or their plate, for small fingers. */
 export function plateAt(point: Point, count: number): number | null {
-  const reach = Math.min(90, (SPACING[count] ?? 182) / 2);
+  const reach = Math.min(90, (SPACING[count] ?? 168) / 2);
   const index = seats(count).findIndex((seat) => Math.abs(point.x - seat.x) <= reach && point.y >= seat.y - 230 && point.y <= seat.y + 50);
   return index >= 0 ? index : null;
 }
 
-/** The treats still to share, in rows of five on the grass in front of the table. */
-export const POOL = { x: 576, y: 640, size: 46, gap: 52, groupGap: 22 } as const;
+/** The treats still to share, in even rows on the grass in front of the table. */
+export const POOL = { x: 576, y: 640, size: 46, gap: 52 } as const;
 
 /** The basket, beside the table. */
 export const BASKET = { x: 112, y: 560, scale: 0.92 } as const;
@@ -68,8 +73,8 @@ export const onShare = (point: Point): boolean =>
  * and its radii (it is seen at a slant). The cake is cut across its top.
  */
 export const FOOD: Readonly<Record<FoodId, { x: number; y: number; rx: number; ry: number }>> = {
-  pizza: { x: 576, y: 478, rx: 150, ry: 80 },
-  cake: { x: 576, y: 452, rx: 124, ry: 32 },
+  pizza: { x: 556, y: 478, rx: 150, ry: 80 },
+  cake: { x: 556, y: 452, rx: 124, ry: 32 },
 };
 
 /** A point measured from the middle of the food, in its radii. */

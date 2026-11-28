@@ -84,11 +84,18 @@ export function createInput(canvas: HTMLCanvasElement, scene: Scene, emit: (inte
     if (plate !== null && state.table === 'sharing') emit({ kind: 'tap', plate });
   };
 
+  /** While cutting, the knife follows the finger. */
+  const onPointerMove = (event: PointerEvent): void => {
+    if (!pressed || pressed.pointerId !== event.pointerId || !pressed.cutFrom || !pressed.food) return;
+    scene.knife(pressed.cutFrom, toFood(pressed.food, designPoint(event)));
+  };
+
   const onPointerUp = (event: PointerEvent): void => {
     if (!pressed || pressed.pointerId !== event.pointerId) return;
     const { cutFrom, food, playing } = pressed;
     pressed = null;
     canvas.releasePointerCapture?.(event.pointerId);
+    if (cutFrom) scene.knife(null);
     if (!isPlaying(current().phase)) {
       if (!playing) emit({ kind: 'next' });
       return;
@@ -101,7 +108,9 @@ export function createInput(canvas: HTMLCanvasElement, scene: Scene, emit: (inte
   };
 
   const onPointerCancel = (event: PointerEvent): void => {
-    if (pressed?.pointerId === event.pointerId) pressed = null;
+    if (pressed?.pointerId !== event.pointerId) return;
+    if (pressed.cutFrom) scene.knife(null);
+    pressed = null;
   };
 
   const onKeyDown = (event: KeyboardEvent): void => {
@@ -117,6 +126,7 @@ export function createInput(canvas: HTMLCanvasElement, scene: Scene, emit: (inte
   };
 
   canvas.addEventListener('pointerdown', onPointerDown);
+  canvas.addEventListener('pointermove', onPointerMove);
   canvas.addEventListener('pointerup', onPointerUp);
   canvas.addEventListener('pointercancel', onPointerCancel);
   globalThis.addEventListener?.('keydown', onKeyDown);
@@ -124,6 +134,7 @@ export function createInput(canvas: HTMLCanvasElement, scene: Scene, emit: (inte
   return {
     dispose() {
       canvas.removeEventListener('pointerdown', onPointerDown);
+      canvas.removeEventListener('pointermove', onPointerMove);
       canvas.removeEventListener('pointerup', onPointerUp);
       canvas.removeEventListener('pointercancel', onPointerCancel);
       globalThis.removeEventListener?.('keydown', onKeyDown);

@@ -1,11 +1,14 @@
 import { drawArrivingBanner, fitToScreen, label, visibleBounds, type Point, type Size } from '@bundle/core';
 import type { DriverEvent, SceneModel } from '../driver.js';
 import { treatName, type Mood, type TreatId } from '../logic/friends.js';
+import { hasLeftovers, LEVELS } from '../logic/levels.data.js';
 import { courseOf, preview, type Summary, type TableState } from '../logic/table.js';
 import {
   bowlSpot,
   drawBasket,
   drawBowl,
+  drawBubble,
+  drawKnife,
   drawCentred,
   drawDial,
   drawDog,
@@ -36,6 +39,8 @@ export interface Scene {
   observe(events: readonly DriverEvent[]): void;
   /** A swipe across the food, in its radii, so a cut can be drawn where it went. */
   swipe(from: Point, to: Point): void;
+  /** The knife being drawn across the food, in its radii: from where it started to where it is; null when let go. */
+  knife(from: Point | null, to?: Point): void;
   render(ctx: CanvasRenderingContext2D, screen: Size): void;
   toDesign(point: Point, screen: Size): Point;
 }
@@ -83,6 +88,9 @@ const FLY_SECONDS = 0.42;
 const TRAIL_SECONDS = 0.9;
 /** Biscuit eats for this long when something lands in his bowl. */
 const DOG_EAT_SECONDS = 1.6;
+/** In the round where Biscuit first comes, he says so all round; after that, as each round starts. */
+const FIRST_DOG_ROUND = LEVELS.find(hasLeftovers)?.id;
+const BUBBLE_SECONDS = 4;
 
 const shareTreat = (table: TableState): TreatId | null => {
   const course = courseOf(table);
@@ -101,6 +109,7 @@ export function createScene(sprites: Sprites): Scene {
   /** How long Biscuit has been eating; zero when he is sitting, hoping. */
   let eating = 0;
   let trail: { from: Point; to: Point; life: number; ok: boolean | null } | null = null;
+  let drag: { from: Point; to: Point } | null = null;
   let dialPulse = 0;
 
   const above = (plate: number, count: number): Point => {
@@ -115,6 +124,10 @@ export function createScene(sprites: Sprites): Scene {
       trail = { from, to, life: 0, ok: null };
     },
 
+    knife(from, to) {
+      drag = from && to ? { from, to } : null;
+    },
+
     observe(events) {
       for (const event of events) {
         if (event.type === 'level' || event.type === 'next') {
@@ -124,6 +137,7 @@ export function createScene(sprites: Sprites): Scene {
           bowl = null;
           eating = 0;
           trail = null;
+          drag = null;
           continue;
         }
         const table = model?.table;
@@ -232,6 +246,8 @@ export function createScene(sprites: Sprites): Scene {
       const inviting = playing && table.phase === 'inviting';
       const look = preview(table);
       const treat = shareTreat(table);
+      // Biscuit only comes to rounds where something will be left over for him.
+      const dogHere = hasLeftovers(table.def);
 
       ctx.save();
       ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -271,8 +287,29 @@ export function createScene(sprites: Sprites): Scene {
       });
 
       if (course.kind === 'cut') {
-        if (table.phase === 'cutting') drawFood(ctx, sprites, course.food, table.cuts.map((cut) => cut.angle), null);
-        else places.forEach((seat) => drawPiece(ctx, sprites, course.food, seat));
+        if (table.phase === 'cutting') {
+          drawFood(ctx, sprites, course.food, table.cuts.map((cut) => cut.angle), null);
+          if (drag) {
+            // The cut so far, as the knife is drawn across.
+            const from = fromFood(course.food, drag.from);
+            const to = fromFood(course.food, drag.to);
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+            ctx.lineWidth = 6;
+            ctx.lineCap = 'round';
+            ctx.setLineDash?.([12, 9]);
+            ctx.beginPath();
+            ctx.moveTo(from.x, from.y);
+            ctx.lineTo(to.x, to.y);
+            ctx.stroke();
+            ctx.setLineDash?.([]);
+            ctx.restore();
+            drawKnife(ctx, to, Math.atan2(to.y - from.y, to.x - from.x) + Math.PI);
+          } else {
+            // The knife waits beside the food, to be picked up.
+            drawKnife(ctx, fromFood(course.food, { x: 1.18, y: 0.7 }), -0.35 + Math.sin(clock * 2) * 0.04);
+          }
+        } else places.forEach((seat) => drawPiece(ctx, sprites, course.food, seat));
       } else if (treat) {
         places.forEach((seat, plate) => drawHeap(ctx, sprites, treat, Math.max(0, shown[plate] ?? 0), seat));
         const lift = 30 + Math.sin(clock * 3) * 5;
@@ -297,13 +334,14 @@ export function createScene(sprites: Sprites): Scene {
         drawPool(ctx, sprites, treat, waiting);
       }
 
-      // Biscuit and his bowl, always there: what cannot go round goes in it.
-      drawBowl(ctx);
-      if (bowl) {
+      // Biscuit and his bowl, in rounds with leftovers: what cannot go round goes in it.
+      if (dogHere) drawBowl(ctx);
+      // In the bowl until he picks it up: then it is in his mouth instead.
+      if (dogHere && bowl && eating === 0) {
         const landed = bowl.count - flyers.filter((flyer) => flyer.plate === BOWL_PLATE).length;
         for (let one = 0; one < landed; one += 1) drawCentred(ctx, sprites, bowl.treat, bowlSpot(one), 34);
       }
-      const leftoverShown = treat && look.leftover > 0 && ((dialing && look.fits) || (inviting && seated >= 2));
+      const leftoverShown = dogHere && treat && look.leftover > 0 && ((dialing && look.fits) || (inviting && seated >= 2));
       if (treat && leftoverShown) {
         // The leftovers this share, or this table, would leave: hovering over his bowl.
         const lift = 26 + Math.sin(clock * 3) * 5;
@@ -312,7 +350,12 @@ export function createScene(sprites: Sprites): Scene {
           drawCentred(ctx, sprites, treat, { x: spot.x, y: spot.y - lift }, 34, 0.55);
         }
       }
-      drawDog(ctx, sprites, eating, clock);
+      if (dogHere) {
+        drawDog(ctx, sprites, eating > 0 && bowl ? { treat: bowl.treat, progress: eating / DOG_EAT_SECONDS } : null, clock);
+        const first = table.def.id === FIRST_DOG_ROUND;
+        const talking = current.phase === 'playing' && !bowl && (first || current.since < BUBBLE_SECONDS);
+        if (talking) drawBubble(ctx, first ? 'Just the one left over, please!' : 'Any left over? For me!', 1);
+      }
 
       if (playing && (dialing || inviting)) {
         if (dialing) drawDial(ctx, sprites, table.dial, dialPulse);

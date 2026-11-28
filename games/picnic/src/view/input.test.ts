@@ -89,6 +89,22 @@ describe('input', () => {
     input.dispose();
   });
 
+  it('moves the knife with the finger while cutting, and puts it down on letting go', () => {
+    const canvas = canvasOf(1152, 768);
+    const scene = createScene(NO_SPRITES);
+    const knife: unknown[] = [];
+    scene.knife = (from, to) => void knife.push(from === null ? null : to);
+    const input = createInput(canvas, scene, () => {}, playing('cutting', 2));
+    const pizza = FOOD.pizza;
+    pointer(canvas, 'pointerdown', pizza.x - pizza.rx * 1.2, pizza.y);
+    pointer(canvas, 'pointermove', pizza.x, pizza.y);
+    pointer(canvas, 'pointerup', pizza.x + pizza.rx * 1.2, pizza.y);
+    expect(knife).toHaveLength(2);
+    expect(knife[0]).toEqual({ x: 0, y: 0 });
+    expect(knife[1]).toBeNull();
+    input.dispose();
+  });
+
   it('does not cut with a swipe that starts far from the food', () => {
     const { canvas, intents, input } = setup(playing('cutting', 2));
     pointer(canvas, 'pointerdown', 60, 700);

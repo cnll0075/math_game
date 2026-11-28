@@ -152,13 +152,88 @@ export function drawBowl(ctx: CanvasRenderingContext2D): void {
 export const bowlSpot = (index: number): Point => ({ x: BOWL.x + (index - 1) * 22, y: BOWL.y - 6 - (index % 2) * 4 });
 
 /**
- * Biscuit: sitting, hoping, by the table; or eating, with a happy hop in his
- * place, when something has gone in his bowl. He faces the table.
+ * Biscuit, sitting by the table facing it, hoping. Eating, he hops in his
+ * place with what was actually left over held in his mouth, shrinking as he
+ * eats it: never a cookie he was not given.
  */
-export function drawDog(ctx: CanvasRenderingContext2D, sprites: Sprites, eating: number, clock: number): void {
-  const hop = eating > 0 ? Math.abs(Math.sin(eating * 9)) * 16 : Math.abs(Math.sin(clock * 1.4)) * 2;
-  if (eating > 0) drawStanding(ctx, sprites, 'dog-sneak', { x: DOG.x, y: DOG.y - hop }, DOG.scale * 0.86, { flip: true, fallback: '#c98a4b' });
-  else drawStanding(ctx, sprites, 'dog-caught', { x: DOG.x, y: DOG.y - hop }, DOG.scale, { flip: true, fallback: '#c98a4b' });
+export function drawDog(ctx: CanvasRenderingContext2D, sprites: Sprites, eating: { treat: TreatId; progress: number } | null, clock: number): void {
+  const hop = eating ? Math.abs(Math.sin(eating.progress * 14)) * 16 : Math.abs(Math.sin(clock * 1.4)) * 2;
+  drawStanding(ctx, sprites, 'dog-caught', { x: DOG.x, y: DOG.y - hop }, DOG.scale, { flip: true, fallback: '#c98a4b' });
+  if (eating && eating.progress < 0.85) {
+    drawCentred(ctx, sprites, eating.treat, { x: DOG.x + DOG_MOUTH.x, y: DOG.y - hop + DOG_MOUTH.y }, 40 * (1 - eating.progress * 0.8));
+  }
+}
+
+/** A word from Biscuit, in a speech bubble over him. */
+export function drawBubble(ctx: CanvasRenderingContext2D, text: string, alpha: number): void {
+  const width = Math.max(180, text.length * 13 + 40);
+  const right = DOG.x + 60;
+  const left = right - width;
+  const top = DOG.y - 214;
+  const height = 54;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(left + 22, top);
+  ctx.arcTo(right, top, right, top + height, 22);
+  ctx.arcTo(right, top + height, left, top + height, 22);
+  ctx.lineTo(DOG.x - 4, top + height);
+  ctx.lineTo(DOG.x - 18, top + height + 22);
+  ctx.lineTo(DOG.x - 26, top + height);
+  ctx.arcTo(left, top + height, left, top, 22);
+  ctx.arcTo(left, top, right, top, 22);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.font = hand(700, 24);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = INK;
+  ctx.fillText(text, (left + right) / 2, top + height / 2 + 1);
+  ctx.restore();
+}
+
+/** Where Biscuit's mouth is, from where he sits, as he is drawn facing the table. */
+const DOG_MOUTH = { x: -22, y: -84 } as const;
+
+/** A knife: silver blade, wooden handle, its tip at a point and pointing along an angle. */
+export function drawKnife(ctx: CanvasRenderingContext2D, tip: Point, angle: number, alpha = 1): void {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(tip.x, tip.y);
+  ctx.rotate(angle);
+  // Drawn pointing left from the handle to the tip at the origin.
+  ctx.fillStyle = 'rgba(30,42,56,0.25)';
+  ctx.beginPath();
+  ctx.ellipse?.(70, 12, 72, 8, 0, 0, TAU);
+  ctx.fill();
+  ctx.fillStyle = '#dfe6ee';
+  ctx.strokeStyle = '#8a97a6';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.quadraticCurveTo(30, -16, 78, -14);
+  ctx.lineTo(78, 6);
+  ctx.lineTo(10, 6);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#9a5b2e';
+  ctx.strokeStyle = '#6b3d1c';
+  ctx.beginPath();
+  ctx.roundRect?.(76, -10, 62, 18, 8);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#e8d8b8';
+  for (const x of [92, 108, 124]) {
+    ctx.beginPath();
+    ctx.arc(x, -1, 2.5, 0, TAU);
+    ctx.fill();
+  }
+  ctx.restore();
 }
 
 /** Where the n-th treat on a plate sits: a little heap, four to a row. */
@@ -200,14 +275,13 @@ export function drawTag(ctx: CanvasRenderingContext2D, text: string, at: Point, 
   ctx.restore();
 }
 
-/** Where the n-th of what is left to share lies on the grass: in rows of five, so it can be counted. */
+/** Where the n-th of what is left to share lies on the grass: in even rows of up to ten. */
 export function poolSpot(index: number, count: number): Point {
   const perRow = 10;
   const rows = Math.ceil(count / perRow);
   const row = Math.floor(index / perRow);
   const inRow = index % perRow;
-  const width = POOL.gap * (perRow - 1) + POOL.groupGap;
-  const x = POOL.x - width / 2 + inRow * POOL.gap + (inRow >= 5 ? POOL.groupGap : 0);
+  const x = POOL.x - (POOL.gap * (perRow - 1)) / 2 + inRow * POOL.gap;
   return { x, y: POOL.y + (row - (rows - 1) / 2) * (POOL.gap + 4) };
 }
 

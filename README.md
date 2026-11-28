@@ -774,7 +774,7 @@ before, any load emptied the queue as well as a right one.
 ## Picnic Pals
 
 Teddy is hosting a picnic. A basket of treats comes out, laid on the grass in
-rows of five, and the friends around the table — Teddy, Bunny, Fox and Raccoon —
+even rows, and the friends around the table — Teddy, Bunny, Fox and Raccoon —
 must each get **exactly the same**. The bundle's calm game: no clock, and no
 way to lose a round.
 
@@ -785,8 +785,9 @@ before anyone gets two — so a tap can never make it unfair. From round five th
 show what pressing **Share** would do, and a share that would run out is never
 made — the friends who would go short look puzzled instead. What cannot go round
 is always fewer than the friends, and goes in the bowl of Biscuit the dog, who
-sits by the table hoping the whole round: that is how remainders, and odd and
-even, are met.
+comes to just the rounds where something will be left over: that is how
+remainders, and odd and even, are met. He never gets chocolate-chip cookies or
+grapes.
 
 **Stars count shares**, never dial turns or taps: one share, the dial turned
 straight to the answer, is three stars; one more is two; finishing is always at
@@ -794,11 +795,11 @@ least one. Plates with the same number glow together. Then everyone eats, and
 the card says what it came to — `12 cookies, 3 friends: 4 each!`,
 `1 for Biscuit!`.
 
-**Twelve rounds**: two friends, then odd numbers and Biscuit, the dial with
+**Eleven rounds**: two friends, then odd numbers and Biscuit, the dial with
 three and four friends, a round of **inviting** friends from behind the fence
-(only a table that shares 9 with nothing over can share), **cutting** a pizza
-into halves and a cake into quarters with a swipe through the middle, and a
-party of two courses. `?game=picnic&level=cake-quarters` opens any round.
+(only a table that shares 9 with nothing over can share), and **cutting** a
+pizza into halves and a cake into quarters by dragging a knife across: cuts
+snap to clean lines and count if they pass near the middle. `?game=picnic&level=cake-quarters` opens any round.
 
 **The art** is cut from the Picnic Pals sheet,
 `games/picnic/assets/source/board.png`, by `scripts/cut-picnic.py`: the

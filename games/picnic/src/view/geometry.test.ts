@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { DIAL, fenceAt, fenceSpot, FOOD, fromFood, onDial, onShare, plateAt, seats, SHARE, toFood } from './geometry.js';
+import { DIAL, fenceAt, fenceSpot, FOOD, fromFood, onDial, onShare, plateAt, SEAT_CENTRE, seats, SHARE, toFood } from './geometry.js';
 
 describe('the table', () => {
   it('seats two, three or four across the table, left to right and evenly', () => {
@@ -7,7 +7,10 @@ describe('the table', () => {
       const places = seats(count);
       expect(places).toHaveLength(count);
       for (let index = 1; index < count; index += 1) expect(places[index]!.x).toBeGreaterThan(places[index - 1]!.x + 150);
-      expect((places[0]!.x + places.at(-1)!.x) / 2).toBeCloseTo(576, 0);
+      expect((places[0]!.x + places.at(-1)!.x) / 2).toBeCloseTo(SEAT_CENTRE, 0);
+      // Within the cloth's back edge, clear of its corners.
+      expect(places[0]!.x).toBeGreaterThan(264 + 20);
+      expect(places.at(-1)!.x).toBeLessThan(819 - 20);
     }
   });
 

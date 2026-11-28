@@ -278,8 +278,7 @@ export function createScene(sprites: Sprites): Scene {
         if (feasting && (table.plates[plate] ?? 0) > 0) mood = 'eating';
         else if (face) mood = face.mood;
         else if (short(plate)) mood = 'puzzled';
-        const bob = mood === 'eating' ? Math.abs(Math.sin(clock * 6 + plate)) * 5 : 0;
-        drawFriend(ctx, sprites, friend, mood, places[plate]!, bob);
+        drawFriend(ctx, sprites, friend, mood, places[plate]!);
       });
       drawTable(ctx, sprites);
       places.forEach((seat, plate) => {
@@ -288,7 +287,7 @@ export function createScene(sprites: Sprites): Scene {
         // Eating what they were actually given.
         if (feasting && (table.plates[plate] ?? 0) > 0) {
           const mouthful = course.kind === 'cut' ? (course.food === 'pizza' ? 'pizza-half' : 'cake-slice') : course.treat;
-          drawMouthful(ctx, sprites, mouthful, seat, clock, plate * 0.3);
+          drawMouthful(ctx, sprites, mouthful, seat);
         }
       });
 

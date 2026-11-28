@@ -101,14 +101,9 @@ export function drawFriend(ctx: CanvasRenderingContext2D, sprites: Sprites, frie
   drawStanding(ctx, sprites, `${friend}-${face}`, { x: seat.x, y: BODY_Y - bob }, FRIEND.scale, { fallback: '#b07a4a' });
 }
 
-/**
- * What a friend is eating, held up to their mouth and bobbing as they munch,
- * a bite smaller each time. Drawn after the table, so it is not hidden.
- */
-export function drawMouthful(ctx: CanvasRenderingContext2D, sprites: Sprites, name: SpriteName, seat: Point, clock: number, phase: number): void {
-  const chew = (clock * 1.6 + phase) % 1;
-  const lift = Math.sin(chew * Math.PI) * 14;
-  drawCentred(ctx, sprites, name, { x: seat.x + MOUTH.x, y: BODY_Y + MOUTH.y - lift }, MOUTH.size * (1 - chew * 0.25));
+/** What a friend is eating, held still at their mouth. Drawn after the table, so it is not hidden. */
+export function drawMouthful(ctx: CanvasRenderingContext2D, sprites: Sprites, name: SpriteName, seat: Point): void {
+  drawCentred(ctx, sprites, name, { x: seat.x + MOUTH.x, y: BODY_Y + MOUTH.y }, MOUTH.size);
 }
 
 /** Where a seated friend's mouth is, from the foot of their picture, and how big a mouthful is drawn. */

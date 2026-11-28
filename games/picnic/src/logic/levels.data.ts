@@ -77,7 +77,7 @@ export const LEVELS: readonly LevelDef[] = [
     title: 'Sandwich Stack',
     line: 'Biscuit is hoping again',
     friends: ['teddy', 'bunny', 'fox', 'raccoon'],
-    courses: [{ kind: 'share', treat: 'sandwich', count: 14, mode: 'dial' }],
+    courses: [{ kind: 'share', treat: 'sandwich', count: 13, mode: 'dial' }],
   },
   {
     id: 'who-can-come',

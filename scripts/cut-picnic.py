@@ -266,56 +266,76 @@ MOODS = ('eating', 'happy', 'puzzled', 'grumpy')
 # friend's eating picture is made from their happy picture, whose paws are
 # empty, wearing the eating face's big smile: the head, down to its neck (a
 # share of its height), placed where it lines up best.
-NECK = {'teddy': 0.64, 'bunny': 0.68, 'fox': 0.56, 'raccoon': 0.5}
+NECK = {'teddy': 0.64, 'fox': 0.56, 'raccoon': 0.5}
+# Bunny's pale fur does not take another head cleanly (a ghost of the old eyes
+# shows through): her eating picture is simply her happy one, already smiling.
+SMILES_ALREADY = {'bunny'}
+
+# Beside some eating faces, at neck height, is something that is not the head
+# — the top of Fox's tail — and would hang off the new picture as a stray line:
+# everything left of this share of the width, below this share of the height, goes.
+HEAD_LEFT = {'fox': (0.26, 0.48)}
+
+# The sizes the head is tried at, from a little smaller than the eating face to its own.
+HEAD_SCALES: dict = {}
 NECK_FEATHER = 14
 
 
 def beaming(board, friend):
     """The happy picture with the eating face's big smile, and nothing in its paws."""
-    eat = np.asarray(cut(board, SPRITES[f'{friend}-eating'])).astype(float)
-    body = np.asarray(cut(board, SPRITES[f'{friend}-happy'])).astype(float)
-    rows = int(eat.shape[0] * NECK[friend])
-    head = eat[:rows]
+    eat = cut(board, SPRITES[f'{friend}-eating'])
+    pad = 40
+    # Room around the body, so a head a little wider than the old one is never clipped.
+    body = np.pad(np.asarray(cut(board, SPRITES[f'{friend}-happy'])).astype(float), ((pad, pad), (pad, pad), (0, 0)))
+    body_solid = body[..., 3] > 128
+    rows_full = int(eat.height * NECK[friend])
+    best = None
+    # Where, and how big, the head sits best on the body: most of its outline
+    # over the body, least of the body's old head left outside it. The eating
+    # face is drawn a little larger than the happy one, so smaller sizes are tried.
+    for scale in HEAD_SCALES.get(friend, (0.84, 0.88, 0.92, 0.96, 1.0)):
+        size = (max(1, round(eat.width * scale)), max(1, round(eat.height * scale)))
+        head = np.asarray(eat.resize(size, Image.LANCZOS)).astype(float)[: round(rows_full * scale)].copy()
+        if friend in HEAD_LEFT:
+            left, below = HEAD_LEFT[friend]
+            head[round(head.shape[0] * below):, : round(head.shape[1] * left), 3] = 0
+        solid = head[..., 3] > 128
+        ys, xs = np.nonzero(solid)
+        rows = head.shape[0]
+        for dy in range(pad - 30, pad + 31, 2):
+            for dx in range(pad - 40, pad + 41, 2):
+                ty, tx = ys + dy, xs + dx
+                inside = (ty >= 0) & (ty < body.shape[0]) & (tx >= 0) & (tx < body.shape[1])
+                hit = body_solid[ty[inside], tx[inside]].mean()
+                # Ends of the head hanging off the body into thin air read as
+                # a stray line: count how much of the head's lower half is off the body.
+                low = ys >= rows * 0.55
+                hang = (~body_solid[ty[low & inside], tx[low & inside]]).mean() if (low & inside).any() else 0
+                covered = np.zeros(body.shape[:2], bool)
+                covered[ty[inside], tx[inside]] = True
+                top = max(0, rows + dy)
+                spill = (body_solid[:top] & ~covered[:top]).sum() / max(1, solid.sum())
+                score = hit - spill - hang * 0.5
+                if best is None or score > best[0]:
+                    best = (score, dx, dy, head)
+    _, dx, dy, head = best
+    rows = head.shape[0]
     solid = head[..., 3] > 128
     ys, xs = np.nonzero(solid)
-    # Where the head sits best on the body: most of its outline over the body,
-    # least of the body's old head left outside it.
-    best = None
-    for dy in range(-30, 31):
-        for dx in range(-40, 41):
-            ty, tx = ys + dy, xs + dx
-            inside = (ty >= 0) & (ty < body.shape[0]) & (tx >= 0) & (tx < body.shape[1])
-            if inside.mean() < 0.9:
-                continue
-            hit = (body[ty[inside], tx[inside], 3] > 128).mean()
-            covered = np.zeros(body.shape[:2], bool)
-            covered[ty[inside], tx[inside]] = True
-            top = max(0, rows + dy)
-            spill = ((body[:top, :, 3] > 128) & ~covered[:top]).sum() / max(1, solid.sum())
-            if best is None or hit - spill > best[0]:
-                best = (hit - spill, dx, dy)
-    _, dx, dy = best
     result = body.copy()
     # The old head is cleared wherever the new one does not cover it, above
     # where the new one fades into the body, so no old ear or cheek peeks out.
     placed = np.zeros(body.shape[:2], np.uint8)
-    ty, tx = ys + dy, xs + dx
-    inside = (ty >= 0) & (ty < body.shape[0]) & (tx >= 0) & (tx < body.shape[1])
-    placed[ty[inside], tx[inside]] = 255
+    placed[ys + dy, xs + dx] = 255
     placed = np.asarray(Image.fromarray(placed).filter(ImageFilter.MaxFilter(3))) > 0
     clear = np.zeros(body.shape[:2], bool)
-    clear[:max(0, rows + dy - NECK_FEATHER - 2)] = True
+    clear[: max(0, rows + dy - NECK_FEATHER - 2)] = True
     result[clear & ~placed, 3] = 0
     fade = np.ones(rows)
     fade[-NECK_FEATHER:] = np.linspace(1, 0, NECK_FEATHER)
     for y in range(rows):
-        to_y = y + dy
-        if not 0 <= to_y < body.shape[0]:
-            continue
         for x in range(head.shape[1]):
-            to_x = x + dx
-            if not 0 <= to_x < body.shape[1]:
-                continue
+            to_y, to_x = y + dy, x + dx
             a = head[y, x, 3] / 255 * fade[y]
             # Where the head fades into the body, only over the body: never a
             # faint fringe left hanging beside it.
@@ -365,7 +385,12 @@ def main():
     board = prepare(sheet)
     for name, box in SPRITES.items():
         friend, _, mood = name.partition('-')
-        sprite = beaming(board, friend) if mood == 'eating' and friend in NECK else cut(board, box)
+        if mood == 'eating' and friend in NECK:
+            sprite = beaming(board, friend)
+        elif mood == 'eating' and friend in SMILES_ALREADY:
+            sprite = cut(board, SPRITES[f'{friend}-happy'])
+        else:
+            sprite = cut(board, box)
         if name in LARGEST_ONLY:
             sprite = largest_part(sprite)
         if '-' in name and name.split('-')[1] in MOODS:

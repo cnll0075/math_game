@@ -48,6 +48,13 @@ describe('the rounds', () => {
     }
   });
 
+  it('leave Biscuit just the one, every time: he only ever wants one', () => {
+    for (const { level, course } of shares) {
+      const left = course.count % level.friends.length;
+      if (left > 0) expect(left, level.id).toBe(1);
+    }
+  });
+
   it('bring Biscuit to the table only in the rounds where something is left over', () => {
     expect(LEVELS.filter(hasLeftovers).map((level) => level.id)).toEqual(['one-for-biscuit', 'nine-sandwiches', 'sandwich-stack']);
   });

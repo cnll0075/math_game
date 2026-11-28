@@ -55,7 +55,7 @@ A share that would run out is never made: the preview shows why, and the
 child turns the dial down.
 
 **A course ends** when the basket cannot give everyone one more. If it is
-empty, that is it; if some are left — only ever fewer than there are friends —
+empty, that is it; if some are left — every round leaves him exactly one —
 they fly into Biscuit's bowl, just as treats fly to plates, and he hops and
 eats: that is how remainders are met. While the dial is set, the ghosts show
 what a share would leave in his bowl too.
@@ -99,7 +99,7 @@ earns at least one star. Best stars per round are kept in `host.storage`.
 | 5 | The Dial | Teddy, Bunny, Fox | 9 cookies, dial | Sharing into 3 |
 | 6 | Three Plates | Teddy, Bunny, Fox | 12 strawberries, dial | Groups of 4 |
 | 7 | Four Friends | all four | 16 grapes, dial | Sharing into 4 |
-| 8 | Sandwich Stack | all four | 14 sandwiches, dial | Groups and a remainder |
+| 8 | Sandwich Stack | all four | 13 sandwiches, dial | Groups, and one for Biscuit |
 | 9 | Who Can Come? | Teddy, and who he invites | 9 cookies, inviting | Reverse: how many can share |
 | 10 | Pizza Halves | Teddy, Bunny | a pizza, one cut | Halves |
 | 11 | Cake Quarters | all four | a cake, two cuts | Quarters |

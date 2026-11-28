@@ -13,6 +13,8 @@ arithmetic is the mechanic rather than the subject:
   clock runs out, and one fish too many tips the boat.
 - **Cargo Yard** — drag crates onto three trains, each wanting an exact load,
   as crates come faster and faster. One endless run.
+- **Picnic Pals** — share the treats so every friend at the table gets exactly
+  the same; turn the dial to share in groups. Leftovers go to the dog.
 
 ## Running it
 
@@ -88,6 +90,7 @@ games/sky/       the second game, laid out the same way
 games/bramble/   the third, likewise
 games/fishing/   Bucket Bay, likewise, with its art in assets/
 games/train/     Cargo Yard, likewise, with its art in assets/
+games/picnic/    Picnic Pals, likewise, with its art in assets/
 packages/math/   the curriculum both number games share: bands, sums, traps
 docs/superpowers/specs/   design spec
 docs/superpowers/plans/   implementation plan
@@ -768,6 +771,50 @@ seconds; one that loads without reading must break trains and last well under
 the careful one. That last guard is why a broken train's crates come back:
 before, any load emptied the queue as well as a right one.
 
+## Picnic Pals
+
+Teddy is hosting a picnic. A basket of treats comes out, laid on the grass in
+even rows, and the friends around the table — Teddy, Bunny, Fox and Raccoon —
+must each get **exactly the same**. The bundle's calm game: no clock, and no
+way to lose a round.
+
+**Sharing one at a time** comes first: tap a friend to give them one. A friend
+who already has more than someone else shakes their head — everyone gets one
+before anyone gets two — so a tap can never make it unfair. From round five the
+**dial** sets how many each friend gets per share; ghost treats over the plates
+show what pressing **Share** would do, and a share that would run out is never
+made — the friends who would go short look puzzled instead. What cannot go round
+is always fewer than the friends, and goes in the bowl of Biscuit the dog, who
+comes to just the rounds where something will be left over: that is how
+remainders, and odd and even, are met. He never gets chocolate-chip cookies or
+grapes.
+
+**Stars count shares**, never dial turns or taps: one share, the dial turned
+straight to the answer, is three stars; one more is two; finishing is always at
+least one. Plates with the same number glow together. Then everyone eats, and
+the card says what it came to — `12 cookies, 3 friends: 4 each!`,
+`1 for Biscuit!`.
+
+**Eleven rounds**: two friends, then odd numbers and Biscuit, the dial with
+three and four friends, a round of **inviting** friends from behind the fence
+(only a table that shares 9 with nothing over can share), and **cutting** a
+pizza into halves and a cake into quarters by dragging a knife across: cuts
+snap to clean lines and count if they pass near the middle. `?game=picnic&level=cake-quarters` opens any round.
+
+**The art** is cut from the Picnic Pals sheet,
+`games/picnic/assets/source/board.png`, by `scripts/cut-picnic.py`: the
+friends in four moods each, padded so they line up whichever face they wear and
+drawn behind the table so it hides their laps, with plates drawn on the cloth; the table with its painted plates filled from the cloth beside them, at
+whichever offset makes the checks line up; and the dial with its number wiped.
+The sky is drawn.
+
+### The test that guards it
+
+`games/picnic/src/logic/bot.test.ts` plays every round with a player who turns
+the dial straight to the answer — three stars everywhere — and one who only
+ever shares one at a time, who must still finish every round, with fewer stars
+where the dial was the quick way.
+
 ## Not built yet
 
 - **Real art and sound.** Seesaw's are swappable through `SeesawTheme` and
@@ -775,7 +822,7 @@ before, any load emptied the queue as well as a right one.
   only, behind the same `SoundPack` names a recorded pack would implement, and
   Bramble Dash the same. Balloon Rescue has a vector fox kit and a synthesised
   pack behind the same names.
-- **The other four games.** The shell has a tile each, marked "Soon".
+- **The other three games.** The shell has a tile each, marked "Soon".
 - **Timed or scored modes.** An arcade half was built and removed: it added
   pressure rather than arithmetic, and a player could win it by dropping each
   animal on the lighter side without reading a number. It is in the git history

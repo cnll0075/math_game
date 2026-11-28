@@ -1,0 +1,152 @@
+# Picnic Pals — design
+
+The bundle's eighth game. Teddy is hosting a picnic. A basket of treats comes
+out and the friends around the table must each get **exactly the same**. Share
+one at a time, or turn the dial to share in groups — the fewer shares, the
+more stars. What cannot be shared fairly goes to Biscuit, the dog, who is
+always hoping.
+
+The other games are about making totals. This one is about **sharing**: equal
+groups, odd and even, remainders, and halves and quarters — division and early
+fractions met as fairness, which children of 6 to 8 feel keenly. It is the
+bundle's calm game: no clock, no way to lose a round.
+
+For ages 6–8. Eleven levels, like Bucket Bay, with stars.
+
+## The table
+
+- A painted picnic table in the middle of a park, with 2 to 4 friends sitting
+  behind it — the table hides them below the shoulders — each with their own
+  plate on the cloth in front of them: **Teddy** (the host,
+  welcoming), **Bunny** (loves strawberries), **Fox** (excited whenever food
+  arrives), **Raccoon** (notices when things are not fair). Each has four faces
+  from the sheet: happy, eating, puzzled, grumpy.
+- The basket, and in front of the table the treats it brought, laid out in
+  even rows, with the number on a tag (`12`).
+- Bottom right: the **dial** — a number between a minus and a plus, with the treat and "each" under it (how many each friend gets in one share, 1 to 10)
+  and the **Share** button.
+- **Biscuit** the dog sits beside the table, hoping, with his own bowl — but
+  only in the rounds where something will be left over, so he always gets
+  something when he comes. The first time, he says so in a speech bubble
+  ("Just the one left over, please!"). He is never offered chocolate-chip
+  cookies or grapes, which are bad for dogs.
+
+## Sharing
+
+**Tapping a plate** (rounds 1–4, before the dial is introduced) gives that
+friend one treat. A friend who already has more than someone else shakes their
+head — "everyone gets one before anyone gets two" — so a tap can never make it
+unfair.
+
+**The dial** (from round 5) is how many each friend gets per share. Ghost
+treats hover over every plate showing what the next share would do. Press
+**Share** and every plate gets that many at once, the treats flying in groups
+and bouncing onto the plates. The dial can be changed between shares.
+
+| 12 cookies, 3 friends | What happens | Shares |
+| --- | --- | --- |
+| Dial 1 | 1 each, again and again | 4 |
+| Dial 2 | 2 each, then 2 more each | 2 |
+| Dial 3 | 3 each, then the dial turned to 1 for the rest | 2 |
+| Dial 4 | 4 each, all in one go | 1 |
+| Dial 5 | The ghosts show the last plates going short; the friends look puzzled and Share will not press | — |
+
+A share that would run out is never made: the preview shows why, and the
+child turns the dial down.
+
+**A course ends** when the basket cannot give everyone one more. If it is
+empty, that is it; if some are left — every round leaves him exactly one —
+they fly into Biscuit's bowl, just as treats fly to plates, and he hops and
+eats: that is how remainders are met. While the dial is set, the ghosts show
+what a share would leave in his bowl too.
+
+Plates with the same number glow together, so fair is visible without words.
+When the last course is done the friends eat together — the signature moment —
+and a card says what happened: `12 cookies, 3 friends: 4 each!`, and
+`1 for Biscuit!` when there was one.
+
+## Other courses
+
+- **Inviting** (round 9): Teddy, the host, sits alone; the other friends peek
+  over the fence. Tap a friend to bring them to the table, tap a guest to send
+  them back. Ghosts show how many each would get and what Biscuit's bowl would
+  hold; **Share** shares everything in one go, but only once nothing would be
+  left over. Which groups share 9 equally — met with the friends themselves.
+- **Cutting** (rounds 10–11): a whole pizza or cake on the table, and a knife
+  beside it. Drag the knife across: it follows the finger, drawing the cut as
+  it goes. A cut snaps to a clean line — across, down or corner to corner — and
+  counts if it passes near the middle; one that misses is uneven, Raccoon
+  frowns and the cut fades. Pizza needs one cut for two halves; cake needs a
+  second cut square across the first for four quarters. Then each friend gets
+  a piece.
+
+## Stars
+
+Stars count **shares**, never dial turns or taps. In a dial course the fewest
+possible shares is one (dial set to the answer). Over a round's courses: the
+fewest possible shares is three stars, one more is two, anything else is one.
+Tapping and cutting rounds give three stars for finishing. Every finished round
+earns at least one star. Best stars per round are kept in `host.storage`.
+
+## Rounds
+
+| # | Title | Friends | Course | Learning |
+| --- | --- | --- | --- | --- |
+| 1 | Two Friends | Teddy, Bunny | 6 cookies, tapping | Equal sharing |
+| 2 | Strawberry Share | Teddy, Bunny | 10 strawberries, tapping | Halves |
+| 3 | One for Biscuit | Teddy, Fox | 7 strawberries, tapping | Remainders |
+| 4 | Nine Sandwiches | Bunny, Fox | 9 sandwiches, tapping | Odd and even |
+| 5 | The Dial | Teddy, Bunny, Fox | 9 cookies, dial | Sharing into 3 |
+| 6 | Three Plates | Teddy, Bunny, Fox | 12 strawberries, dial | Groups of 4 |
+| 7 | Four Friends | all four | 16 grapes, dial | Sharing into 4 |
+| 8 | Sandwich Stack | all four | 13 sandwiches, dial | Groups, and one for Biscuit |
+| 9 | Who Can Come? | Teddy, and who he invites | 9 cookies, inviting | Reverse: how many can share |
+| 10 | Pizza Halves | Teddy, Bunny | a pizza, one cut | Halves |
+| 11 | Cake Quarters | all four | a cake, two cuts | Quarters |
+
+The dial arrives in round 5, after four rounds of sharing one at a time. No
+round introduces two new ideas.
+
+The sheet has four friends, so a table seats at most four.
+
+## Feel
+
+- Treats fly in groups and bounce onto plates with a little pop each;
+  matching stacks glow.
+- Faces: happy waiting; puzzled when the preview shows a share running out;
+  grumpy (Raccoon first) at an uneven cut or a plate that would get too many;
+  eating at the end, all together.
+- Biscuit sits up hopefully all round; when leftovers land in his bowl he hops
+  in his place with one in his mouth.
+- Sound, synthesised: pops as treats land, a whoosh as a share flies, a soft
+  "uh-uh" for a refused tap, munching and a cheer at the end, a woof.
+
+## Art
+
+All from `games/picnic/assets/source/board.png` (the Picnic Pals asset sheet),
+cut by `scripts/cut-picnic.py`: the table (its own painted plates painted out),
+basket, chair, the four friends in four moods, Biscuit sneaking and caught, the
+treats and their halves, pizza and cake whole and in pieces, the dial (its
+painted number wiped), the Share button, the fence and the grass. The sky is
+drawn.
+
+## Structure
+
+Laid out like Bucket Bay: `games/picnic/`, package `@bundle/picnic`, module id
+`'picnic'`, "Picnic Pals". `src/logic/` holds the rounds, the table (pure state:
+plates, basket, dial, courses, cuts) and stars, with no DOM; `src/view/` draws
+it; a driver runs intro → sharing → done. Registered in the same four places as
+every game, replacing the "Sharing Table" placeholder tile ("Share it fairly").
+`?game=picnic&level=cake-quarters` opens a round by id.
+
+## Testing
+
+- every round's courses can be finished, and the fewest shares in a dial course
+  is one
+- a tap never makes plates unequal; leftovers are always fewer than the friends
+- the dial never makes a share that would run out
+- inviting shares only among a number of friends that leaves nothing over
+- a cut through the middle counts, an off-centre one does not; two crossing cuts
+  make quarters
+- stars count shares only
+- a bot finishes every round

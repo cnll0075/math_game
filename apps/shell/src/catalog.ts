@@ -5,6 +5,7 @@ import { balloonGame } from '@bundle/balloon';
 import { pondGame } from '@bundle/pond';
 import { fishingGame } from '@bundle/fishing';
 import { trainGame } from '@bundle/train';
+import { picnicGame } from '@bundle/picnic';
 import type { GameModule } from '@bundle/core';
 
 export interface GameTile {
@@ -32,7 +33,7 @@ export const CATALOG: readonly GameTile[] = [
   { id: 'patterns', title: 'Pattern Path', blurb: 'What comes next?', colors: ['#b48ee0', '#7b6bd6'] },
   { id: 'train', title: 'Cargo Yard', blurb: 'Load the trains exactly', colors: ['#e0533f', '#3f7fbf'], module: trainGame },
   { id: 'clock', title: 'Clock Tower', blurb: 'Tell the time', colors: ['#7fc4c9', '#3f9f8f'] },
-  { id: 'halves', title: 'Sharing Table', blurb: 'Share it fairly', colors: ['#ef8fa6', '#d9607f'] },
+  { id: 'picnic', title: 'Picnic Pals', blurb: 'Share it fairly', colors: ['#ef8fa6', '#8fce72'], module: picnicGame },
 ];
 
 export const playableGames = (): readonly GameTile[] => CATALOG.filter((tile) => tile.module);

@@ -451,6 +451,25 @@ baited on purpose — otherwise the answer can be picked out as the only plausib
 number on screen, without doing any arithmetic. If chance has not provided a
 trap, the spawner sends one up, and sends another when the last one gets away.
 
+### The art
+
+Painted, from two sheets in `games/sky/assets/source/`, cut by
+`scripts/cut-sky.py` (numpy and Pillow): `planes.png` holds the falling planes
+— all nose-down, each with a round spot left for its number — the two small
+planes a blimp bursts into, and four loose clouds; `board.png` holds the sky,
+the fighter and its overheated look, the shell, the burst, the fuel gauge,
+score badge, hearts, banner ribbon, sum plaque and end-of-run card. The cutter
+also finds each plane's number spot and writes it to `src/view/art.data.ts`,
+so numbers land exactly in them.
+
+Each plane's picture is drawn as wide as its hit box, in its own shape:
+painted from above, it is taller than the box, whose height is the body a
+shell must reach. The hit boxes keep the sizes the guards below were tuned
+against — making them as tall as the pictures let a player who always shoots
+the lowest plane survive without reading a number — except the blimp, painted
+tall, whose box is narrower. Numbers are never written under 28 px. Until the
+pictures load, drawn shapes stand in.
+
 ### The test that guards all of it
 
 `games/sky/src/logic/invariants.test.ts` flies two bots at the game:
@@ -818,9 +837,9 @@ where the dial was the quick way.
 ## Not built yet
 
 - **Real art and sound.** Seesaw's are swappable through `SeesawTheme` and
-  `SoundPack`; see above. Sky Patrol has vector planes and a synthesised pack
-  only, behind the same `SoundPack` names a recorded pack would implement, and
-  Bramble Dash the same. Balloon Rescue has a vector fox kit and a synthesised
+  `SoundPack`; see above. Sky Patrol is painted (below) with a synthesised
+  pack behind the same `SoundPack` names a recorded pack would implement;
+  Bramble Dash has vector art and the same kind of pack. Balloon Rescue has a vector fox kit and a synthesised
   pack behind the same names.
 - **The other three games.** The shell has a tile each, marked "Soon".
 - **Timed or scored modes.** An arcade half was built and removed: it added

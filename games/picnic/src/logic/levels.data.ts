@@ -42,14 +42,14 @@ export const LEVELS: readonly LevelDef[] = [
     title: 'One for Biscuit',
     line: 'What if one is left over?',
     friends: ['teddy', 'fox'],
-    courses: [{ kind: 'share', treat: 'cookie', count: 7, mode: 'tap' }],
+    courses: [{ kind: 'share', treat: 'strawberry', count: 7, mode: 'tap' }],
   },
   {
-    id: 'odd-grapes',
-    title: 'Odd Grapes',
+    id: 'nine-sandwiches',
+    title: 'Nine Sandwiches',
     line: 'Can nine be shared by two?',
     friends: ['bunny', 'fox'],
-    courses: [{ kind: 'share', treat: 'grapes', count: 9, mode: 'tap' }],
+    courses: [{ kind: 'share', treat: 'sandwich', count: 9, mode: 'tap' }],
   },
   {
     id: 'the-dial',
@@ -100,16 +100,13 @@ export const LEVELS: readonly LevelDef[] = [
     friends: ['teddy', 'bunny', 'fox', 'raccoon'],
     courses: [{ kind: 'cut', food: 'cake', pieces: 4 }],
   },
-  {
-    id: 'picnic-party',
-    title: 'Picnic Party',
-    line: 'Cookies first, then strawberries',
-    friends: ['teddy', 'fox', 'raccoon'],
-    courses: [
-      { kind: 'share', treat: 'cookie', count: 6, mode: 'dial' },
-      { kind: 'share', treat: 'strawberry', count: 9, mode: 'dial' },
-    ],
-  },
 ];
 
 export const levelIndex = (id: string): number => LEVELS.findIndex((level) => level.id === id);
+
+/**
+ * Whether anything in this round cannot go round, so Biscuit comes to the
+ * table: he is only there when there will be something for him.
+ */
+export const hasLeftovers = (def: LevelDef): boolean =>
+  def.courses.some((course) => course.kind === 'share' && course.count % def.friends.length !== 0);

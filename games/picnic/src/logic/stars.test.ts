@@ -10,14 +10,12 @@ describe('stars', () => {
     expect(bestShares(level('the-dial'))).toBe(1);
     expect(bestShares(level('who-can-come'))).toBe(1);
     expect(bestShares(level('pizza-halves'))).toBe(0);
-    expect(bestShares(level('picnic-party'))).toBe(2);
   });
 
   it('give three for the fewest shares, two for one more, and never less than one', () => {
     expect(starsFor(level('the-dial'), 1)).toBe(3);
     expect(starsFor(level('the-dial'), 2)).toBe(2);
     expect(starsFor(level('the-dial'), 9)).toBe(1);
-    expect(starsFor(level('picnic-party'), 3)).toBe(2);
   });
 
   it('give three for finishing a round shared by tapping or cutting', () => {

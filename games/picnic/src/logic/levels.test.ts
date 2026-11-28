@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { LEVELS, levelIndex } from './levels.data.js';
+import { hasLeftovers, LEVELS, levelIndex } from './levels.data.js';
 
 const shares = LEVELS.flatMap((level, index) =>
   level.courses.flatMap((course) => (course.kind === 'share' ? [{ level, index, course }] : [])),
 );
 
 describe('the rounds', () => {
-  it('are twelve, each with its own id', () => {
-    expect(LEVELS).toHaveLength(12);
-    expect(new Set(LEVELS.map((level) => level.id)).size).toBe(12);
+  it('are eleven, each with its own id', () => {
+    expect(LEVELS).toHaveLength(11);
+    expect(new Set(LEVELS.map((level) => level.id)).size).toBe(11);
     expect(levelIndex('cake-quarters')).toBe(10);
     expect(levelIndex('nope')).toBe(-1);
   });
@@ -36,7 +36,20 @@ describe('the rounds', () => {
 
   it('leave something for Biscuit only in the remainder rounds, and always fewer than the friends', () => {
     const remainders = shares.filter(({ level, course }) => course.count % level.friends.length !== 0);
-    expect(remainders.map(({ level }) => level.id)).toEqual(['one-for-biscuit', 'odd-grapes', 'sandwich-stack']);
+    expect(remainders.map(({ level }) => level.id)).toEqual(['one-for-biscuit', 'nine-sandwiches', 'sandwich-stack']);
+  });
+
+  it('only ever give Biscuit food a dog may eat: no chocolate-chip cookies, no grapes', () => {
+    for (const level of LEVELS) {
+      if (!hasLeftovers(level)) continue;
+      for (const course of level.courses) {
+        if (course.kind !== 'cut') expect(['cookie', 'grapes'], level.id).not.toContain(course.treat);
+      }
+    }
+  });
+
+  it('bring Biscuit to the table only in the rounds where something is left over', () => {
+    expect(LEVELS.filter(hasLeftovers).map((level) => level.id)).toEqual(['one-for-biscuit', 'nine-sandwiches', 'sandwich-stack']);
   });
 
   it('have one round of inviting friends, where exactly one number at the table shares with nothing over', () => {

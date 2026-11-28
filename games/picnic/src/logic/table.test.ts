@@ -224,6 +224,19 @@ describe('cutting', () => {
     expect(table.state.phase).toBe('cutting');
   });
 
+  it('forgives a cut a little off the middle, as small fingers make', () => {
+    const table = pizza();
+    expect(table.cut({ x: -1.2, y: 0.3 }, { x: 1.2, y: 0.25 })[0]).toEqual({ type: 'cut', ok: true });
+  });
+
+  it('snaps a cut to a clean straight line: across, down or corner to corner', () => {
+    const table = cake();
+    table.cut({ x: -1.2, y: 0.2 }, { x: 1.2, y: -0.1 });
+    expect(table.state.cuts[0]!.angle).toBe(0);
+    table.cut({ x: 0.3, y: -1.2 }, { x: -0.2, y: 1.2 });
+    expect(table.state.cuts[1]!.angle).toBeCloseTo(Math.PI / 2);
+  });
+
   it('ignores a swipe too short to cut anything', () => {
     expect(pizza().cut({ x: -0.2, y: 0 }, { x: 0.2, y: 0 })).toEqual([]);
   });

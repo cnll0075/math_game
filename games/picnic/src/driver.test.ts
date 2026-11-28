@@ -52,16 +52,6 @@ describe('the driver', () => {
     expect(driver.act({ kind: 'share' })).toContainEqual(expect.objectContaining({ type: 'won', stars: 3 }));
   });
 
-  it('brings out the next course by itself after a moment', () => {
-    const driver = createDriver({ book: {}, startLevel: 'picnic-party' });
-    driver.act({ kind: 'dial', step: 1 });
-    expect(driver.act({ kind: 'share' }).map((event) => event.type)).toEqual(['shared', 'course']);
-    expect(driver.table.state.phase).toBe('between');
-    const events = steps(driver, TIMING.courseSeconds + 0.1);
-    expect(events).toContainEqual({ type: 'next', course: 1 });
-    expect(driver.table.state.phase).toBe('sharing');
-  });
-
   it('finishes after the last round, and a tap starts again from the first', () => {
     const driver = createDriver({ book: {}, startLevel: LEVELS.at(-1)!.id });
     steps(driver, TIMING.introSeconds + 0.05);

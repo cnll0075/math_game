@@ -27,7 +27,7 @@ describe('the scene', () => {
     const { ctx, texts } = render(driver, TIMING.introSeconds + 0.2);
     expect(depthOf(ctx)).toBe(0);
     expect(texts).toContain('Tap a plate to give a cookie. Everyone the same!');
-    expect(texts).toContain('1 of 12');
+    expect(texts).toContain('1 of 11');
     expect(texts).toContain('5');
     expect(texts).toContain('1');
     expect(texts).toContain('0');
@@ -72,7 +72,7 @@ describe('the scene', () => {
     const { ctx, texts } = render(driver, TIMING.introSeconds + TIMING.cardDelaySeconds + 0.5);
     expect(driver.phase).toBe('done');
     expect(depthOf(ctx)).toBe(0);
-    expect(texts).toContain('7 cookies, 2 friends: 3 each!');
+    expect(texts).toContain('7 strawberries, 2 friends: 3 each!');
     expect(texts).toContain('1 for Biscuit!');
   });
 });

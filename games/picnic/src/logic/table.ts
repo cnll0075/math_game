@@ -6,8 +6,10 @@ import type { Course, LevelDef } from './levels.data.js';
 export const DIAL_MAX = 10;
 
 export const CUTTING = {
-  /** A cut counts only if its line passes this near the middle, in radii. */
-  centre: 0.2,
+  /** A cut counts only if it passes this near the middle, in radii: forgiving, for small fingers. */
+  centre: 0.35,
+  /** Cuts snap to the nearest of these directions, radians: across, down, or corner to corner. */
+  snap: Math.PI / 4,
   /** A swipe shorter than this, in radii, is not a cut at all. */
   shortest: 1.2,
   /** Two cuts for quarters must cross square, give or take this, radians: else the pieces are not equal. */
@@ -240,7 +242,9 @@ export function createTable(def: LevelDef): Table {
       // heading away from the food never reaches it, wherever its line would go.
       const along = Math.max(0, Math.min(1, -(from.x * dx + from.y * dy) / (length * length)));
       const miss = Math.hypot(from.x + dx * along, from.y + dy * along);
-      const angle = ((Math.atan2(dy, dx) % Math.PI) + Math.PI) % Math.PI;
+      const raw = ((Math.atan2(dy, dx) % Math.PI) + Math.PI) % Math.PI;
+      // A clean straight line: the nearest of across, down and corner to corner.
+      const angle = (Math.round(raw / CUTTING.snap) * CUTTING.snap) % Math.PI;
       const square = state.cuts.every((cut) => Math.abs(Math.abs(cut.angle - angle) - Math.PI / 2) <= CUTTING.square);
       if (miss > CUTTING.centre) return [{ type: 'cut', ok: false, why: 'middle' }];
       if (!square) return [{ type: 'cut', ok: false, why: 'cross' }];

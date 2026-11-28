@@ -8,7 +8,10 @@ export type PlaneTypeId = 'glider' | 'weaver' | 'blimp' | 'scout' | 'hider' | 't
  *
  * Sizes are fractions of the playfield, and they are the hit box: the view
  * draws a plane from these numbers rather than keeping its own, so what a child
- * aims at and what the shell collides with can never drift apart.
+ * aims at and what the shell collides with can never drift apart. The picture
+ * is drawn as wide as the box and centred on it; painted from above, nose down,
+ * it is taller than the box, whose height is the body a shell must reach. The
+ * blimp is painted tall, so its box is narrower than its old wide one.
  */
 export interface PlaneType {
   id: PlaneTypeId;
@@ -42,7 +45,7 @@ export const PLANE_TYPES: Record<PlaneTypeId, PlaneType> = {
   // Slow, big, and it bursts into two planes whose numbers add up to the one it
   // was wearing. Three hits on the same answer was three identical taps; this
   // way the big one is a sum coming apart in front of you.
-  blimp: { id: 'blimp', label: 'Blimp', speed: 0.55, hits: 1, from: 50, weight: 2, halfWidth: 0.085, halfHeight: 0.06, sway: 0.02, swayHz: 0.15, hideSeconds: 0, showSeconds: 0 },
+  blimp: { id: 'blimp', label: 'Blimp', speed: 0.55, hits: 1, from: 50, weight: 2, halfWidth: 0.06, halfHeight: 0.06, sway: 0.02, swayHz: 0.15, hideSeconds: 0, showSeconds: 0 },
   // The type that genuinely threatens a heart. The fair window still applies, so
   // a scout you are asked about is always winnable.
   scout: { id: 'scout', label: 'Scout', speed: 1.8, hits: 1, from: 75, weight: 2, halfWidth: 0.045, halfHeight: 0.035, sway: 0, swayHz: 0, hideSeconds: 0, showSeconds: 0 },

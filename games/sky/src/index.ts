@@ -5,6 +5,7 @@ import type { RunEvent } from './logic/run.js';
 import { planeX, struck, type Plane } from './logic/sky-state.js';
 import { createSkySoundPack } from './audio/sky-sounds.js';
 import { createScene } from './view/scene.js';
+import { loadSprites } from './view/sprites.js';
 import { createInput, type InputIntent } from './view/input.js';
 import { TIMING } from './view/timing.js';
 
@@ -47,14 +48,17 @@ export const skyGame: SkyModule = {
 
   async mount(container, host, options = {}): Promise<SkySession> {
     const sounds = createSkySoundPack(host.audio);
-    await sounds.preload();
+    const { sprites, ready } = loadSprites();
+    // A moment for the pictures to arrive; the game starts either way, with
+    // drawn shapes standing in until they do.
+    await Promise.all([sounds.preload(), Promise.race([ready, new Promise((resolve) => setTimeout(resolve, 250))])]);
 
     const canvas = document.createElement('canvas');
     canvas.style.cssText = 'display:block;width:100%;height:100%;touch-action:none;';
     container.appendChild(canvas);
     const ctx = canvas.getContext('2d');
 
-    const scene = createScene();
+    const scene = createScene(sprites);
     const best = host.storage.get('best', 0);
     const driver: Driver = createDriver({ best, startBand: options.startLevel });
 

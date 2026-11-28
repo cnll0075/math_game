@@ -1,7 +1,20 @@
 import { hand, type Point } from '@bundle/core';
 import { PLANE_TYPES, type PlaneTypeId } from '../logic/planes.js';
 import type { Plane } from '../logic/sky-state.js';
-import { bulletPoint, fighterPoint, planePoint, planeSize, SKY } from './geometry.js';
+import { NUMBER_SPOTS } from './art.data.js';
+import { artSize, bulletPoint, fighterPoint, numberSize, planePoint, planeSize, SKY, type PlaneLook } from './geometry.js';
+import { NO_SPRITES, type Sprites } from './sprites.js';
+
+/** The blank inside of each painted panel, as shares of its picture: where the game writes or fills. */
+export const INNER = {
+  fuel: { left: 0.246, top: 0.22, right: 0.914, bottom: 0.659 },
+  score: { left: 0.382, top: 0.195, right: 0.861, bottom: 0.683 },
+  plaque: { left: 0.065, top: 0.363, right: 0.935, bottom: 0.866 },
+  card: { left: 0.054, top: 0.152, right: 0.944, bottom: 0.81 },
+} as const;
+
+/** How wide the fighter's picture is drawn. */
+const FIGHTER_ART_WIDTH = 116;
 
 /** One palette per type, so a scout is known by its colour before its number. */
 const PALETTE: Record<PlaneTypeId, { body: string; wing: string; trim: string }> = {
@@ -59,7 +72,25 @@ const heartBadge = (ctx: CanvasRenderingContext2D, x: number, y: number, size: n
   ctx.restore();
 };
 
-export function drawPlane(ctx: CanvasRenderingContext2D, plane: Plane, heartOnOffer = true): void {
+/**
+ * A plane, as painted: its picture drawn as wide as its hit box and centred on
+ * it, with its number written in the round spot left for it. `look` is the
+ * picture to use — a blimp's halves are gliders that wear the blimp's pieces.
+ * Until the pictures load, a drawn shape stands in.
+ */
+export function drawPlane(
+  ctx: CanvasRenderingContext2D,
+  plane: Plane,
+  heartOnOffer = true,
+  sprites: Sprites = NO_SPRITES,
+  look: PlaneLook = plane.type,
+  clock = 0,
+): void {
+  const image = sprites[look];
+  if (image) {
+    drawPainted(ctx, plane, image, look, heartOnOffer, sprites, clock);
+    return;
+  }
   const type = PLANE_TYPES[plane.type];
   const { width, height } = planeSize(type);
   const at = planePoint(plane);
@@ -130,6 +161,64 @@ export function drawPlane(ctx: CanvasRenderingContext2D, plane: Plane, heartOnOf
   ctx.restore();
 }
 
+function drawPainted(
+  ctx: CanvasRenderingContext2D,
+  plane: Plane,
+  image: HTMLImageElement,
+  look: PlaneLook,
+  heartOnOffer: boolean,
+  sprites: Sprites,
+  clock: number,
+): void {
+  const { width, height } = artSize(look);
+  const at = planePoint(plane);
+  const spot = NUMBER_SPOTS[look];
+  ctx.save();
+  ctx.translate(at.x, at.y);
+  const left = -width / 2;
+  const top = -height / 2;
+  ctx.drawImage(image, left, top, width, height);
+  const middle = { x: left + spot.x * width, y: top + spot.y * height };
+
+  if (plane.type === 'treasure') {
+    // Sparkles twinkling about it, and the heart it carries.
+    for (const [dx, dy, phase] of [[-0.55, -0.35, 0], [0.55, -0.3, 1.7], [-0.5, 0.42, 3.1], [0.58, 0.38, 4.4]] as const) {
+      const glow = 0.5 + 0.5 * Math.sin(clock * 4 + phase);
+      sparkle(ctx, { x: dx * width, y: dy * height }, 6 + glow * 6, 0.4 + glow * 0.6);
+    }
+    const heart = sprites[heartOnOffer ? 'heart' : 'heart-empty'];
+    const size = height * 0.42;
+    if (heart) ctx.drawImage(heart, -size / 2, top - size * 0.9, size, size * 0.87);
+    else heartBadge(ctx, 0, top - size, size * 0.6, heartOnOffer);
+  }
+
+  // Cloud-hiders duck behind a cloud; the plane stays, its number does not.
+  const cloud = sprites['cloud-3'];
+  if (plane.hidden && cloud) {
+    const cloudWidth = width * 1.15;
+    const cloudHeight = (cloudWidth * cloud.height) / cloud.width;
+    ctx.drawImage(cloud, -cloudWidth / 2, middle.y - cloudHeight / 2, cloudWidth, cloudHeight);
+  } else if (!plane.hidden) {
+    numberOn(ctx, String(plane.number), middle, numberSize(look));
+  }
+  ctx.restore();
+}
+
+/** A four-pointed twinkle. */
+function sparkle(ctx: CanvasRenderingContext2D, at: Point, size: number, alpha: number): void {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = '#ffd84a';
+  ctx.beginPath();
+  ctx.moveTo(at.x, at.y - size);
+  ctx.quadraticCurveTo(at.x, at.y, at.x + size, at.y);
+  ctx.quadraticCurveTo(at.x, at.y, at.x, at.y + size);
+  ctx.quadraticCurveTo(at.x, at.y, at.x - size, at.y);
+  ctx.quadraticCurveTo(at.x, at.y, at.x, at.y - size);
+  ctx.fill();
+  ctx.restore();
+}
+
 /**
  * A plane that got away, ringed in red where it left, with the sum it was
  * carrying. Shown only after the fact: a marker on the target while it was
@@ -165,8 +254,19 @@ export function drawFighter(
   ctx: CanvasRenderingContext2D,
   x: number,
   options: { jammed: boolean; sum: string; urgency: number; mourning?: boolean },
+  sprites: Sprites = NO_SPRITES,
 ): void {
   const at = fighterPoint(x);
+  const plaque = sprites.plaque;
+  if (plaque) drawPlaque(ctx, plaque, at.x, options);
+  const image = sprites[options.jammed ? 'fighter-hot' : 'fighter'];
+  if (image) {
+    // The overheated picture is painted smaller, inside its glow: drawn to the same plane width.
+    const width = FIGHTER_ART_WIDTH * (options.jammed ? 1.25 : 1);
+    const height = (width * image.height) / image.width;
+    ctx.drawImage(image, at.x - width / 2, at.y - height * (options.jammed ? 0.62 : 0.5), width, height);
+  }
+  if (plaque && image) return;
   ctx.save();
   ctx.translate(at.x, at.y);
 
@@ -225,8 +325,50 @@ export function drawFighter(
   ctx.restore();
 }
 
-export function drawBullet(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+/**
+ * The sum's plaque, painted, under the fighter: as wide as the sum needs. It
+ * warms towards red as the plane being asked about runs out of sky, and holds
+ * the sum that got away, in red, through the beat after a loss.
+ */
+function drawPlaque(
+  ctx: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  x: number,
+  options: { sum: string; urgency: number; mourning?: boolean },
+): void {
+  const height = 84;
+  const width = Math.max(230, options.sum.length * 26 + 90);
+  const inner = INNER.plaque;
+  // The middle of its blank inside sits where the sum is written.
+  const top = SKY.plaqueY - height * (inner.top + inner.bottom) / 2;
+  const left = x - width / 2;
+  ctx.save();
+  ctx.drawImage(image, left, top, width, height);
+  const heat = options.mourning ? 1 : Math.min(1, Math.max(0, options.urgency));
+  if (heat > 0) {
+    const pulse = 0.75 + 0.25 * Math.sin(Date.now() / 90);
+    ctx.fillStyle = `rgba(232,84,63,${0.45 * heat * pulse})`;
+    ctx.beginPath();
+    ctx.roundRect?.(left + width * inner.left, top + height * inner.top, width * (inner.right - inner.left), height * (inner.bottom - inner.top), 10);
+    ctx.fill();
+  }
+  ctx.font = hand(700, 38);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = options.mourning ? '#b52d17' : '#1e2a38';
+  ctx.fillText(options.sum, x, SKY.plaqueY + 1);
+  ctx.restore();
+}
+
+export function drawBullet(ctx: CanvasRenderingContext2D, x: number, y: number, sprites: Sprites = NO_SPRITES): void {
   const at = bulletPoint(x, y);
+  const image = sprites.shell;
+  if (image) {
+    const height = SKY.bulletLength * 1.3;
+    const width = (height * image.width) / image.height;
+    ctx.drawImage(image, at.x - width / 2, at.y - height / 2, width, height);
+    return;
+  }
   ctx.save();
   ctx.fillStyle = '#ffd166';
   ctx.beginPath();
@@ -236,7 +378,20 @@ export function drawBullet(ctx: CanvasRenderingContext2D, x: number, y: number):
 }
 
 /** A puff of smoke and sparks, fading over its life. `progress` runs 0 to 1. */
-export function drawBoom(ctx: CanvasRenderingContext2D, at: Point, progress: number): void {
+export function drawBoom(ctx: CanvasRenderingContext2D, at: Point, progress: number, sprites: Sprites = NO_SPRITES): void {
+  const image = sprites.pop;
+  if (image) {
+    // The burst: in fast and big, then fading as it spreads.
+    const grow = Math.min(1, progress * 4);
+    const size = 70 + grow * 60 + progress * 30;
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, 1 - progress * progress);
+    ctx.translate(at.x, at.y);
+    ctx.rotate(progress * 0.6);
+    ctx.drawImage(image, -size / 2, -size / 2, size, (size * image.height) / image.width);
+    ctx.restore();
+    return;
+  }
   const fade = 1 - progress;
   const radius = 20 + progress * 58;
   ctx.save();

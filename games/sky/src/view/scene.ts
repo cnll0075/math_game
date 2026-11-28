@@ -2,7 +2,8 @@ import { DESIGN, fitToScreen, visibleBounds, type Point, type Size } from '@bund
 import type { RunEvent, RunState } from '../logic/run.js';
 import { drawBoom, drawBullet, drawFighter, drawMissed, drawPlane } from './plane-art.js';
 import { drawBanner, drawHud, drawLoss, drawSolved, drawSummary, type Summary } from './hud.js';
-import { planePoint } from './geometry.js';
+import { planePoint, type PlaneLook } from './geometry.js';
+import { NO_SPRITES, type SpriteName, type Sprites } from './sprites.js';
 import { TIMING } from './timing.js';
 import { sumText } from '@bundle/math';
 
@@ -48,14 +49,16 @@ export interface Scene {
 }
 
 /** Drifting cloud, so the sky is never a blank wash. */
-const CLOUDS: readonly { x: number; y: number; r: number; speed: number }[] = [
-  { x: 0.15, y: 0.2, r: 80, speed: 0.012 },
-  { x: 0.55, y: 0.12, r: 110, speed: 0.008 },
-  { x: 0.8, y: 0.3, r: 70, speed: 0.016 },
-  { x: 0.35, y: 0.45, r: 95, speed: 0.01 },
+const CLOUDS: readonly { x: number; y: number; r: number; speed: number; art: SpriteName }[] = [
+  { x: 0.15, y: 0.2, r: 80, speed: 0.012, art: 'cloud-2' },
+  { x: 0.55, y: 0.12, r: 110, speed: 0.008, art: 'cloud-1' },
+  { x: 0.8, y: 0.3, r: 70, speed: 0.016, art: 'cloud-3' },
+  { x: 0.35, y: 0.45, r: 95, speed: 0.01, art: 'cloud-4' },
 ];
 
-export function createScene(): Scene {
+export function createScene(sprites: Sprites = NO_SPRITES): Scene {
+  /** The halves a blimp bursts into wear the blimp's pieces, by plane. */
+  const pieces = new Map<string, PlaneLook>();
   const booms: Boom[] = [];
   const solved: Solved[] = [];
   const missed: Missed[] = [];
@@ -97,6 +100,10 @@ export function createScene(): Scene {
             });
             loss = { text: `${sumText(event.sum)} = ${event.sum.answer}`, life: 0 };
             break;
+          case 'split':
+            pieces.set(event.into[0].uid, 'piece-1');
+            pieces.set(event.into[1].uid, 'piece-2');
+            break;
           case 'band':
             banner = { title: event.band.title, life: 0 };
             break;
@@ -109,6 +116,7 @@ export function createScene(): Scene {
     update(dt, next) {
       model = next;
       drift += dt;
+      for (const uid of pieces.keys()) if (!next.run.aloft.some((plane) => plane.uid === uid)) pieces.delete(uid);
 
       for (const boom of booms) boom.life += dt;
       while (booms.length > 0 && booms[0]!.life > TIMING.boomSeconds) booms.shift();
@@ -145,19 +153,38 @@ export function createScene(): Scene {
       gradient.addColorStop(1, '#dff0fb');
       ctx.fillStyle = gradient;
       ctx.fillRect(bounds.left, bounds.top, bounds.right - bounds.left, bounds.bottom - bounds.top);
+      const backdrop = sprites.backdrop;
+      if (backdrop) {
+        // The painted sky, covering the whole screen: its hills and lake along
+        // the bottom, under the fighter; its sides cropped on a narrow screen.
+        const height = bounds.bottom - bounds.top;
+        const width = Math.max(bounds.right - bounds.left, (height * backdrop.width) / backdrop.height);
+        const fullHeight = (width * backdrop.height) / backdrop.width;
+        ctx.drawImage(backdrop, (bounds.left + bounds.right) / 2 - width / 2, bounds.bottom - fullHeight, width, fullHeight);
+      }
 
-      ctx.fillStyle = 'rgba(255,255,255,0.55)';
       for (const cloud of CLOUDS) {
         const x = ((cloud.x + drift * cloud.speed) % 1.2) * DESIGN.width - DESIGN.width * 0.1;
+        const image = sprites[cloud.art];
+        if (image) {
+          const width = cloud.r * 2.4;
+          const height = (width * image.height) / image.width;
+          ctx.save();
+          ctx.globalAlpha = 0.85;
+          ctx.drawImage(image, x - width / 2, cloud.y * DESIGN.height - height / 2, width, height);
+          ctx.restore();
+          continue;
+        }
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
         ctx.beginPath();
         ctx.arc(x, cloud.y * DESIGN.height, cloud.r, 0, Math.PI * 2);
         ctx.arc(x + cloud.r * 0.8, cloud.y * DESIGN.height + cloud.r * 0.2, cloud.r * 0.7, 0, Math.PI * 2);
         ctx.fill();
       }
 
-      for (const plane of current.run.aloft) drawPlane(ctx, plane, current.heartOnOffer);
-      for (const bullet of current.run.bullets) drawBullet(ctx, bullet.x, bullet.y);
-      for (const boom of booms) drawBoom(ctx, boom.at, boom.life / TIMING.boomSeconds);
+      for (const plane of current.run.aloft) drawPlane(ctx, plane, current.heartOnOffer, sprites, pieces.get(plane.uid) ?? plane.type, drift);
+      for (const bullet of current.run.bullets) drawBullet(ctx, bullet.x, bullet.y, sprites);
+      for (const boom of booms) drawBoom(ctx, boom.at, boom.life / TIMING.boomSeconds, sprites);
       for (const entry of solved) drawSolved(ctx, entry.at, entry.text, entry.life / TIMING.solvedSeconds);
       for (const entry of missed) drawMissed(ctx, entry.at, entry.text, entry.life / TIMING.missedSeconds);
 
@@ -166,17 +193,17 @@ export function createScene(): Scene {
         sum: current.sumText,
         urgency: current.urgency,
         mourning: current.mourning,
-      });
+      }, sprites);
 
       drawHud(ctx, {
         health: current.run.health,
         score: current.run.score,
         streak: current.run.streak,
         crack: crack / TIMING.heartCrackSeconds,
-      });
-      if (banner) drawBanner(ctx, banner.title, banner.life / TIMING.bandAnnounceSeconds);
-      if (loss) drawLoss(ctx, loss.text, loss.life / TIMING.lossSeconds);
-      if (current.summary) drawSummary(ctx, current.summary);
+      }, sprites);
+      if (banner) drawBanner(ctx, banner.title, banner.life / TIMING.bandAnnounceSeconds, sprites);
+      if (loss) drawLoss(ctx, loss.text, loss.life / TIMING.lossSeconds, sprites);
+      if (current.summary) drawSummary(ctx, current.summary, sprites);
 
       ctx.restore();
     },

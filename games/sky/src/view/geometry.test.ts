@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { DESIGN } from '@bundle/core';
 import { PLANE_IDS, PLANE_TYPES } from '../logic/planes.js';
-import { FIELD_WIDTH, laneAt, planeSize, skyPoint, SKY } from './geometry.js';
+import { ART_SIZES, NUMBER_SPOTS } from './art.data.js';
+import { artSize, FIELD_WIDTH, numberSize, laneAt, planeSize, skyPoint, SKY } from './geometry.js';
 
 describe('the sky', () => {
   it('leaves the top bar clear, so a plane never flies through the health bar', () => {
@@ -39,5 +40,26 @@ describe('the sky', () => {
   it('clamps a tap outside the playfield to its edge', () => {
     expect(laneAt(-500)).toBe(0);
     expect(laneAt(DESIGN.width + 500)).toBe(1);
+  });
+});
+
+describe('the planes as drawn', () => {
+  it('are drawn exactly as wide as what a shell can hit, in their own shape', () => {
+    for (const id of PLANE_IDS) {
+      const box = planeSize(PLANE_TYPES[id]);
+      const art = artSize(id);
+      expect(art.width, id).toBeCloseTo(box.width, 5);
+      expect(art.width / art.height, id).toBeCloseTo(ART_SIZES[id].width / ART_SIZES[id].height, 5);
+      // Painted from above, nose down: never shorter than the body a shell must reach.
+      expect(art.height, id).toBeGreaterThanOrEqual(box.height);
+    }
+  });
+
+  it('write the number big enough to read at a glance, filling its spot', () => {
+    for (const id of PLANE_IDS) {
+      const diameter = NUMBER_SPOTS[id].r * 2 * artSize(id).height;
+      expect(numberSize(id), id).toBeGreaterThanOrEqual(28);
+      expect(numberSize(id), id).toBeGreaterThanOrEqual(diameter * 0.8);
+    }
   });
 });

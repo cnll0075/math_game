@@ -1,5 +1,6 @@
 import { DESIGN, type Point } from '@bundle/core';
-import { PLANE_TYPES, type PlaneType } from '../logic/planes.js';
+import { PLANE_TYPES, type PlaneType, type PlaneTypeId } from '../logic/planes.js';
+import { ART_SIZES, NUMBER_SPOTS } from './art.data.js';
 import { planeX, type Plane } from '../logic/sky-state.js';
 
 /**
@@ -57,6 +58,26 @@ export const planeSize = (type: PlaneType): { width: number; height: number } =>
   width: type.halfWidth * 2 * FIELD_WIDTH,
   height: type.halfHeight * 2 * FALL_HEIGHT,
 });
+
+/** A plane's look: its type's picture, or one of the two a blimp bursts into. */
+export type PlaneLook = PlaneTypeId | 'piece-1' | 'piece-2';
+
+/**
+ * How big a plane's picture is drawn: as wide as its hit box, in the
+ * picture's own shape. Painted from above, nose down, it is taller than the
+ * box, whose height is the body a shell must reach.
+ */
+export function artSize(look: PlaneLook, type: PlaneType = PLANE_TYPES[look === 'piece-1' || look === 'piece-2' ? 'glider' : look]): { width: number; height: number } {
+  const { width } = planeSize(type);
+  const art = ART_SIZES[look];
+  return { width, height: (width * art.height) / art.width };
+}
+
+/** The height of the number written on a plane: filling its spot, never under 28 so it reads at a glance. */
+export function numberSize(look: PlaneLook): number {
+  const diameter = NUMBER_SPOTS[look].r * 2 * artSize(look).height;
+  return Math.max(28, diameter * 0.85);
+}
 
 export const fighterPoint = (x: number): Point => ({ x: SKY.fieldLeft + x * FIELD_WIDTH, y: SKY.fighterY });
 

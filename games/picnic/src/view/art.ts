@@ -107,6 +107,25 @@ export function drawWaiting(ctx: CanvasRenderingContext2D, sprites: Sprites, fri
   drawStanding(ctx, sprites, `${friend}-happy`, { x: at.x, y: at.y - bob }, FENCE_FRIEND.scale, { fallback: '#b07a4a' });
 }
 
+/** A little pink heart, for a friend who is happy with their share. */
+export function drawHeart(ctx: CanvasRenderingContext2D, at: Point, size: number, alpha: number): void {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(at.x, at.y);
+  ctx.scale(size / 20, size / 20);
+  ctx.fillStyle = '#ff6f91';
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(0, 8);
+  ctx.bezierCurveTo(-14, -2, -10, -14, 0, -6);
+  ctx.bezierCurveTo(10, -14, 14, -2, 0, 8);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+}
+
 /** A white plate with a blue rim, on the cloth. */
 export function drawPlate(ctx: CanvasRenderingContext2D, seat: Point): void {
   ctx.save();

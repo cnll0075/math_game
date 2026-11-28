@@ -16,6 +16,7 @@ import {
   drawFood,
   drawFriend,
   drawHeap,
+  drawHeart,
   drawPark,
   drawPiece,
   drawPlate,
@@ -92,6 +93,11 @@ const DOG_EAT_SECONDS = 1.6;
 const FIRST_DOG_ROUND = LEVELS.find(hasLeftovers)?.id;
 const BUBBLE_SECONDS = 4;
 
+/** A friend's hop for joy when the shares land: a few quick hops, settling. */
+const JOY = { seconds: 0.9, height: 16, hops: 3, stagger: 0.08 } as const;
+const joy = (t: number): number =>
+  t <= 0 || t >= JOY.seconds ? 0 : Math.abs(Math.sin((t / JOY.seconds) * Math.PI * JOY.hops)) * JOY.height * (1 - t / JOY.seconds);
+
 const shareTreat = (table: TableState): TreatId | null => {
   const course = courseOf(table);
   return course.kind === 'cut' ? null : course.treat;
@@ -111,6 +117,8 @@ export function createScene(sprites: Sprites): Scene {
   let trail: { from: Point; to: Point; life: number; ok: boolean | null } | null = null;
   let drag: { from: Point; to: Point } | null = null;
   let dialPulse = 0;
+  /** Seconds everyone has had their share in front of them: they hop for joy, and hearts rise. */
+  let feast = 0;
 
   const above = (plate: number, count: number): Point => {
     const seat = seats(count)[plate] ?? { x: 576, y: 392 };
@@ -229,6 +237,9 @@ export function createScene(sprites: Sprites): Scene {
         trail.life += dt;
         if (trail.life > TRAIL_SECONDS) trail = null;
       }
+      const shared = next.phase === 'done' || next.table.phase === 'between';
+      const landed = !flyers.some((flyer) => flyer.plate !== BOWL_PLATE);
+      feast = shared && landed ? feast + dt : 0;
     },
 
     render(ctx, screen) {
@@ -277,9 +288,19 @@ export function createScene(sprites: Sprites): Scene {
         if (feasting && (table.plates[plate] ?? 0) > 0) mood = 'eating';
         else if (face) mood = face.mood;
         else if (short(plate)) mood = 'puzzled';
-        drawFriend(ctx, sprites, friend, mood, places[plate]!);
+        drawFriend(ctx, sprites, friend, mood, places[plate]!, joy(feast - plate * JOY.stagger));
       });
       drawTable(ctx, sprites);
+      if (feast > 0) {
+        // Hearts rising from each friend, happy with their share.
+        places.forEach((seat, plate) => {
+          for (let one = 0; one < 2; one += 1) {
+            const rise = (feast * 0.6 + one * 0.5 + plate * 0.23) % 1;
+            const x = seat.x + 48 + Math.sin((rise + plate) * 6) * 10;
+            drawHeart(ctx, { x, y: seat.y - 190 - rise * 80 }, 32, Math.min(1, feast * 3) * (1 - rise * 0.8));
+          }
+        });
+      }
       places.forEach((seat, plate) => {
         drawPlate(ctx, seat);
         if (short(plate)) drawQuestion(ctx, { x: seat.x + 70, y: seat.y - 190 });

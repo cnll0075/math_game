@@ -4,7 +4,8 @@ The sheet (1536x1024) holds a picnic table, a basket, chairs, four friends in
 four moods each, Biscuit the dog, the treats, pizza and cake whole and in
 pieces, the dial, the Share button, a fence and a patch of grass, each on
 white. Every piece is cut by flooding the white in from the edge of its box,
-so white painted inside an outline (the plates, the bunny) stays. The table's
+so white painted inside an outline (the plates, the bunny) stays. Each friend's
+eating face is rebuilt without the food painted in its paws (see `beaming`). The table's
 own painted plates are painted out first, from the cloth beside them, because
 each friend brings their own; the dial's painted "3" is wiped so the game can
 write its own number.
@@ -260,6 +261,71 @@ def largest_part(sprite):
 
 MOODS = ('eating', 'happy', 'puzzled', 'grumpy')
 
+# The sheet's eating faces hold food of their own (cookies, a strawberry, a
+# sandwich), which would be the wrong food whatever was shared. So each
+# friend's eating picture is made from their happy picture, whose paws are
+# empty, wearing the eating face's big smile: the head, down to its neck (a
+# share of its height), placed where it lines up best.
+NECK = {'teddy': 0.64, 'bunny': 0.68, 'fox': 0.56, 'raccoon': 0.5}
+NECK_FEATHER = 14
+
+
+def beaming(board, friend):
+    """The happy picture with the eating face's big smile, and nothing in its paws."""
+    eat = np.asarray(cut(board, SPRITES[f'{friend}-eating'])).astype(float)
+    body = np.asarray(cut(board, SPRITES[f'{friend}-happy'])).astype(float)
+    rows = int(eat.shape[0] * NECK[friend])
+    head = eat[:rows]
+    solid = head[..., 3] > 128
+    ys, xs = np.nonzero(solid)
+    # Where the head sits best on the body: most of its outline over the body,
+    # least of the body's old head left outside it.
+    best = None
+    for dy in range(-30, 31):
+        for dx in range(-40, 41):
+            ty, tx = ys + dy, xs + dx
+            inside = (ty >= 0) & (ty < body.shape[0]) & (tx >= 0) & (tx < body.shape[1])
+            if inside.mean() < 0.9:
+                continue
+            hit = (body[ty[inside], tx[inside], 3] > 128).mean()
+            covered = np.zeros(body.shape[:2], bool)
+            covered[ty[inside], tx[inside]] = True
+            top = max(0, rows + dy)
+            spill = ((body[:top, :, 3] > 128) & ~covered[:top]).sum() / max(1, solid.sum())
+            if best is None or hit - spill > best[0]:
+                best = (hit - spill, dx, dy)
+    _, dx, dy = best
+    result = body.copy()
+    # The old head is cleared wherever the new one does not cover it, above
+    # where the new one fades into the body, so no old ear or cheek peeks out.
+    placed = np.zeros(body.shape[:2], np.uint8)
+    ty, tx = ys + dy, xs + dx
+    inside = (ty >= 0) & (ty < body.shape[0]) & (tx >= 0) & (tx < body.shape[1])
+    placed[ty[inside], tx[inside]] = 255
+    placed = np.asarray(Image.fromarray(placed).filter(ImageFilter.MaxFilter(3))) > 0
+    clear = np.zeros(body.shape[:2], bool)
+    clear[:max(0, rows + dy - NECK_FEATHER - 2)] = True
+    result[clear & ~placed, 3] = 0
+    fade = np.ones(rows)
+    fade[-NECK_FEATHER:] = np.linspace(1, 0, NECK_FEATHER)
+    for y in range(rows):
+        to_y = y + dy
+        if not 0 <= to_y < body.shape[0]:
+            continue
+        for x in range(head.shape[1]):
+            to_x = x + dx
+            if not 0 <= to_x < body.shape[1]:
+                continue
+            a = head[y, x, 3] / 255 * fade[y]
+            # Where the head fades into the body, only over the body: never a
+            # faint fringe left hanging beside it.
+            if a <= 0 or (fade[y] < 1 and body[to_y, to_x, 3] < 128):
+                continue
+            result[to_y, to_x, :3] = head[y, x, :3] * a + result[to_y, to_x, :3] * (1 - a)
+            result[to_y, to_x, 3] = max(result[to_y, to_x, 3], head[y, x, 3] * fade[y])
+    out = Image.fromarray(result.astype(np.uint8), 'RGBA')
+    return out.crop(out.getbbox())
+
 
 def centre_on_plate(sprite):
     """
@@ -298,7 +364,8 @@ def main():
         raise SystemExit(f'expected a 1536x1024 sheet, got {sheet.size}: measure the boxes again')
     board = prepare(sheet)
     for name, box in SPRITES.items():
-        sprite = cut(board, box)
+        friend, _, mood = name.partition('-')
+        sprite = beaming(board, friend) if mood == 'eating' and friend in NECK else cut(board, box)
         if name in LARGEST_ONLY:
             sprite = largest_part(sprite)
         if '-' in name and name.split('-')[1] in MOODS:

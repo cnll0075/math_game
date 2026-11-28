@@ -92,13 +92,11 @@ export function drawTable(ctx: CanvasRenderingContext2D, sprites: Sprites): void
 
 /**
  * A friend sitting behind the table: drawn before it, so it hides them below
- * the shoulders. The sheet's eating faces hold food of their own — a cookie,
- * a strawberry, a sandwich — so a friend eating wears their happy face
- * instead, their own share on the plate in front of them.
+ * the shoulders. Their eating face is their biggest smile, with nothing in
+ * their paws: the cutter rebuilds it without the food the sheet painted there.
  */
 export function drawFriend(ctx: CanvasRenderingContext2D, sprites: Sprites, friend: FriendId, mood: Mood, seat: Point, bob = 0): void {
-  const face: Mood = mood === 'eating' ? 'happy' : mood;
-  drawStanding(ctx, sprites, `${friend}-${face}`, { x: seat.x, y: BODY_Y - bob }, FRIEND.scale, { fallback: '#b07a4a' });
+  drawStanding(ctx, sprites, `${friend}-${mood}`, { x: seat.x, y: BODY_Y - bob }, FRIEND.scale, { fallback: '#b07a4a' });
 }
 
 

@@ -94,20 +94,13 @@ export function drawTable(ctx: CanvasRenderingContext2D, sprites: Sprites): void
  * A friend sitting behind the table: drawn before it, so it hides them below
  * the shoulders. The sheet's eating faces hold food of their own — a cookie,
  * a strawberry, a sandwich — so a friend eating wears their happy face
- * instead, and what they were given is drawn in front of them (`drawMouthful`).
+ * instead, their own share on the plate in front of them.
  */
 export function drawFriend(ctx: CanvasRenderingContext2D, sprites: Sprites, friend: FriendId, mood: Mood, seat: Point, bob = 0): void {
   const face: Mood = mood === 'eating' ? 'happy' : mood;
   drawStanding(ctx, sprites, `${friend}-${face}`, { x: seat.x, y: BODY_Y - bob }, FRIEND.scale, { fallback: '#b07a4a' });
 }
 
-/** What a friend is eating, held still at their mouth. Drawn after the table, so it is not hidden. */
-export function drawMouthful(ctx: CanvasRenderingContext2D, sprites: Sprites, name: SpriteName, seat: Point): void {
-  drawCentred(ctx, sprites, name, { x: seat.x + MOUTH.x, y: BODY_Y + MOUTH.y }, MOUTH.size);
-}
-
-/** Where a seated friend's mouth is, from the foot of their picture, and how big a mouthful is drawn. */
-const MOUTH = { x: 26, y: -96, size: 40 } as const;
 
 /** A friend waiting to be asked, peeking over the fence. */
 export function drawWaiting(ctx: CanvasRenderingContext2D, sprites: Sprites, friend: FriendId, at: Point, bob: number): void {

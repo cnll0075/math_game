@@ -274,7 +274,11 @@ SMILES_ALREADY = {'bunny'}
 # Beside some eating faces, at neck height, is something that is not the head
 # — the top of Fox's tail — and would hang off the new picture as a stray line:
 # everything left of this share of the width, below this share of the height, goes.
-HEAD_LEFT = {'fox': (0.26, 0.48)}
+HEAD_LEFT = {'fox': (0.17, 0.5)}
+
+# The cookie Teddy holds against his chin, on the sheet (centre and radii):
+# made white before his eating face is cut, so it leaves with the background.
+HELD = {'teddy': (1028, 141, 27, 25)}
 
 # The sizes the head is tried at, from a little smaller than the eating face to its own.
 HEAD_SCALES: dict = {}
@@ -283,7 +287,12 @@ NECK_FEATHER = 14
 
 def beaming(board, friend):
     """The happy picture with the eating face's big smile, and nothing in its paws."""
-    eat = cut(board, SPRITES[f'{friend}-eating'])
+    source = board
+    if friend in HELD:
+        source = board.copy()
+        cx, cy, rx, ry = HELD[friend]
+        ImageDraw.Draw(source).ellipse((cx - rx, cy - ry, cx + rx, cy + ry), fill=(255, 255, 255))
+    eat = cut(source, SPRITES[f'{friend}-eating'])
     pad = 40
     # Room around the body, so a head a little wider than the old one is never clipped.
     body = np.pad(np.asarray(cut(board, SPRITES[f'{friend}-happy'])).astype(float), ((pad, pad), (pad, pad), (0, 0)))

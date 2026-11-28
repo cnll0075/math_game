@@ -16,6 +16,7 @@ import {
   drawFood,
   drawFriend,
   drawHeap,
+  drawMouthful,
   drawPark,
   drawPiece,
   drawPlate,
@@ -284,6 +285,11 @@ export function createScene(sprites: Sprites): Scene {
       places.forEach((seat, plate) => {
         drawPlate(ctx, seat);
         if (short(plate)) drawQuestion(ctx, { x: seat.x + 70, y: seat.y - 190 });
+        // Eating what they were actually given.
+        if (feasting && (table.plates[plate] ?? 0) > 0) {
+          const mouthful = course.kind === 'cut' ? (course.food === 'pizza' ? 'pizza-half' : 'cake-slice') : course.treat;
+          drawMouthful(ctx, sprites, mouthful, seat, clock, plate * 0.3);
+        }
       });
 
       if (course.kind === 'cut') {
